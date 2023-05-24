@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Gavin Clayton (interkarma@dfworkshop.net)
-// Contributors:    
+// Contributors:    Arneb Nihal
 // 
 // Notes:
 //
@@ -29,21 +29,25 @@ namespace DaggerfallConnect.Arena2
     {
         #region Class Variables
 
+        public const int WorldWidth = 1115;
+        public const int WorldHeight = 932;
+        public const ulong OneBillion = 1000000000;
         public const int WorldMapTerrainDim = 32768;
         public const int WorldMapTileDim = 128;
         public const int WorldMapRMBDim = 4096;
         public const int MinWorldCoordX = 0;
         public const int MinWorldCoordZ = 0;
-        public const int MaxWorldCoordX = 32768000;
-        public const int MaxWorldCoordZ = 16384000;
+        public const int MaxWorldCoordX = WorldMapTerrainDim * WorldWidth;
+        public const int MaxWorldCoordZ = WorldMapTerrainDim * WorldHeight;
         public const int MinWorldTileCoordX = 0;
-        public const int MaxWorldTileCoordX = 128000;
+        public const int MaxWorldTileCoordX = WorldMapTileDim * WorldWidth;
         public const int MinWorldTileCoordZ = 0;
-        public const int MaxWorldTileCoordZ = 64000;
+        public const int MaxWorldTileCoordZ = WorldMapTileDim * WorldHeight;
         public const int MinMapPixelX = 0;
         public const int MinMapPixelY = 0;
-        public const int MaxMapPixelX = 1000;
-        public const int MaxMapPixelY = 500;
+        public const int MaxMapPixelX = int.MaxValue;
+        public const int MaxMapPixelY = int.MaxValue;
+        public const int TempRegionCount = 62;
 
         /// <summary>
         /// All region names.
@@ -132,12 +136,12 @@ namespace DaggerfallConnect.Arena2
         /// <summary>
         /// Climate PAK file.
         /// </summary>
-        private PakFile climatePak;
+        // public ExPakFile climatePak;
 
         /// <summary>
         /// Politic PAK file.
         /// </summary>
-        private PakFile politicPak;
+        // public ExPakFile politicPak;
 
         /// <summary>
         /// Flag set when class is loaded and ready.
@@ -232,7 +236,7 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         public int RegionCount
         {
-            get { return bsaFile.Count / 4; }
+            get { return TempRegionCount; }
         }
 
         /// <summary>
@@ -277,10 +281,10 @@ namespace DaggerfallConnect.Arena2
         /// <summary>
         /// Gets internal climate data.
         /// </summary>
-        public PakFile ClimateFile
-        {
-            get { return climatePak; }
-        }
+        // public ExPakFile ClimateFile
+        // {
+        //     get { return climatePak; }
+        // }
 
         #endregion
 
@@ -330,8 +334,8 @@ namespace DaggerfallConnect.Arena2
         public static DFPosition LongitudeLatitudeToMapPixel(int longitude, int latitude)
         {
             DFPosition pos = new DFPosition();
-            pos.X = longitude / 128;
-            pos.Y = 499 - (latitude / 128);
+            pos.X = longitude / WorldMapTileDim;
+            pos.Y = WorldHeight - (latitude / WorldMapTileDim);
 
             return pos;
         }
@@ -345,8 +349,8 @@ namespace DaggerfallConnect.Arena2
         public static DFPosition MapPixelToLongitudeLatitude(int mapPixelX, int mapPixelY)
         {
             DFPosition pos = new DFPosition();
-            pos.X = mapPixelX * 128;
-            pos.Y = (499 - mapPixelY) * 128;
+            pos.X = mapPixelX * WorldMapTileDim;
+            pos.Y = (WorldHeight - mapPixelY) * WorldMapTileDim;
 
             return pos;
         }
@@ -359,15 +363,17 @@ namespace DaggerfallConnect.Arena2
         /// <param name="mapPixelX">Map pixel X.</param>
         /// <param name="mapPixelY">Map pixel Y.</param>
         /// <returns>Map pixel ID.</returns>
-        public static int GetMapPixelID(int mapPixelX, int mapPixelY)
+        public static ulong GetMapPixelID(int mapPixelX, int mapPixelY)
         {
-            return mapPixelY * 1000 + mapPixelX;
+            ulong X = (ulong)mapPixelX;
+            ulong Y = (ulong)mapPixelY;
+            return (Y * OneBillion + X);
         }
 
-        public static DFPosition GetPixelFromPixelID(int pixelID)
+        public static DFPosition GetPixelFromPixelID(ulong pixelID)
         {
-            int x = pixelID % 1000;
-            int y = (pixelID - x) / 1000;
+            int x = (int)(pixelID % OneBillion);
+            int y = (int)((pixelID - (ulong)x) / OneBillion);
             return new DFPosition(x, y);
         }
 
@@ -379,11 +385,11 @@ namespace DaggerfallConnect.Arena2
         /// <param name="longitude">Longitude position.</param>
         /// <param name="latitude">Latitude position.</param>
         /// <returns>Map pixel ID.</returns>
-        public static int GetMapPixelIDFromLongitudeLatitude(int longitude, int latitude)
+        public static ulong GetMapPixelIDFromLongitudeLatitude(int longitude, int latitude)
         {
             DFPosition pos = LongitudeLatitudeToMapPixel(longitude, latitude);
 
-            return pos.Y * 1000 + pos.X;
+            return (ulong)pos.Y * OneBillion + (ulong)pos.X;
         }
 
         /// <summary>
@@ -395,8 +401,8 @@ namespace DaggerfallConnect.Arena2
         public static DFPosition MapPixelToWorldCoord(int mapPixelX, int mapPixelY)
         {
             DFPosition pos = new DFPosition();
-            pos.X = mapPixelX * 32768;
-            pos.Y = (499 - mapPixelY) * 32768;
+            pos.X = mapPixelX * WorldMapTerrainDim;
+            pos.Y = (WorldHeight - mapPixelY) * WorldMapTerrainDim;
 
             return pos;
         }
@@ -410,8 +416,8 @@ namespace DaggerfallConnect.Arena2
         public static DFPosition WorldCoordToMapPixel(int worldX, int worldZ)
         {
             DFPosition pos = new DFPosition();
-            pos.X = worldX / 32768;
-            pos.Y = 499 - (worldZ / 32768);
+            pos.X = worldX / WorldMapTerrainDim;
+            pos.Y = WorldHeight - (worldZ / WorldMapTerrainDim);
 
             return pos;
         }
@@ -426,8 +432,8 @@ namespace DaggerfallConnect.Arena2
         {
             DFPosition mapPixel = WorldCoordToMapPixel(worldX, worldZ);
             DFPosition pos = new DFPosition();
-            pos.X = mapPixel.X * 128;
-            pos.Y = (499 - mapPixel.Y) * 128;
+            pos.X = mapPixel.X * WorldMapTileDim;
+            pos.Y = (WorldHeight - mapPixel.Y) * WorldMapTileDim;
 
             return pos;
         }
@@ -571,10 +577,10 @@ namespace DaggerfallConnect.Arena2
             if (!filePath.EndsWith("MAPS.BSA", StringComparison.InvariantCultureIgnoreCase))
                 return false;
 
-            // Load PAK files
-            string arena2Path = Path.GetDirectoryName(filePath);
-            climatePak = new PakFile(Path.Combine(arena2Path, "CLIMATE.PAK"));
-            politicPak = new PakFile(Path.Combine(arena2Path, "POLITIC.PAK"));
+        //     // Load PAK files
+        //     string arena2Path = Path.GetDirectoryName(filePath);
+        //     climatePak = new ExPakFile(Path.Combine(arena2Path, "Climate.json"));
+        //     politicPak = new ExPakFile(Path.Combine(arena2Path, "Politic.json"));
 
             // Load file
             isReady = false;
@@ -891,9 +897,9 @@ namespace DaggerfallConnect.Arena2
         public int GetClimateIndex(int mapPixelX, int mapPixelY)
         {
             // Add +1 to X coordinate to line up with height map
-            mapPixelX += 1;
+            // mapPixelX += 1;
 
-            return climatePak.GetValue(mapPixelX, mapPixelY);
+            return ClimateData.ClimateModified[mapPixelX, mapPixelY];
         }
 
         /// <summary>
@@ -903,8 +909,8 @@ namespace DaggerfallConnect.Arena2
         /// <param name="mapPixelY">Map pixel Y position.</param>
         public int GetPoliticIndex(int mapPixelX, int mapPixelY)
         {
-            mapPixelX += 1;
-            return politicPak.GetValue(mapPixelX, mapPixelY);
+            // mapPixelX += 1;
+            return PoliticData.Politic[mapPixelX, mapPixelY];
         }
 
         /// <summary>
@@ -915,11 +921,11 @@ namespace DaggerfallConnect.Arena2
         /// <param name="mapPixelY">Map pixel Y position.</param>
         /// <param name="value">The climate to set for the specified map pixel.</param>
         /// <returns>True if climate index was set, false otherwise.</returns>
-        public bool SetClimateIndex(int mapPixelX, int mapPixelY, Climates value)
-        {
-            mapPixelX += 1;
-            return climatePak.SetValue(mapPixelX, mapPixelY, (byte)value);
-        }
+        // public bool SetClimateIndex(int mapPixelX, int mapPixelY, Climates value)
+        // {
+        //     mapPixelX += 1;
+        //     return climatePak.SetValue(mapPixelX, mapPixelY, (byte)value);
+        // }
 
         /// <summary>
         /// Reads politic index from POLITIC.PAK based on world pixel.
@@ -929,11 +935,11 @@ namespace DaggerfallConnect.Arena2
         /// <param name="mapPixelY">Map pixel Y position.</param>
         /// <param name="value">The politic index to set for the specified map pixel.</param>
         /// <returns>True if politic index was set, false otherwise.</returns>
-        public bool SetPoliticIndex(int mapPixelX, int mapPixelY, byte value)
-        {
-            mapPixelX += 1;
-            return politicPak.SetValue(mapPixelX, mapPixelY, value);
-        }
+        // public bool SetPoliticIndex(int mapPixelX, int mapPixelY, byte value)
+        // {
+        //     mapPixelX += 1;
+        //     return politicPak.SetValue(mapPixelX, mapPixelY, value);
+        // }
 
         #endregion
 
@@ -952,12 +958,12 @@ namespace DaggerfallConnect.Arena2
                 regions[region].DFRegion.Name = regionNames[region];
 
                 // Read map names
-                BinaryReader reader = regions[region].MapNames.GetReader();
-                ReadMapNames(ref reader, region);
+                // BinaryReader reader = regions[region].MapNames.GetReader();
+                ReadMapNames(region);
 
                 // Read map table
-                reader = regions[region].MapTable.GetReader();
-                ReadMapTable(ref reader, region);
+                // reader = regions[region].MapTable.GetReader();
+                ReadMapTable(region);
             }
             catch (Exception e)
             {
@@ -992,13 +998,13 @@ namespace DaggerfallConnect.Arena2
                 //            Anywhere using this for display to player should use TextProvider.GetLocalizedRegionName() instead.
                 dfLocation.RegionName = RegionNames[region];
 
-                // Read MapPItem for this location
-                BinaryReader reader = regions[region].MapPItem.GetReader();
-                ReadMapPItem(ref reader, region, location, ref dfLocation);
+                // Read Locations for this location
+                // BinaryReader reader = regions[region].MapPItem.GetReader();
+                ReadDFLocation(region, location, ref dfLocation);
 
                 // Read MapDItem for this location
-                reader = regions[region].MapDItem.GetReader();
-                ReadMapDItem(ref reader, region, ref dfLocation);
+                // reader = regions[region].MapDItem.GetReader();
+                // ReadMapDItem(ref reader, region, ref dfLocation);
 
                 // Copy RegionMapTable data to this location
                 dfLocation.MapTableData = regions[region].DFRegion.MapTable[location];
@@ -1026,10 +1032,10 @@ namespace DaggerfallConnect.Arena2
             DFPosition pos = LongitudeLatitudeToMapPixel(dfLocation.MapTableData.Longitude, dfLocation.MapTableData.Latitude);
 
             // Read politic data. This should always equal region index + 128.
-            dfLocation.Politic = politicPak.GetValue(pos.X, pos.Y);
+            dfLocation.Politic = PoliticData.Politic[pos.X, pos.Y];
 
             // Read climate data
-            int worldClimate = climatePak.GetValue(pos.X, pos.Y);
+            int worldClimate = ClimateData.ClimateModified[pos.X, pos.Y];
             dfLocation.Climate = MapsFile.GetWorldClimateSettings(worldClimate);
         }
 
@@ -1038,11 +1044,11 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         /// <param name="reader">A binary reader to data.</param>
         /// <param name="region">Destination region index.</param>
-        private void ReadMapNames(ref BinaryReader reader, int region)
+        private void ReadMapNames(int region)
         {
             // Location count
-            reader.BaseStream.Position = 0;
-            regions[region].DFRegion.LocationCount = reader.ReadUInt32();
+            // reader.BaseStream.Position = 0;
+            regions[region].DFRegion.LocationCount = WorldMaps.WorldMap[region].LocationCount;
 
             // Read names
             regions[region].DFRegion.MapNames = new String[regions[region].DFRegion.LocationCount];
@@ -1050,7 +1056,7 @@ namespace DaggerfallConnect.Arena2
             for (int i = 0; i < regions[region].DFRegion.LocationCount; i++)
             {
                 // Read map name data
-                regions[region].DFRegion.MapNames[i] = FileProxy.ReadCStringSkip(reader, 0, 32);
+                regions[region].DFRegion.MapNames[i] = WorldMaps.WorldMap[region].MapNames[i];
 
                 // Add to dictionary
                 if (!regions[region].DFRegion.MapNameLookup.ContainsKey(regions[region].DFRegion.MapNames[i]))
@@ -1063,24 +1069,24 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         /// <param name="reader">A binary reader to data.</param>
         /// <param name="region">Destination region index.</param>
-        private void ReadMapTable(ref BinaryReader reader, int region)
+        private void ReadMapTable(int region)
         {
             // Read map table for each location
-            UInt32 bitfield;
-            reader.BaseStream.Position = 0;
+            // UInt32 bitfield;
+            // reader.BaseStream.Position = 0;
             regions[region].DFRegion.MapTable = new DFRegion.RegionMapTable[regions[region].DFRegion.LocationCount];
-            regions[region].DFRegion.MapIdLookup = new System.Collections.Generic.Dictionary<int, int>();
+            regions[region].DFRegion.MapIdLookup = new System.Collections.Generic.Dictionary<ulong, int>();
             for (int i = 0; i < regions[region].DFRegion.LocationCount; i++)
             {
                 // Read map table data
-                regions[region].DFRegion.MapTable[i].MapId = reader.ReadInt32();
-                bitfield = reader.ReadUInt32();
-                regions[region].DFRegion.MapTable[i].Longitude = (int)(bitfield & 0x1FFFFFF) >> 8;
-                regions[region].DFRegion.MapTable[i].LocationType = (DFRegion.LocationTypes)((4 * bitfield) >> 27);
-                regions[region].DFRegion.MapTable[i].Discovered = ((bitfield >> 24) & 0x40) != 0;
-                regions[region].DFRegion.MapTable[i].Latitude = (reader.ReadInt32() & 0xFFFFFF) >> 8;
-                regions[region].DFRegion.MapTable[i].DungeonType = (DFRegion.DungeonTypes)reader.ReadByte();
-                regions[region].DFRegion.MapTable[i].Key = reader.ReadUInt32();
+                regions[region].DFRegion.MapTable[i].MapId = WorldMaps.WorldMap[region].MapTable[i].MapId;
+                // bitfield = reader.ReadUInt32();
+                regions[region].DFRegion.MapTable[i].Longitude = WorldMaps.WorldMap[region].MapTable[i].Longitude;
+                regions[region].DFRegion.MapTable[i].LocationType = WorldMaps.WorldMap[region].MapTable[i].LocationType;
+                regions[region].DFRegion.MapTable[i].Discovered = WorldMaps.WorldMap[region].MapTable[i].Discovered;
+                regions[region].DFRegion.MapTable[i].Latitude = WorldMaps.WorldMap[region].MapTable[i].Latitude;
+                regions[region].DFRegion.MapTable[i].DungeonType = WorldMaps.WorldMap[region].MapTable[i].DungeonType;
+                regions[region].DFRegion.MapTable[i].Key = WorldMaps.WorldMap[region].MapTable[i].Key;
 
                 // Add to dictionary
                 if (!regions[region].DFRegion.MapIdLookup.ContainsKey(regions[region].DFRegion.MapTable[i].MapId))
@@ -1092,9 +1098,11 @@ namespace DaggerfallConnect.Arena2
         /// classic datafiles only, excluding added locations. </summary>
         private uint ReadLocationCount(int region)
         {
-            BinaryReader reader = regions[region].MapNames.GetReader();
-            reader.BaseStream.Position = 0;
-            return reader.ReadUInt32();
+            // BinaryReader reader = regions[region].MapNames.GetReader();
+            // reader.BaseStream.Position = 0;
+            uint locationCount = (uint)WorldMaps.WorldMap[region].LocationCount;
+
+            return locationCount;
         }
 
         /// <summary>
@@ -1104,7 +1112,7 @@ namespace DaggerfallConnect.Arena2
         /// <param name="region">Region index.</param>
         /// <param name="location">Location index.</param>
         /// <returns>LocationId.</returns>
-        public int ReadLocationIdFast(int region, int location)
+        public ulong ReadLocationIdFast(int region, int location)
         {
             // Added new locations will put the LocationId in regions map table, since it doesn't exist in classic data
             if (regions[region].DFRegion.MapTable[location].LocationId != 0)
@@ -1114,21 +1122,21 @@ namespace DaggerfallConnect.Arena2
             uint locationCount = ReadLocationCount(region);
 
             // Get reader
-            BinaryReader reader = regions[region].MapPItem.GetReader();
+            // BinaryReader reader = regions[region].MapPItem.GetReader();
 
             // Position reader at location record by reading offset and adding to end of offset table
-            reader.BaseStream.Position = location * 4;
-            reader.BaseStream.Position = (locationCount * 4) + reader.ReadUInt32();
+            // reader.BaseStream.Position = location * 4;
+            // reader.BaseStream.Position = (locationCount * 4) + reader.ReadUInt32();
 
             // Skip doors (+6 bytes per door)
-            UInt32 doorCount = reader.ReadUInt32();
-            reader.BaseStream.Position += doorCount * 6;
+            // UInt32 doorCount = reader.ReadUInt32();
+            // reader.BaseStream.Position += doorCount * 6;
 
             // Skip to LocationId (+33 bytes)
-            reader.BaseStream.Position += 33;
+            // reader.BaseStream.Position += 33;
 
             // Read the LocationId
-            int locationId = reader.ReadUInt16();
+            ulong locationId = WorldMaps.WorldMap[region].Locations[location].Exterior.RecordElement.Header.LocationId;
 
             return locationId;
         }
@@ -1140,63 +1148,63 @@ namespace DaggerfallConnect.Arena2
         /// <param name="region">Region index.</param>
         /// <param name="location">Location Index.</param>
         /// <param name="dfLocation">Destination DFLocation.</param>
-        private void ReadMapPItem(ref BinaryReader reader, int region, int location, ref DFLocation dfLocation)
+        private void ReadDFLocation(int region, int location, ref DFLocation dfLocation)
         {
             // Get datafile location count (excluding added locations)
             uint locationCount = ReadLocationCount(region);
 
             // Position reader at location record by reading offset and adding to end of offset table
-            reader.BaseStream.Position = location * 4;
-            reader.BaseStream.Position = (locationCount * 4) + reader.ReadUInt32();
+            // reader.BaseStream.Position = location * 4;
+            // reader.BaseStream.Position = (locationCount * 4) + reader.ReadUInt32();
 
             // Store name
             dfLocation.Name = regions[region].DFRegion.MapNames[location];
 
             // Read LocationRecordElement
-            ReadLocationRecordElement(ref reader, region, ref dfLocation.Exterior.RecordElement);
+            // ReadLocationRecordElement(ref reader, region, ref dfLocation.Exterior.RecordElement);
 
             // Read BuildingListHeader
-            dfLocation.Exterior.BuildingCount = reader.ReadUInt16();
+            dfLocation.Exterior.BuildingCount = WorldMaps.WorldMap[region].Locations[location].Exterior.BuildingCount;
             dfLocation.Exterior.Unknown1 = new Byte[5];
-            for (int i = 0; i < 5; i++) dfLocation.Exterior.Unknown1[i] = reader.ReadByte();
+            dfLocation.Exterior.Unknown1 = WorldMaps.WorldMap[region].Locations[location].Exterior.Unknown1;
 
             // Read BuildingData
             dfLocation.Exterior.Buildings = new DFLocation.BuildingData[dfLocation.Exterior.BuildingCount];
             for (int building = 0; building < dfLocation.Exterior.BuildingCount; building++)
             {
-                dfLocation.Exterior.Buildings[building].NameSeed = reader.ReadUInt16();
-                dfLocation.Exterior.Buildings[building].ServiceTimeLimit = reader.ReadUInt32();
-                dfLocation.Exterior.Buildings[building].Unknown = reader.ReadUInt16();
-                dfLocation.Exterior.Buildings[building].Unknown2 = reader.ReadUInt16();
-                dfLocation.Exterior.Buildings[building].Unknown3 = reader.ReadUInt32();
-                dfLocation.Exterior.Buildings[building].Unknown4 = reader.ReadUInt32();
-                dfLocation.Exterior.Buildings[building].FactionId = reader.ReadUInt16();
-                dfLocation.Exterior.Buildings[building].Sector = reader.ReadInt16();
-                dfLocation.Exterior.Buildings[building].LocationId = reader.ReadUInt16();
-                dfLocation.Exterior.Buildings[building].BuildingType = (DFLocation.BuildingTypes)reader.ReadByte();
-                dfLocation.Exterior.Buildings[building].Quality = reader.ReadByte();
+                dfLocation.Exterior.Buildings[building].NameSeed = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].NameSeed;
+                dfLocation.Exterior.Buildings[building].ServiceTimeLimit = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].ServiceTimeLimit;
+                dfLocation.Exterior.Buildings[building].Unknown = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].Unknown;
+                dfLocation.Exterior.Buildings[building].Unknown2 = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].Unknown2;
+                dfLocation.Exterior.Buildings[building].Unknown3 = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].Unknown3;
+                dfLocation.Exterior.Buildings[building].Unknown4 = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].Unknown4;
+                dfLocation.Exterior.Buildings[building].FactionId = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].FactionId;
+                dfLocation.Exterior.Buildings[building].Sector = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].Sector;
+                dfLocation.Exterior.Buildings[building].LocationId = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].LocationId;
+                dfLocation.Exterior.Buildings[building].BuildingType = (DFLocation.BuildingTypes)WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].BuildingType;
+                dfLocation.Exterior.Buildings[building].Quality = WorldMaps.WorldMap[region].Locations[location].Exterior.Buildings[building].Quality;
             }
 
             // Read ExteriorData
-            dfLocation.Exterior.ExteriorData.AnotherName = FileProxy.ReadCStringSkip(reader, 0, 32);
-            dfLocation.Exterior.ExteriorData.MapId = reader.ReadInt32();
-            dfLocation.Exterior.ExteriorData.LocationId = reader.ReadUInt32();
-            dfLocation.Exterior.ExteriorData.Width = reader.ReadByte();
-            dfLocation.Exterior.ExteriorData.Height = reader.ReadByte();
-            dfLocation.Exterior.ExteriorData.Unknown2 = reader.ReadBytes(4);
-            dfLocation.Exterior.ExteriorData.Letter1ForRMBName = reader.ReadByte();
-            dfLocation.Exterior.ExteriorData.PortTownAndUnknown = reader.ReadByte();
-            dfLocation.Exterior.ExteriorData.Unknown3 = reader.ReadByte();
-            dfLocation.Exterior.ExteriorData.BlockIndex = reader.ReadBytes(64);
-            dfLocation.Exterior.ExteriorData.BlockNumber = reader.ReadBytes(64);
-            dfLocation.Exterior.ExteriorData.BlockCharacter = reader.ReadBytes(64);
-            dfLocation.Exterior.ExteriorData.Unknown4 = reader.ReadBytes(34);
-            dfLocation.Exterior.ExteriorData.NullValue1 = reader.ReadUInt64();
-            dfLocation.Exterior.ExteriorData.NullValue2 = reader.ReadByte();
+            dfLocation.Exterior.ExteriorData.AnotherName = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.AnotherName;
+            dfLocation.Exterior.ExteriorData.MapId = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.MapId;
+            dfLocation.Exterior.ExteriorData.LocationId = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.LocationId;
+            dfLocation.Exterior.ExteriorData.Width = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Width;
+            dfLocation.Exterior.ExteriorData.Height = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Height;
+            dfLocation.Exterior.ExteriorData.Unknown2 = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Unknown2;
+            dfLocation.Exterior.ExteriorData.Letter1ForRMBName = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Letter1ForRMBName;
+            dfLocation.Exterior.ExteriorData.PortTownAndUnknown = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.PortTownAndUnknown;
+            dfLocation.Exterior.ExteriorData.Unknown3 = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Unknown3;
+            dfLocation.Exterior.ExteriorData.BlockIndex = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.BlockIndex;
+            dfLocation.Exterior.ExteriorData.BlockNumber = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.BlockNumber;
+            dfLocation.Exterior.ExteriorData.BlockCharacter = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.BlockCharacter;
+            dfLocation.Exterior.ExteriorData.Unknown4 = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Unknown4;
+            dfLocation.Exterior.ExteriorData.NullValue1 = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.NullValue1;
+            dfLocation.Exterior.ExteriorData.NullValue2 = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.NullValue2;
             dfLocation.Exterior.ExteriorData.Unknown5 = new UInt32[22];
-            for (int i = 0; i < 22; i++) dfLocation.Exterior.ExteriorData.Unknown5[i] = reader.ReadUInt32();
-            dfLocation.Exterior.ExteriorData.NullValue3 = reader.ReadBytes(40);
-            dfLocation.Exterior.ExteriorData.Unknown6 = reader.ReadUInt32();
+            dfLocation.Exterior.ExteriorData.Unknown5= WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Unknown5;
+            dfLocation.Exterior.ExteriorData.NullValue3 = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.NullValue3;
+            dfLocation.Exterior.ExteriorData.Unknown6 = WorldMaps.WorldMap[region].Locations[location].Exterior.ExteriorData.Unknown6;
 
             // Get block names
             int totalBlocks = dfLocation.Exterior.ExteriorData.Width * dfLocation.Exterior.ExteriorData.Height;
