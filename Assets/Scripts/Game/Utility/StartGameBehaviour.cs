@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Gavin Clayton (interkarma@dfworkshop.net)
-// Contributors:    Lypyl (lypyldf@gmail.com)
+// Contributors:    Lypyl (lypyldf@gmail.com), Arneb (arneb_nihal@yahoo.it)
 // 
 // Notes:
 //
@@ -365,16 +365,16 @@ namespace DaggerfallWorkshop.Game.Utility
             playerEntity.LastGameMinutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
 
             // Get start parameters
-            DFPosition mapPixel = new DFPosition(DaggerfallUnity.Settings.StartCellX, DaggerfallUnity.Settings.StartCellY);
+            DFPosition mapPixel = new DFPosition(173, 581);
             bool startInDungeon = DaggerfallUnity.Settings.StartInDungeon;
 
             // Read location if any
             DFLocation location = new DFLocation();
-            ContentReader.MapSummary mapSummary;
-            bool hasLocation = DaggerfallUnity.Instance.ContentReader.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary);
+            MapSummary mapSummary;
+            bool hasLocation = WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary);
             if (hasLocation)
             {
-                if (!DaggerfallUnity.Instance.ContentReader.GetLocation(mapSummary.RegionIndex, mapSummary.MapIndex, out location))
+                if (!WorldMaps.GetLocation(mapSummary.RegionIndex, mapSummary.MapIndex, out location))
                     hasLocation = false;
             }
 
