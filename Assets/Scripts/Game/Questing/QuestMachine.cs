@@ -1063,11 +1063,6 @@ namespace DaggerfallWorkshop.Game.Questing
             List<Person> assignedFound = new List<Person>();
             foreach (Quest quest in quests.Values)
             {
-                // Exclude completed quests from active person check
-                // This prevents completed/tombstoned quests from locking out NPC
-                if (quest.QuestComplete)
-                    continue;
-
                 QuestResource[] persons = quest.GetAllResources(typeof(Person));
                 if (persons == null || persons.Length == 0)
                     continue;
@@ -1240,7 +1235,7 @@ namespace DaggerfallWorkshop.Game.Questing
         /// <param name="buildingKey">Building key for buidings. Not used if left at default 0.</param>
         /// <param name="magicNumberIndex">Magic number index for fixed sites. Not used is left at default 0.</param>
         /// <returns>SiteLink[] array of found links. Check for null or empty on return.</returns>
-        public SiteLink[] GetSiteLinks(SiteTypes siteType, int mapId, int buildingKey = 0, int magicNumberIndex = 0)
+        public SiteLink[] GetSiteLinks(SiteTypes siteType, ulong mapId, int buildingKey = 0, int magicNumberIndex = 0)
         {
             // Collect a copy of all site links matching params
             List<SiteLink> foundSiteLinks = new List<SiteLink>();
