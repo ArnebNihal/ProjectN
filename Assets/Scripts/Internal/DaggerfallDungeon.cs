@@ -75,7 +75,7 @@ namespace DaggerfallWorkshop
         [Serializable]
         public struct DungeonSummary
         {
-            public int ID;
+            public ulong ID;
             public string RegionName;
             public string LocationName;
             public DFLocation LocationData;
@@ -131,7 +131,7 @@ namespace DaggerfallWorkshop
 
         public void RandomiseDungeonTextureTable()
         {
-            DungeonTextureTable = DungeonTextureTables.RandomTextureTableAlternate(UnityEngine.Random.Range(int.MinValue, int.MaxValue));
+            DungeonTextureTable = DungeonTextureTables.RandomTextureTableAlternate((ulong)UnityEngine.Random.Range(int.MinValue, int.MaxValue));
             ApplyDungeonTextureTable();
         }
 
@@ -140,7 +140,7 @@ namespace DaggerfallWorkshop
         /// </summary>
         /// <param name="id">ID of dungeon.</param>
         /// <returns>True if dungeon is a main story dungeon.</returns>
-        public static bool IsMainStoryDungeon(int id)
+        public static bool IsMainStoryDungeon(ulong id)
         {
             bool mainStoryDungeon = false;
             switch (id)
