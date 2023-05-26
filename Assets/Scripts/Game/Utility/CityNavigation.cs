@@ -530,7 +530,6 @@ namespace DaggerfallWorkshop.Game.Utility
                 if (++totalAttempts > maxAttempts)
                     break;
             }
-
             return false;
         }
 
