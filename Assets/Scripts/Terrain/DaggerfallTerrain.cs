@@ -148,7 +148,7 @@ namespace DaggerfallWorkshop
         public JobHandle BeginMapPixelDataUpdate(ITerrainTexturing terrainTexturing = null)
         {
             // Get basic terrain data.
-            MapData = TerrainHelper.GetMapPixelData(dfUnity.ContentReader, MapPixelX, MapPixelY);
+            MapData = TerrainHelper.GetMapPixelData(MapPixelX, MapPixelY);
 
             // Create data array for heightmap.
             MapData.heightmapData = new NativeArray<float>(heightmapDim * heightmapDim, Allocator.TempJob);
@@ -197,6 +197,7 @@ namespace DaggerfallWorkshop
             // Update tile map for shader.
             JobHandle updateTileMapJobHandle = TerrainHelper.ScheduleUpdateTileMapDataJob(ref MapData, assignTilesJobHandle);
             JobHandle.ScheduleBatchedJobs();
+            
             return updateTileMapJobHandle;
         }
 
