@@ -56,24 +56,25 @@ namespace DaggerfallWorkshop
         /// <summary>
         /// Gets map pixel data for any location in world.
         /// </summary>
-        public static MapPixelData GetMapPixelData(ContentReader contentReader, int mapPixelX, int mapPixelY)
+        public static MapPixelData GetMapPixelData(int mapPixelX, int mapPixelY)
         {
             // Read general data from world maps
-            int worldHeight = contentReader.WoodsFileReader.GetHeightMapValue(mapPixelX, mapPixelY);
-            int worldClimate = contentReader.MapFileReader.GetClimateIndex(mapPixelX, mapPixelY);
-            int worldPolitic = contentReader.MapFileReader.GetPoliticIndex(mapPixelX, mapPixelY);
+            int worldHeight = (int)WoodsData.GetHeightMapValue(mapPixelX, mapPixelY);
+            int worldClimate = ClimateData.Climate[mapPixelX, mapPixelY];
+            int worldPolitic = PoliticData.Politic[mapPixelX, mapPixelY];
 
             // Get location if present
-            int id = -1, regionIndex = -1, mapIndex = -1;
+            ulong id = 0;
+            int regionIndex = -1, mapIndex = -1;
             string locationName = string.Empty;
-            ContentReader.MapSummary mapSummary = new ContentReader.MapSummary();
-            bool hasLocation = contentReader.HasLocation(mapPixelX, mapPixelY, out mapSummary);
+            MapSummary mapSummary = new MapSummary();
+            bool hasLocation = WorldMaps.HasLocation(mapPixelX, mapPixelY, out mapSummary);
             if (hasLocation)
             {
                 id = mapSummary.ID;
                 regionIndex = mapSummary.RegionIndex;
                 mapIndex = mapSummary.MapIndex;
-                DFLocation location = contentReader.MapFileReader.GetLocation(regionIndex, mapIndex);
+                DFLocation location = WorldMaps.GetLocation(regionIndex, mapIndex);
                 locationName = location.Name;
             }
 
@@ -127,7 +128,7 @@ namespace DaggerfallWorkshop
         {
             // Get location
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
-            DFLocation location = dfUnity.ContentReader.MapFileReader.GetLocation(mapPixel.mapRegionIndex, mapPixel.mapLocationIndex);
+            DFLocation location = WorldMaps.GetLocation(mapPixel.mapRegionIndex, mapPixel.mapLocationIndex);
 
             // Position tiles inside terrain area
             DFPosition tilePos = TerrainHelper.GetLocationTerrainTileOrigin(location);
@@ -145,7 +146,7 @@ namespace DaggerfallWorkshop
                 {
                     // Get block data
                     DFBlock block;
-                    string blockName = dfUnity.ContentReader.MapFileReader.GetRmbBlockName(location, blockX, blockY);
+                    string blockName = WorldMaps.GetRmbBlockName(location, blockX, blockY);
                     if (!dfUnity.ContentReader.GetBlock(blockName, out block))
                         continue;
 
@@ -388,27 +389,31 @@ namespace DaggerfallWorkshop
             for (int pass = 0; pass < passes; pass++)
             {
                 // Get clone of in-memory climate array
-                byte[] climateArray = contentReader.MapFileReader.ClimateFile.Buffer.Clone() as byte[];
+                int[,] climateArray = ClimateData.Climate;
+
+                // if (pass == 0)
+                //     climateArray = ClimateData.Climate;
+                // else climateArray = ClimateData.ClimateModified;
 
                 // Dilate coastal areas
-                for (int y = 1; y < WoodsFile.mapHeightValue - 1; y++)
+                for (int y = 0; y < MapsFile.WorldHeight; y++)
                 {
-                    for (int x = 1; x < WoodsFile.mapWidthValue - 1; x++)
-                    {
+                    for (int x = 0; x < MapsFile.WorldWidth; x++)
+                    {   
                         // Transfer climate of this pixel to any ocean pixel in Moore neighbourhood
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x - 1, y - 1);
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x, y - 1);
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x + 1, y - 1);
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x - 1, y);
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x + 1, y);
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x - 1, y + 1);
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x, y + 1);
-                        TransferLandToOcean(contentReader, ref climateArray, x, y, x + 1, y + 1);
+                        TransferLandToOcean(ref climateArray, x, y, x - 1, y - 1);
+                        TransferLandToOcean(ref climateArray, x, y, x, y - 1);
+                        TransferLandToOcean(ref climateArray, x, y, x + 1, y - 1);
+                        TransferLandToOcean(ref climateArray, x, y, x - 1, y);
+                        TransferLandToOcean(ref climateArray, x, y, x + 1, y);
+                        TransferLandToOcean(ref climateArray, x, y, x - 1, y + 1);
+                        TransferLandToOcean(ref climateArray, x, y, x, y + 1);
+                        TransferLandToOcean(ref climateArray, x, y, x + 1, y + 1);
                     }
                 }
 
                 // Store modified climate array
-                contentReader.MapFileReader.ClimateFile.Buffer = climateArray;
+                ClimateData.ClimateModified = climateArray;
             }
 
             //long totalTime = stopwatch.ElapsedMilliseconds - startTime;
@@ -417,22 +422,28 @@ namespace DaggerfallWorkshop
 
         // Copies climate data from source to destination if destination is ocean
         // Used to dilate climate data around shorelines as a pre-process
-        private static void TransferLandToOcean(ContentReader contentReader, ref byte[] dstClimateArray, int srcX, int srcY, int dstX, int dstY)
+        private static void TransferLandToOcean(ref int[,] dstClimateArray, int srcX, int srcY, int dstX, int dstY)
         {
-            const int oceanClimate = 223;
+            const int oceanClimate = (int)MapsFile.Climates.Ocean;
+
+            if (dstX < 0 || dstX >= MapsFile.WorldWidth || dstY < 0 || dstY >= MapsFile.WorldHeight)
+                return;
+
+            if (srcX < 0 || srcX >= MapsFile.WorldWidth || srcY < 0 || srcY >= MapsFile.WorldHeight)
+                return;
 
             // Source must be land
-            int srcOffset = srcY * PakFile.pakWidthValue + (srcX + 1);
-            int srcClimate = contentReader.MapFileReader.ClimateFile.Buffer[srcOffset];
+            int srcOffset = srcY * MapsFile.WorldWidth + (srcX + 1);
+            int srcClimate = ClimateData.Climate[srcX, srcY];
             if (srcClimate == oceanClimate)
                 return;
 
             // Destination must be ocean
-            int dstOffset = dstY * PakFile.pakWidthValue + (dstX + 1);
-            int dstClimate = contentReader.MapFileReader.ClimateFile.Buffer[dstOffset];
+            int dstOffset = dstY * MapsFile.WorldWidth + (dstX + 1);
+            int dstClimate = ClimateData.Climate[dstX, dstY];
             if (dstClimate == oceanClimate)
             {
-                dstClimateArray[dstOffset] = (byte)srcClimate;
+                dstClimateArray[dstX, dstY] = srcClimate;
             }
         }
 
@@ -440,26 +451,26 @@ namespace DaggerfallWorkshop
         /// If a location map pixel is on a gradient greater than threshold, then
         /// smooth surrounding Moore neighbourhood with location height
         /// </summary>
-        public static void SmoothLocationNeighbourhood(ContentReader contentReader, int threshold = 20)
+        public static void SmoothLocationNeighbourhood(int threshold = 20)
         {
             //System.Diagnostics.Stopwatch stopwatch = System.Diagnostics.Stopwatch.StartNew();
             //long startTime = stopwatch.ElapsedMilliseconds;
 
             // Get in-memory height array
-            byte[] heightArray = contentReader.WoodsFileReader.Buffer;
+            byte[,] heightArray = WoodsData.Woods;
 
             // Search for locations
-            for (int y = 1; y < WoodsFile.mapHeightValue - 1; y++)
+            for (int y = 0; y < MapsFile.WorldHeight; y++)
             {
-                for (int x = 1; x < WoodsFile.mapWidthValue - 1; x++)
+                for (int x = 0; x < MapsFile.WorldWidth; x++)
                 {
-                    ContentReader.MapSummary summary;
-                    if (contentReader.HasLocation(x, y, out summary))
+                    MapSummary summary;
+                    if (WorldMaps.HasLocation(x, y, out summary))
                     {
                         // Use Sobel filter for gradient
-                        float x0y0 = heightArray[y * WoodsFile.mapWidthValue + x];
-                        float x1y0 = heightArray[y * WoodsFile.mapWidthValue + (x + 1)];
-                        float x0y1 = heightArray[(y + 1) * WoodsFile.mapWidthValue + x];
+                        float x0y0 = heightArray[x, y];
+                        float x1y0 = heightArray[(x + 1), y];
+                        float x0y1 = heightArray[x, (y + 1)];
                         float gradient = GetGradient(x0y0, x1y0, x0y1);
                         if (gradient > threshold)
                         {
@@ -496,7 +507,7 @@ namespace DaggerfallWorkshop
         }
 
         // Average centre coordinate height with surrounding heights
-        private static void AverageHeights(ref byte[] heightArray, int cx, int cy)
+        private static void AverageHeights(ref byte[,] heightArray, int cx, int cy)
         {
             // First pass averages
             float average = 0;
@@ -505,7 +516,7 @@ namespace DaggerfallWorkshop
             {
                 for (int x = cx - 1; x < cx + 2; x++)
                 {
-                    average += heightArray[y * WoodsFile.mapWidthValue + x];
+                    average += heightArray[x, y];
                     counter++;
                 }
             }
@@ -516,7 +527,7 @@ namespace DaggerfallWorkshop
             {
                 for (int x = cx - 1; x < cx + 2; x++)
                 {
-                    heightArray[y * WoodsFile.mapWidthValue + x] = (byte)average;
+                    heightArray[x, y] = (byte)average;
                 }
             }
         }
