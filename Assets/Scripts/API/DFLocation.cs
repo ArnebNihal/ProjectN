@@ -554,10 +554,10 @@ namespace DaggerfallConnect
             public String AnotherName;
 
             /// <summary>This (value and 0x000fffff) matches (MapTable.MapId and 0x000fffff).</summary>
-            public Int32 MapId;
+            public UInt64 MapId;
 
             /// <summary>Location ID.</summary>
-            public UInt32 LocationId;
+            public UInt64 LocationId;
 
             /// <summary>Width of exterior map grid from 1-8.</summary>
             public Byte Width;
