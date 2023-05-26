@@ -498,8 +498,8 @@ namespace DaggerfallWorkshop.Game
             world.MapPixelY = pos.Y;
 
             // Get location at this position
-            ContentReader.MapSummary summary;
-            bool hasLocation = dfUnity.ContentReader.HasLocation(pos.X, pos.Y, out summary);
+            MapSummary summary;
+            bool hasLocation = WorldMaps.HasLocation(pos.X, pos.Y, out summary);
 
             if (!insideDungeon && !insideBuilding)
             {
@@ -532,7 +532,7 @@ namespace DaggerfallWorkshop.Game
                 // Start in dungeon
                 DFLocation location;
                 world.TeleportToCoordinates(pos.X, pos.Y, StreamingWorld.RepositionMethods.None);
-                dfUnity.ContentReader.GetLocation(summary.RegionIndex, summary.MapIndex, out location);
+                WorldMaps.GetLocation(summary.RegionIndex, summary.MapIndex, out location);
                 StartDungeonInterior(location, true, importEnemies);
                 world.suppressWorld = true;
             }
@@ -541,7 +541,7 @@ namespace DaggerfallWorkshop.Game
                 // Start in building
                 DFLocation location;
                 world.TeleportToCoordinates(pos.X, pos.Y, StreamingWorld.RepositionMethods.None);
-                dfUnity.ContentReader.GetLocation(summary.RegionIndex, summary.MapIndex, out location);
+                WorldMaps.GetLocation(summary.RegionIndex, summary.MapIndex, out location);
                 StartBuildingInterior(location, exteriorDoors[0], start);
                 world.suppressWorld = false;
             }
@@ -905,7 +905,7 @@ namespace DaggerfallWorkshop.Game
             // Override location if specified
             if (OverrideLocation != null)
             {
-                DFLocation overrideLocation = dfUnity.ContentReader.MapFileReader.GetLocation(OverrideLocation.Summary.RegionName, OverrideLocation.Summary.LocationName);
+                DFLocation overrideLocation = WorldMaps.GetLocation(OverrideLocation.Summary.RegionName, OverrideLocation.Summary.LocationName);
                 if (overrideLocation.Loaded)
                     location = overrideLocation;
             }
@@ -1062,7 +1062,9 @@ namespace DaggerfallWorkshop.Game
                 SetExteriorDoors(null);
             }
             DisableAllParents(false);
-            if (ExteriorParent != null) ExteriorParent.SetActive(true);
+            if (ExteriorParent != null)
+                ExteriorParent.SetActive(true);
+            
 
             world.suppressWorld = false;
             isPlayerInside = false;
@@ -1388,7 +1390,7 @@ namespace DaggerfallWorkshop.Game
                     DaggerfallUI.AddHUDText(youAreEntering, 2);
 
                     // Check room rentals in this location, and display how long any rooms are rented for
-                    int mapId = playerGPS.CurrentLocation.MapTableData.MapId;
+                    ulong mapId = playerGPS.CurrentLocation.MapTableData.MapId;
                     PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
                     playerEntity.RemoveExpiredRentedRooms();
                     List<RoomRental_v1> rooms = playerEntity.GetRentedRooms(mapId);
