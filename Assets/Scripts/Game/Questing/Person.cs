@@ -534,7 +534,7 @@ namespace DaggerfallWorkshop.Game.Questing
             if (place == null)
                 return -1;
 
-            return DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegionIndex(place.SiteDetails.regionName);
+            return WorldMaps.GetRegionIndex(place.SiteDetails.regionName);
         }
 
         /// <summary>
