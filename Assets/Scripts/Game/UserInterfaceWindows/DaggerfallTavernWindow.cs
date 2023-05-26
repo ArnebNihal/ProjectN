@@ -153,7 +153,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         private void RoomButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
         {
             DaggerfallUI.Instance.PlayOneShot(SoundClips.ButtonClick);
-            int mapId = GameManager.Instance.PlayerGPS.CurrentLocation.MapTableData.MapId;
+            ulong mapId = GameManager.Instance.PlayerGPS.CurrentLocation.MapTableData.MapId;
             int buildingKey = GameManager.Instance.PlayerEnterExit.BuildingDiscoveryData.buildingKey;
             GameManager.Instance.PlayerEntity.RemoveExpiredRentedRooms();
             rentedRoom = GameManager.Instance.PlayerEntity.GetRentedRoom(mapId, buildingKey);
@@ -230,7 +230,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
             PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
 
-            int mapId = GameManager.Instance.PlayerGPS.CurrentLocation.MapTableData.MapId;
+            ulong mapId = GameManager.Instance.PlayerGPS.CurrentLocation.MapTableData.MapId;
             string sceneName = DaggerfallInterior.GetSceneName(mapId, buildingData.buildingKey);
             if (rentedRoom == null)
             {
