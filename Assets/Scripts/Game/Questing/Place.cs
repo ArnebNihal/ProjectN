@@ -41,7 +41,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
         Scopes scope;               // Fixed/remote/local
         string name;                // Source name for data table
-        int p1;                     // Parameter 1
+        ulong p1;                     // Parameter 1
         int p2;                     // Parameter 2
         int p3;                     // Parameter 3
 
@@ -82,7 +82,7 @@ namespace DaggerfallWorkshop.Game.Questing
         /// <summary>
         /// Gets parameter 1 of Place.
         /// </summary>
-        public int Param1
+        public ulong Param1
         {
             get { return p1; }
         }
@@ -206,7 +206,7 @@ namespace DaggerfallWorkshop.Game.Questing
                 if (placesTable.HasValue(name))
                 {
                     // Store values
-                    p1 = CustomParseInt(placesTable.GetValue("p1", name));
+                    p1 = CustomParseUlong(placesTable.GetValue("p1", name));
                     p2 = CustomParseInt(placesTable.GetValue("p2", name));
                     p3 = CustomParseInt(placesTable.GetValue("p3", name));
                 }
@@ -268,18 +268,7 @@ namespace DaggerfallWorkshop.Game.Questing
                     break;
 
                 case MacroTypes.NameMacro4:             // Name of region (e.g. Tigonus)
-                    if (siteDetails.regionIndex == 0 && siteDetails.regionName != "Alik'r Desert")
-                    {
-                        // Workaround for older saves where regionIndex was not present and will always be 0 in save data (Alik'r Desert)
-                        // This can result in improper region name being displayed when loading an older save and quest not actually set in Alik'r Desert.
-                        // In these cases display name using the legacy regionName field stored in place data
-                        textOut = siteDetails.regionName;
-                    }
-                    else
-                    {
-                        // Return localized region name based on regionIndex
-                        textOut = TextManager.Instance.GetLocalizedRegionName(siteDetails.regionIndex);
-                    }
+                    textOut = TextManager.Instance.GetLocalizedRegionName(siteDetails.regionIndex);
                     break;
 
                 default:                                // Macro not supported
@@ -603,6 +592,24 @@ namespace DaggerfallWorkshop.Game.Questing
         /// <summary>
         /// Custom parser to handle hex or decimal values from places data table.
         /// </summary>
+        public static ulong CustomParseUlong(string value)
+        {
+            ulong result;
+            if (value.StartsWith("0x", StringComparison.InvariantCultureIgnoreCase))
+            {
+                result = ulong.Parse(value.Replace("0x", ""), NumberStyles.HexNumber);
+            }
+            else
+            {
+                result = ulong.Parse(value);
+            }
+
+            return result;
+        }
+
+        /// <summary>
+        /// Custom parser to handle hex or decimal values from places data table.
+        /// </summary>
         public static int CustomParseInt(string value)
         {
             int result;
@@ -774,7 +781,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
             // Get player region
             int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            DFRegion regionData = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegion(regionIndex);
+            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
             int playerLocationIndex = GameManager.Instance.PlayerGPS.CurrentLocationIndex;
 
             // Cannot use a region with no locations
@@ -813,7 +820,7 @@ namespace DaggerfallWorkshop.Game.Questing
                     continue;
 
                 // Get location data for town
-                DFLocation location = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regionIndex, locationIndex);
+                DFLocation location = WorldMaps.GetLocation(regionIndex, locationIndex);
                 if (!location.Loaded)
                     continue;
 
@@ -863,7 +870,7 @@ namespace DaggerfallWorkshop.Game.Questing
         {
             // Get player region
             int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            DFRegion regionData = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegion(regionIndex);
+            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
 
             // Cannot use a region with no locations
             // This should not happen in normal play
@@ -886,7 +893,7 @@ namespace DaggerfallWorkshop.Game.Questing
             int index = UnityEngine.Random.Range(0, foundIndices.Length);
 
             // Get location data for selected dungeon
-            DFLocation location = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regionIndex, foundIndices[index]);
+            DFLocation location = WorldMaps.GetLocation(regionIndex, foundIndices[index]);
             if (!location.Loaded)
                 return false;
 
@@ -923,7 +930,7 @@ namespace DaggerfallWorkshop.Game.Questing
         {
             // Get player region
             int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            DFRegion regionData = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegion(regionIndex);
+            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
 
             // Cannot use a region with no locations
             // This should not happen in normal play
@@ -942,7 +949,7 @@ namespace DaggerfallWorkshop.Game.Questing
             int index = UnityEngine.Random.Range(0, foundIndices.Length);
 
             // Get location data for selected exterior
-            DFLocation location = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regionIndex, foundIndices[index]);
+            DFLocation location = WorldMaps.GetLocation(regionIndex, foundIndices[index]);
             if (!location.Loaded)
                 return false;
 
@@ -977,10 +984,10 @@ namespace DaggerfallWorkshop.Game.Questing
             int buildingKey = 0;
             SiteTypes siteType;
             DFLocation location;
-            if (!DaggerfallUnity.Instance.ContentReader.GetQuestLocation(p1, out location))
+            if (!WorldMaps.GetQuestLocation(p1, out location))
             {
                 // Could be a dungeon, attempt to get locationId by p1-1
-                if (!DaggerfallUnity.Instance.ContentReader.GetQuestLocation(p1 - 1, out location))
+                if (!WorldMaps.GetQuestLocation(p1 - 1, out location))
                 {
                     // p1 is a completely unknown locationId
                     throw new Exception(string.Format("Could not find locationId from p1 using: '{0}' or '{1}'", p1, p1 - 1));
@@ -1363,7 +1370,7 @@ namespace DaggerfallWorkshop.Game.Questing
             return foundLocationIndices.ToArray();
         }
 
-        bool IsDungeonAssigned(SiteDetails[] activeQuestSites, QuestResource[] parentQuestPlaceResources, int mapId)
+        bool IsDungeonAssigned(SiteDetails[] activeQuestSites, QuestResource[] parentQuestPlaceResources, ulong mapId)
         {
             // Check quest dungeon Place resources in parent quest so far
             if (parentQuestPlaceResources != null && parentQuestPlaceResources.Length > 0)
@@ -1644,7 +1651,7 @@ namespace DaggerfallWorkshop.Game.Questing
         {
             public Scopes scope;
             public string name;
-            public int p1;
+            public ulong p1;
             public int p2;
             public int p3;
             public SiteDetails siteDetails;
