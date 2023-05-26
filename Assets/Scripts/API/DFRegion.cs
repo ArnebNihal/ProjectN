@@ -32,7 +32,7 @@ namespace DaggerfallConnect
         /// Number of locations in this region. Not all regions have locations.
         ///  Always check LocationCount before working with MapNames array.
         /// </summary>
-        public UInt32 LocationCount;
+        public Int32 LocationCount;
 
         /// <summary>
         /// Contains the names of all locations for this region.
@@ -47,7 +47,7 @@ namespace DaggerfallConnect
         /// <summary>
         /// Dictionary to find map index from MapID.
         /// </summary>
-        public Dictionary<int, int> MapIdLookup;
+        public Dictionary<ulong, int> MapIdLookup;
 
         /// <summary>
         /// Dictionary to find a map index from map name. Note that some map names
@@ -221,16 +221,16 @@ namespace DaggerfallConnect
         /// <summary>
         /// Describes a single location.
         /// </summary>
-        public struct RegionMapTable
+        public struct RegionMapTable : IComparable<RegionMapTable>
         {
             /// <summary>Numeric ID of this location.</summary>
-            public Int32 MapId;
+            public ulong MapId;
 
             /// <summary>Latitude of this location.</summary>
-            public Int32 Latitude;
+            public int Latitude;
 
             /// <summary>Longitude value read from bitfield.</summary>
-            public Int32 Longitude;
+            public int Longitude;
 
             /// <summary>Location type value read from bitfield.</summary>
             public LocationTypes LocationType;
@@ -245,7 +245,13 @@ namespace DaggerfallConnect
             public UInt32 Key;
 
             /// <summary>The LocationId of the location for any added locations. (can't be read from classic data by ReadLocationIdFast)</summary>
-            internal UInt16 LocationId;
+            public UInt16 LocationId;
+
+            public int CompareTo(RegionMapTable location)
+            {
+                var index = MapId.CompareTo(location.MapId);
+                return index;
+            }
         }
 
         #endregion
