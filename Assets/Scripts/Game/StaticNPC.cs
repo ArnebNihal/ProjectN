@@ -87,10 +87,10 @@ namespace DaggerfallWorkshop.Game
             public Genders gender;
             public Races race;
             public Context context;
-            public int mapID;
+            public ulong mapID;
 
             // Derived at runtime
-            public int locationID;
+            public ulong locationID;
             public int buildingKey;
             public NameHelper.BankTypes nameBank;
 
@@ -168,7 +168,7 @@ namespace DaggerfallWorkshop.Game
         /// Sets NPC data from RMB layout flat record. (exterior NPCs)
         /// Requires mapID and locationIndex to be passed in as layout may occur without player being in the location.
         /// </summary>
-        public void SetLayoutData(DFBlock.RmbBlockFlatObjectRecord obj, int mapId, int locationIndex)
+        public void SetLayoutData(DFBlock.RmbBlockFlatObjectRecord obj, ulong mapId, int locationIndex)
         {
             // Gender flag is invalid for RMB exterior NPCs: get it from FLATS.CFG instead
             int flatID = FlatsFile.GetFlatID(obj.TextureArchive, obj.TextureRecord);
@@ -193,7 +193,7 @@ namespace DaggerfallWorkshop.Game
             npcData.context = Context.Custom;
         }
 
-        public static void SetLayoutData(ref NPCData data, int XPos, int YPos, int ZPos, int flags, int factionId, int archive, int record, long position, int mapId, int locationIndex, int buildingKey)
+        public static void SetLayoutData(ref NPCData data, int XPos, int YPos, int ZPos, int flags, int factionId, int archive, int record, long position, ulong mapId, int locationIndex, int buildingKey)
         {
             // Store common layout data
             data.hash = GetPositionHash(XPos, YPos, ZPos);
@@ -272,7 +272,7 @@ namespace DaggerfallWorkshop.Game
             PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
 
             // Store location ID (if any - not all locations carry a unique ID)
-            npcData.locationID = (int)playerGPS.CurrentLocation.Exterior.ExteriorData.LocationId;
+            npcData.locationID = playerGPS.CurrentLocation.Exterior.ExteriorData.LocationId;
 
             // Store building key if player inside a building
             // This can be gleaned from any exterior door if one is available
