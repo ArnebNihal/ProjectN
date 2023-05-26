@@ -84,7 +84,7 @@ namespace DaggerfallWorkshop
         [Serializable]
         public struct LocationSummary
         {
-            public int MapID;
+            public ulong MapID;
             public int Longitude;
             public int Latitude;
             public int MapPixelX;
@@ -162,8 +162,8 @@ namespace DaggerfallWorkshop
             // Set summary
             summary = new LocationSummary();
             summary.MapID = location.MapTableData.MapId;
-            summary.Longitude = (int)location.MapTableData.Longitude;
-            summary.Latitude = (int)location.MapTableData.Latitude;
+            summary.Longitude = location.MapTableData.Longitude;
+            summary.Latitude = location.MapTableData.Latitude;
             DFPosition mapPixel = MapsFile.LongitudeLatitudeToMapPixel(summary.Longitude, summary.Latitude);
             DFPosition worldCoord = MapsFile.MapPixelToWorldCoord(mapPixel.X, mapPixel.Y);
             summary.MapPixelX = mapPixel.X;
@@ -423,7 +423,7 @@ namespace DaggerfallWorkshop
                         //miscBillboardBatch.BlockOrigin = blockOrigin;
                     }
 
-                    string blockName = dfUnity.ContentReader.BlockFileReader.CheckName(dfUnity.ContentReader.MapFileReader.GetRmbBlockName(location, x, y));
+                    string blockName = dfUnity.ContentReader.BlockFileReader.CheckName(WorldMaps.GetRmbBlockName(location, x, y));
                     GameObject go = GameObjectHelper.CreateRMBBlockGameObject(
                         blockName,
                         x,
