@@ -64,7 +64,7 @@ namespace DaggerfallWorkshop
         }
 
         // Randomly pick from all dungeon texture tables. This is a DF Unity implementation different from classic.
-        public static int[] RandomTextureTableAlternate(int seed)
+        public static int[] RandomTextureTableAlternate(ulong seed)
         {
             // Valid dungeon textures table indices
             int[] valids = new int[]
@@ -75,7 +75,7 @@ namespace DaggerfallWorkshop
                 419, 420, 422, 423, 424, 468,
             };
 
-            Random.InitState(seed);
+            Random.InitState((int)seed);
             int[] textureTable = new int[TableLength];
             for (int i = 0; i < TableLength; i++)
             {
