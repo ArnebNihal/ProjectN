@@ -1057,7 +1057,7 @@ namespace DaggerfallWorkshop.Game.Serialization
             QuestMachine.QuestMachineData_v1 questData = QuestMachine.Instance.GetSaveData();
 
             // Get discovery data
-            Dictionary<int, PlayerGPS.DiscoveredLocation> discoveryData = GameManager.Instance.PlayerGPS.GetDiscoverySaveData();
+            Dictionary<ulong, PlayerGPS.DiscoveredLocation> discoveryData = GameManager.Instance.PlayerGPS.GetDiscoverySaveData();
 
             // Get conversation data
             TalkManager.SaveDataConversation conversationData = GameManager.Instance.TalkManager.GetConversationSaveData();
@@ -1335,8 +1335,8 @@ namespace DaggerfallWorkshop.Game.Serialization
             // Restore discovery data
             if (!string.IsNullOrEmpty(discoveryDataJson))
             {
-                Dictionary<int, PlayerGPS.DiscoveredLocation> discoveryData =
-                    Deserialize(typeof(Dictionary<int, PlayerGPS.DiscoveredLocation>), discoveryDataJson) as Dictionary<int, PlayerGPS.DiscoveredLocation>;
+                Dictionary<ulong, PlayerGPS.DiscoveredLocation> discoveryData =
+                    Deserialize(typeof(Dictionary<ulong, PlayerGPS.DiscoveredLocation>), discoveryDataJson) as Dictionary<ulong, PlayerGPS.DiscoveredLocation>;
                 GameManager.Instance.PlayerGPS.RestoreDiscoveryData(discoveryData);
             }
             else
