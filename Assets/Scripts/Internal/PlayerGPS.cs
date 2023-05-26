@@ -11,6 +11,7 @@
 
 using UnityEngine;
 using System;
+using System.IO;
 using System.Linq;
 using System.Collections.Generic;
 using DaggerfallConnect;
@@ -38,9 +39,9 @@ namespace DaggerfallWorkshop
         const float refreshNearbyObjectsInterval = 0.33f;
 
         // Default location is outside Privateer's Hold
-        [Range(0, 32735232)]
+        [Range(0, int.MaxValue)]
         public int WorldX;                      // Player X coordinate in Daggerfall world units
-        [Range(0, 16351232)]
+        [Range(0, int.MaxValue)]
         public int WorldZ;                      // Player Z coordinate in Daggerfall world units
 
         DaggerfallUnity dfUnity;
@@ -70,9 +71,10 @@ namespace DaggerfallWorkshop
         float nearbyObjectsUpdateTimer = 0f;
         List<NearbyObject> nearbyObjects = new List<NearbyObject>();
 
-        Dictionary<int, DiscoveredLocation> discoveredLocations = new Dictionary<int, DiscoveredLocation>();
+        Dictionary<ulong, DiscoveredLocation> discoveredLocations = new Dictionary<ulong, DiscoveredLocation>();
 
         Vector3 lastFramePosition;
+        // string arena2Path = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2";
 
         #endregion
 
@@ -80,8 +82,8 @@ namespace DaggerfallWorkshop
 
         public struct DiscoveredLocation
         {
-            public int mapID;
-            public int mapPixelID;
+            public ulong mapID;
+            public ulong mapPixelID;
             public string regionName;
             public string locationName;
             public Dictionary<int, DiscoveredBuilding> discoveredBuildings;
@@ -120,15 +122,6 @@ namespace DaggerfallWorkshop
             Humanoid = 32,
             Animal = 64,
         }
-
-        /// <summary>
-        /// Data used when performing building name refresh.
-        /// </summary>
-        struct BuildingRenameOperation
-        {
-            public int buildingKey;
-            public string displayName;
-        };
 
         #endregion
 
@@ -230,9 +223,9 @@ namespace DaggerfallWorkshop
         /// Gets current location MapID.
         /// Returns -1 when HasCurrentLocation=false
         /// </summary>
-        public int CurrentMapID
+        public ulong CurrentMapID
         {
-            get { return (hasCurrentLocation) ? currentLocation.MapTableData.MapId : -1; }
+            get { return (hasCurrentLocation) ? currentLocation.MapTableData.MapId : 0; }
         }
 
         /// <summary>
@@ -330,6 +323,7 @@ namespace DaggerfallWorkshop
             if (pos.X != lastMapPixelX || pos.Y != lastMapPixelY)
             {
                 UpdateWorldInfo(pos.X, pos.Y);
+
                 RaiseOnMapPixelChangedEvent(pos);
 
                 // Clear non-permanent scenes from cache, unless going to/from owned ship
@@ -360,10 +354,10 @@ namespace DaggerfallWorkshop
         {
             // Snap back to physical world boundary to prevent player running off edge of world
             // Setting to approx. 10000 inches (254 metres) in from edge so end of world not so visible
-            if (WorldX < 10000 ||       // West
-                WorldZ > 16370000 ||    // North
-                WorldZ < 10000 ||       // South
-                WorldX > 32750000)      // East
+            if (WorldX < 0 ||       // West
+                WorldZ > (MapsFile.WorldHeight * 32768) ||    // North
+                WorldZ < 0 ||       // South
+                WorldX > (MapsFile.WorldWidth * 32768))      // East
             {
                 gameObject.transform.position = lastFramePosition;
             }
@@ -582,28 +576,40 @@ namespace DaggerfallWorkshop
                 return;
 
             // Requires MAPS.BSA connection
-            if (dfUnity.ContentReader.MapFileReader == null)
-                return;
+            // if (dfUnity.ContentReader.MapFileReader == null)
+            //     return;
 
             // Get climate and politic data
-            currentClimateIndex = dfUnity.ContentReader.MapFileReader.GetClimateIndex(x, y);
-            currentPoliticIndex = dfUnity.ContentReader.MapFileReader.GetPoliticIndex(x, y);
+            // if (ClimateData.ClimateModified == null)
+            // {
+                currentClimateIndex = ClimateData.Climate[x, y];
+            // }
+            // else {
+            //     currentClimateIndex = ClimateData.ClimateModified[x, y];
+            // }
+
+            currentPoliticIndex = PoliticData.Politic[x, y];
+
             climateSettings = MapsFile.GetWorldClimateSettings(currentClimateIndex);
+
             if (currentPoliticIndex >= 128)
-                regionName = dfUnity.ContentReader.MapFileReader.GetRegionName(currentPoliticIndex - 128);
+                regionName = WorldMaps.WorldMap[currentPoliticIndex - 128].Name;
             else if (currentPoliticIndex == 64)
                 regionName = TextManager.Instance.GetLocalizedText("ocean");
             else
                 regionName = TextManager.Instance.GetLocalizedText("unknownUpper");
 
             // Get region data
-            currentRegion = dfUnity.ContentReader.MapFileReader.GetRegion(CurrentRegionIndex);
+            // WorldMaps worldMaps = new WorldMaps();
+            // worldMaps = WorldMaps.Upload(Path.Combine(arena2Path, "Maps.json"));
+            
+            currentRegion = WorldMaps.ConvertWorldMapsToDFRegion(CurrentRegionIndex);
 
             // Get location data
-            ContentReader.MapSummary mapSummary;
-            if (dfUnity.ContentReader.HasLocation(x, y, out mapSummary))
+            MapSummary mapSummary;
+            if (WorldMaps.HasLocation(x, y, out mapSummary))
             {
-                currentLocation = dfUnity.ContentReader.MapFileReader.GetLocation(mapSummary.RegionIndex, mapSummary.MapIndex);
+                currentLocation = WorldMaps.GetLocation(mapSummary.RegionIndex, mapSummary.MapIndex);
                 hasCurrentLocation = true;
                 CalculateWorldLocationRect();
             }
@@ -718,14 +724,12 @@ namespace DaggerfallWorkshop
         public bool ReadyCheck()
         {
             // Ensure we have a DaggerfallUnity reference
-            if (dfUnity == null)
-            {
-                dfUnity = DaggerfallUnity.Instance;
-            }
+            if (dfUnity == null)            
+                dfUnity = DaggerfallUnity.Instance;            
 
             // Do nothing until DaggerfallUnity is ready
-            if (!dfUnity.IsReady)
-                return false;
+            if (!dfUnity.IsReady)            
+                return false;            
 
             return true;
         }
@@ -855,7 +859,7 @@ namespace DaggerfallWorkshop
                 return;
 
             // Check if already discovered
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
+            ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude(CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
             if (HasDiscoveredLocation(mapPixelID))
                 return;
 
@@ -875,11 +879,11 @@ namespace DaggerfallWorkshop
         public void DiscoverLocation(string regionName, string locationName)
         {
             DFLocation location;
-            bool found = dfUnity.ContentReader.GetLocation(regionName, locationName, out location);
+            bool found = WorldMaps.GetLocation(regionName, locationName, out location);
             if (!found)
                 throw new Exception(String.Format("Error finding location {0} : {1}", regionName, locationName));
             // Check if already discovered
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)location.MapTableData.Longitude, location.MapTableData.Latitude);
+            ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)location.MapTableData.Longitude, location.MapTableData.Latitude);
             if (HasDiscoveredLocation(mapPixelID))
                 return;
 
@@ -906,7 +910,7 @@ namespace DaggerfallWorkshop
 
             // Choose a random location and discover it
             int locIdx = UnityEngine.Random.Range(0, undiscoveredLocIdxs.Count);
-            DFLocation location = dfUnity.ContentReader.MapFileReader.GetLocation(CurrentRegionIndex, undiscoveredLocIdxs[locIdx]);
+            DFLocation location = WorldMaps.GetLocation(CurrentRegionIndex, undiscoveredLocIdxs[locIdx]);
             DiscoverLocation(CurrentRegionName, location.Name);
             return location;
         }
@@ -936,7 +940,7 @@ namespace DaggerfallWorkshop
                 return;
 
             // Get location discovery
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
+            ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
             DiscoveredLocation dl = new DiscoveredLocation();
             if (discoveredLocations.ContainsKey(mapPixelID))
             {
@@ -993,7 +997,7 @@ namespace DaggerfallWorkshop
                 return;
 
             // Get location discovery
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
+            ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude(CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
             DiscoveredLocation dl = new DiscoveredLocation();
             if (discoveredLocations.ContainsKey(mapPixelID))
             {
@@ -1028,7 +1032,7 @@ namespace DaggerfallWorkshop
         /// </summary>
         /// <param name="mapPixelID">ID of location pixel.</param>
         /// <returns>True if already discovered.</returns>
-        public bool HasDiscoveredLocation(int mapPixelID)
+        public bool HasDiscoveredLocation(ulong mapPixelID)
         {
             return discoveredLocations.ContainsKey(mapPixelID);
         }
@@ -1045,7 +1049,7 @@ namespace DaggerfallWorkshop
                 return false;
 
             // Must have discovered current location before building
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
+            ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude(CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
             if (!HasDiscoveredLocation(mapPixelID))
                 return false;
 
@@ -1073,7 +1077,7 @@ namespace DaggerfallWorkshop
                 return false;
 
             // Get the location discovery for this mapID
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
+            ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude(CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
             DiscoveredLocation dl = discoveredLocations[mapPixelID];
             if (dl.discoveredBuildings == null)
                 return false;
@@ -1129,68 +1133,6 @@ namespace DaggerfallWorkshop
         }
 
         /// <summary>
-        /// Refresh any changed non-residence building names in current location.
-        /// Allows localized or otherwise changed building names to replace previously discovered building names.
-        /// Will change names on buildings with a random NPC name.
-        /// Does not affect player custom names or other properties of discovery data other than display name.
-        /// </summary>
-        public void RefreshBuildingNamesInCurrentLocation()
-        {
-            // Must have a location loaded
-            if (!CurrentLocation.Loaded)
-                return;
-
-            // Get building directory for location
-            BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
-            if (!buildingDirectory)
-                return;
-
-            // Get discovered location
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
-            DiscoveredLocation dl = discoveredLocations[mapPixelID];
-            if (dl.discoveredBuildings == null || dl.discoveredBuildings.Count == 0)
-                return;
-
-            // Enumerate changed building names
-            List<BuildingRenameOperation> ops = new List<BuildingRenameOperation>();            
-            foreach (DiscoveredBuilding db in dl.discoveredBuildings.Values)
-            {
-                // Get detailed building data from directory
-                BuildingSummary buildingSummary;
-                if (!buildingDirectory.GetBuildingSummary(db.buildingKey, out buildingSummary))
-                    continue;
-
-                // Ignore residences
-                if (RMBLayout.IsResidence(buildingSummary.BuildingType))
-                    continue;
-
-                // Expand building name
-                string displayName = BuildingNames.GetName(
-                    buildingSummary.NameSeed,
-                    buildingSummary.BuildingType,
-                    buildingSummary.FactionId,
-                    buildingDirectory.LocationData.Name,
-                    TextManager.Instance.GetLocalizedRegionName(buildingDirectory.LocationData.RegionIndex));
-
-                // Schedule name change
-                if (!string.Equals(displayName, db.displayName))
-                    ops.Add(new BuildingRenameOperation() { buildingKey = buildingSummary.buildingKey, displayName = displayName });
-            }
-
-            // Update building names
-            foreach (BuildingRenameOperation op in ops)
-            {
-                DiscoveredBuilding discoveredBuilding;
-                if (!GetDiscoveredBuilding(op.buildingKey, out discoveredBuilding))
-                    return;
-
-                Debug.LogFormat("Renaming '{0}' to '{1}'", discoveredBuilding.displayName, op.displayName);
-                discoveredBuilding.displayName = op.displayName;
-                UpdateDiscoveredBuilding(discoveredBuilding);
-            }
-        }
-
-        /// <summary>
         /// Updates discovered building data in current location.
         /// </summary>
         /// <param name="discoveredBuilding">Updated data to write back to live discovery database.</param>
@@ -1201,7 +1143,7 @@ namespace DaggerfallWorkshop
                 return;
 
             // Get the location discovery for this mapID
-            int mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
+            ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude(CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
             DiscoveredLocation dl = discoveredLocations[mapPixelID];
             if (dl.discoveredBuildings == null)
                 return;
@@ -1236,7 +1178,7 @@ namespace DaggerfallWorkshop
         /// <summary>
         /// Gets discovery dictionary for save.
         /// </summary>
-        public Dictionary<int, DiscoveredLocation> GetDiscoverySaveData()
+        public Dictionary<ulong, DiscoveredLocation> GetDiscoverySaveData()
         {
             RemoveUnnamedResidencesFromDiscoveryData();
 
@@ -1246,13 +1188,13 @@ namespace DaggerfallWorkshop
         /// <summary>
         /// Restores discovery dictionary for load.
         /// </summary>
-        public void RestoreDiscoveryData(Dictionary<int, DiscoveredLocation> data)
+        public void RestoreDiscoveryData(Dictionary<ulong, DiscoveredLocation> data)
         {
             discoveredLocations = data;
 
             // Purge any entries with MapPixelID of 0
             // These are from a previous save format keyed to MapID
-            List<int> keysToRemove = new List<int>();
+            List<ulong> keysToRemove = new List<ulong>();
             foreach(var kvp in discoveredLocations)
             {
                 if (kvp.Value.mapPixelID == 0)
@@ -1260,7 +1202,7 @@ namespace DaggerfallWorkshop
             }
 
             // Remove legacy entries
-            foreach (int key in keysToRemove)
+            foreach (ulong key in keysToRemove)
             {
                 discoveredLocations.Remove(key);
             }
