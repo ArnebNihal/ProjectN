@@ -572,6 +572,7 @@ namespace DaggerfallWorkshop
             // Also do nothing if world is on hold at start
             if (LocalPlayerGPS == null || suppressWorld)
                 return;
+            
 
             // Player must be at origin on init for proper world sync
             // Starting position will be assigned when terrain ready based on respositionMethod
@@ -796,7 +797,7 @@ namespace DaggerfallWorkshop
 
                             // Add block
                             GameObject go = GameObjectHelper.CreateRMBBlockGameObject(
-                                blocks[blockIndex],
+                                blocks[blockIndex].Name,
                                 x,
                                 y,
                                 location.MapTableData.MapId,
@@ -857,9 +858,8 @@ namespace DaggerfallWorkshop
             // Do nothing if out of range
             if (mapPixelX < MapsFile.MinMapPixelX || mapPixelX >= MapsFile.MaxMapPixelX ||
                 mapPixelY < MapsFile.MinMapPixelY || mapPixelY >= MapsFile.MaxMapPixelY)
-            {
                 return;
-            }
+            
 
             // Get terrain key
             int key = TerrainHelper.MakeTerrainKey(mapPixelX, mapPixelY);
@@ -928,8 +928,8 @@ namespace DaggerfallWorkshop
             terrainIndexDict.Add(key, nextTerrain);
 
             // Check if terrain has a location, if so it will be added on next update
-            ContentReader.MapSummary mapSummary;
-            terrainArray[nextTerrain].hasLocation = dfUnity.ContentReader.HasLocation(mapPixelX, mapPixelY, out mapSummary);
+            MapSummary mapSummary;
+            terrainArray[nextTerrain].hasLocation = WorldMaps.HasLocation(mapPixelX, mapPixelY, out mapSummary);
             terrainArray[nextTerrain].updateLocation = terrainArray[nextTerrain].hasLocation;
         }
 
@@ -1170,9 +1170,7 @@ namespace DaggerfallWorkshop
                 return null;
 
             // Get location data
-            locationOut = dfUnity.ContentReader.MapFileReader.GetLocation(dfTerrain.MapData.mapRegionIndex, dfTerrain.MapData.mapLocationIndex);
-            if (!locationOut.Loaded)
-                return null;
+            locationOut = WorldMaps.GetLocation(dfTerrain.MapData.mapRegionIndex, dfTerrain.MapData.mapLocationIndex);
 
             // Sample height of terrain at origin tile position, this is more accurate than scaled average - thanks Nystul!
             // TODO: Daggerfall does not always position locations at exact centre as assumed.
@@ -1652,6 +1650,7 @@ namespace DaggerfallWorkshop
         {
             if (suppressWorld)
                 return false;
+            
 
             if (isReady)
                 return true;
@@ -1663,8 +1662,9 @@ namespace DaggerfallWorkshop
 
             if (LocalPlayerGPS == null)
                 return false;
-            else
+            else            
                 InitWorld();
+            
 
             // Do nothing if DaggerfallUnity not ready
             if (!dfUnity.IsReady)
@@ -1677,11 +1677,11 @@ namespace DaggerfallWorkshop
             if (Application.isPlaying)
             {
                 // Fix coastal climate data
-                TerrainHelper.DilateCoastalClimate(dfUnity.ContentReader, 2);
+                // TerrainHelper.DilateCoastalClimate(dfUnity.ContentReader, 2);
 
                 // Smooth steep location on steep gradients
                 // TODO: What is this supposed to be doing? It doesn't seem to change any data that's used anywhere..
-                TerrainHelper.SmoothLocationNeighbourhood(dfUnity.ContentReader);
+                TerrainHelper.SmoothLocationNeighbourhood();
             }
 
             // Raise ready flag
