@@ -195,7 +195,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
         {
             // Get player region data
             int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            DFRegion regionData = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegion(regionIndex);
+            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
 
             // Collect all cemetery locations
             List<int> foundLocationIndices = new List<int>();
@@ -207,7 +207,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
 
             // Select one at random
             int index = UnityEngine.Random.Range(0, foundLocationIndices.Count);
-            DFLocation location = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regionIndex, foundLocationIndices[index]);
+            DFLocation location = WorldMaps.GetLocation(regionIndex, foundLocationIndices[index]);
             if (!location.Loaded)
                 throw new System.Exception("VampirismInfection.GetRandomCemetery() could not find a cemetery in this region.");
 
