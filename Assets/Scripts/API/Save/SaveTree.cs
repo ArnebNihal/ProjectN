@@ -335,9 +335,9 @@ namespace DaggerfallConnect.Save
     /// </summary>
     public struct RecordPosition
     {
-        public Int32 WorldX;                    // WorldX coordinate
-        public Int32 WorldY;                    // WorldY coordinate
-        public Int32 WorldZ;                    // WorldZ coordinate
+        public int WorldX;                    // WorldX coordinate
+        public int WorldY;                    // WorldY coordinate
+        public int WorldZ;                    // WorldZ coordinate
     }
 
     public struct RecordRoot
