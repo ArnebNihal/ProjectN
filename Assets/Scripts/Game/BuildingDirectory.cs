@@ -32,8 +32,8 @@ namespace DaggerfallWorkshop.Game
         // ReverseBuildingKey() will unpack indices to 0 when reversing this value
         public const int buildingKey0 = 1 << 24;
 
-        uint locationId;
-        int mapId;
+        ulong locationId;
+        ulong mapId;
         DFLocation locationData;
         Dictionary<int, BuildingSummary> buildingDict = new Dictionary<int, BuildingSummary>();
 
@@ -52,7 +52,7 @@ namespace DaggerfallWorkshop.Game
         /// <summary>
         /// Gets LocationID of set location.
         /// </summary>
-        public uint LocationID
+        public ulong LocationID
         {
             get { return locationId; }
         }
@@ -60,7 +60,7 @@ namespace DaggerfallWorkshop.Game
         /// <summary>
         /// Gets MapID of set location.
         /// </summary>
-        public int MapID
+        public ulong MapID
         {
             get { return mapId; }
         }
