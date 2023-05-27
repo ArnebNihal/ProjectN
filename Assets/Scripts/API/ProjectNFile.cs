@@ -41,7 +41,6 @@ namespace DaggerfallConnect.Arena2
         public Dictionary<ulong, int> MapIdLookup;
         public Dictionary<string, int> MapNameLookup;
         public DFLocation[] Locations;
-        public const string mapPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/";
 
         #endregion
     }
@@ -52,6 +51,7 @@ namespace DaggerfallConnect.Arena2
 
         public static WorldMap[] WorldMap;
         public static Dictionary<ulong, MapSummary> mapDict;
+        public const string mapPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/";
 
         static WorldMaps()
         {
@@ -371,7 +371,7 @@ namespace DaggerfallConnect.Arena2
 
         static ClimateData()        
         {
-            Climate = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText(Path.Combine(mapPath, "Climate.json")));
+            Climate = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "Climate.json")));
         }
 
         public static int[,] ClimateModified;
@@ -387,7 +387,7 @@ namespace DaggerfallConnect.Arena2
 
         static PoliticData()
         {
-            Politic = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText(Path.Combine(mapPath, "Politic.json")));
+            Politic = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "Politic.json")));
         }
 
         #endregion
@@ -442,7 +442,7 @@ namespace DaggerfallConnect.Arena2
 
         static WoodsData()
         {
-            Woods = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText(Path.Combine(mapPath, "Woods.json")));
+            Woods = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "Woods.json")));
         }
 
         #endregion
@@ -486,7 +486,7 @@ namespace DaggerfallConnect.Arena2
 
         static WoodsLargeData()
         {
-            WoodsLarge = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText(Path.Combine(mapPath, "WoodsLarge.json")));
+            WoodsLarge = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "WoodsLarge.json")));
         }
 
         #endregion
