@@ -41,6 +41,7 @@ namespace DaggerfallConnect.Arena2
         public Dictionary<ulong, int> MapIdLookup;
         public Dictionary<string, int> MapNameLookup;
         public DFLocation[] Locations;
+        public const string mapPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/";
 
         #endregion
     }
@@ -54,7 +55,7 @@ namespace DaggerfallConnect.Arena2
 
         static WorldMaps()
         {
-            WorldMap = JsonConvert.DeserializeObject<WorldMap[]>(File.ReadAllText("/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/Maps.json"));
+            WorldMap = JsonConvert.DeserializeObject<WorldMap[]>(File.ReadAllText(Path.Combine(mapPath, "Maps.json")));
             mapDict = EnumerateMaps();
         }        
 
@@ -370,7 +371,7 @@ namespace DaggerfallConnect.Arena2
 
         static ClimateData()        
         {
-            Climate = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText("/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/Climate.json"));
+            Climate = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText(Path.Combine(mapPath, "Climate.json")));
         }
 
         public static int[,] ClimateModified;
@@ -386,7 +387,7 @@ namespace DaggerfallConnect.Arena2
 
         static PoliticData()
         {
-            Politic = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText("/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/Politic.json"));
+            Politic = JsonConvert.DeserializeObject<int[,]>(File.ReadAllText(Path.Combine(mapPath, "Politic.json")));
         }
 
         #endregion
@@ -441,7 +442,7 @@ namespace DaggerfallConnect.Arena2
 
         static WoodsData()
         {
-            Woods = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText("/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/Woods.json"));
+            Woods = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText(Path.Combine(mapPath, "Woods.json")));
         }
 
         #endregion
@@ -485,7 +486,7 @@ namespace DaggerfallConnect.Arena2
 
         static WoodsLargeData()
         {
-            WoodsLarge = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText("/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/WoodsLarge.json"));
+            WoodsLarge = JsonConvert.DeserializeObject<byte[,]>(File.ReadAllText(Path.Combine(mapPath, "WoodsLarge.json")));
         }
 
         #endregion
