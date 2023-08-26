@@ -638,9 +638,9 @@ namespace DaggerfallWorkshop.Game
                     }
                     else
                     {
-                        ContentReader.MapSummary mapSummary;
+                        MapSummary mapSummary;
                         DFPosition mapPixel = GameManager.Instance.PlayerGPS.CurrentMapPixel;
-                        if (DaggerfallUnity.Instance.ContentReader.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
+                        if (WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
                         {
                             // There's a location at this map pixel
                             GameManager.Instance.PauseGame(true);
@@ -1115,7 +1115,7 @@ namespace DaggerfallWorkshop.Game
                 panel.Components.Add(slider);
 
             setIndicator(slider);
-            slider.IndicatorOffset = 2;
+            slider.IndicatorOffset = 15;
             slider.Indicator.TextScale = textScale;
             slider.Indicator.TextColor = Color.white;
             slider.Indicator.ShadowColor = Color.clear;

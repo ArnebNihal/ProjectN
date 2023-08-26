@@ -477,7 +477,7 @@ namespace DaggerfallWorkshop.Game
             // Store if player was inside a dungeon or building before respawning
             bool playerWasInDungeon = IsPlayerInsideDungeon;
             bool playerWasInBuilding = IsPlayerInsideBuilding;
-
+            
             // Reset dungeon block on new spawn
             lastPlayerDungeonBlockIndex = -1;
             playerDungeonBlockData = new DFLocation.DungeonBlock();
@@ -489,6 +489,12 @@ namespace DaggerfallWorkshop.Game
             blockWaterLevel = 10000;
 
             // Set player GPS coordinates
+            // if (playerWasInDungeon)
+            // {
+            //     playerGPS.WorldX = id % MapsFile.WorldWidth + worldX;
+            //     playerGPS.WorldZ = id / MapsFile.WorldHeight + worldZ;
+            // }
+            // else 
             playerGPS.WorldX = worldX;
             playerGPS.WorldZ = worldZ;
 

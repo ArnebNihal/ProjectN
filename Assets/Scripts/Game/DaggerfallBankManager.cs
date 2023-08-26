@@ -162,7 +162,7 @@ namespace DaggerfallWorkshop.Game.Banking
 
         public static void SetupHouses()
         {
-            houses = new HouseData_v1[DaggerfallUnity.Instance.ContentReader.MapFileReader.RegionCount];
+            houses = new HouseData_v1[MapsFile.TempRegionCount];
             for (int i = 0; i < houses.Length; i++)
             {
                 var house = new HouseData_v1();
@@ -225,7 +225,7 @@ namespace DaggerfallWorkshop.Game.Banking
 
         public static void SetupAccounts()
         {
-            bankAccounts = new BankRecordData_v1[DaggerfallUnity.Instance.ContentReader.MapFileReader.RegionCount];
+            bankAccounts = new BankRecordData_v1[MapsFile.TempRegionCount];
 
             for (int i = 0; i < bankAccounts.Length; i++)
             {
@@ -418,7 +418,7 @@ namespace DaggerfallWorkshop.Game.Banking
         {
             // Set player owned house for this region
             DFLocation location = GameManager.Instance.PlayerGPS.CurrentLocation;
-            int mapID = location.MapTableData.MapId;
+            ulong mapID = location.MapTableData.MapId;
             houses[regionIndex].location = location.Name;
             houses[regionIndex].mapID = mapID;
             houses[regionIndex].buildingKey = house.buildingKey;

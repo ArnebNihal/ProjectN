@@ -1699,8 +1699,8 @@ namespace DaggerfallWorkshop.Game
             {
                 gameobjectExteriorAutomap.SetActive(true);
                 DFPosition mapPixel = GameManager.Instance.PlayerGPS.CurrentMapPixel;
-                ContentReader.MapSummary mapSummary;
-                if (DaggerfallUnity.Instance.ContentReader.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
+                MapSummary mapSummary;
+                if (WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
                 {
                     LoadAndCreateLocationExteriorAutomap();
                 }
@@ -1717,8 +1717,8 @@ namespace DaggerfallWorkshop.Game
 
         private void OnMapPixelChanged(DFPosition mapPixel)
         {
-            ContentReader.MapSummary mapSummary;
-            if (DaggerfallUnity.Instance.ContentReader.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
+            MapSummary mapSummary;
+            if (WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
             {
                 LoadAndCreateLocationExteriorAutomap();
             }
@@ -1738,8 +1738,8 @@ namespace DaggerfallWorkshop.Game
         {
             gameobjectExteriorAutomap.SetActive(true);
             DFPosition mapPixel = GameManager.Instance.PlayerGPS.CurrentMapPixel;
-            ContentReader.MapSummary mapSummary;
-            if (DaggerfallUnity.Instance.ContentReader.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
+            MapSummary mapSummary;
+            if (WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
             {
                 LoadAndCreateLocationExteriorAutomap();
             }
@@ -1749,8 +1749,8 @@ namespace DaggerfallWorkshop.Game
         {
             gameobjectExteriorAutomap.SetActive(true);
             DFPosition mapPixel = GameManager.Instance.PlayerGPS.CurrentMapPixel;
-            ContentReader.MapSummary mapSummary;
-            if (DaggerfallUnity.Instance.ContentReader.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
+            MapSummary mapSummary;
+            if (WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
             {
                 LoadAndCreateLocationExteriorAutomap();
             }

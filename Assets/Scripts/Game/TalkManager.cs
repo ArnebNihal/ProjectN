@@ -1225,13 +1225,13 @@ namespace DaggerfallWorkshop.Game
 
             positionPlayer = new Vector2(position.X, position.Y);
 
-            int region = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetPoliticIndex(position.X, position.Y) - 128;
-            if (region < 0 || region >= DaggerfallUnity.Instance.ContentReader.MapFileReader.RegionCount)
+            int region = PoliticData.GetPoliticValue(position.X, position.Y);
+            if (region < 0 || region >= MapsFile.TempRegionCount)
                 region = -1;
 
             DFRegion.RegionMapTable locationInfo = new DFRegion.RegionMapTable();
 
-            DFRegion currentDFRegion = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegion(region);
+            DFRegion currentDFRegion = WorldMaps.ConvertWorldMapsToDFRegion(region);
             string name = questPlace.SiteDetails.locationName.ToLower();
             string[] locations = currentDFRegion.MapNames;
             for (int i = 0; i < locations.Length; i++)
@@ -1885,7 +1885,7 @@ namespace DaggerfallWorkshop.Game
                     locationToChoose -= CheckLocationKeyForRegionalBuilding(gps.CurrentRegion.MapTable[i].Key, index, faction);
                     if (locationToChoose == 0)
                     {
-                        location = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(gps.CurrentRegionIndex, i);
+                        location = WorldMaps.GetLocation(gps.CurrentRegionIndex, i);
                         return true;
                     }
                 }
@@ -2351,7 +2351,7 @@ namespace DaggerfallWorkshop.Game
             return matchingBuildings[0].name;
         }
 
-        public bool IsBuildingQuestResource(int mapID, int buildingKey, ref string overrideBuildingName, ref bool pcLearnedAboutExistence, ref bool receivedDirectionalHints, ref bool locationWasMarkedOnMapByNPC)
+        public bool IsBuildingQuestResource(ulong mapID, int buildingKey, ref string overrideBuildingName, ref bool pcLearnedAboutExistence, ref bool receivedDirectionalHints, ref bool locationWasMarkedOnMapByNPC)
         {
             pcLearnedAboutExistence = false;
             receivedDirectionalHints = false;
