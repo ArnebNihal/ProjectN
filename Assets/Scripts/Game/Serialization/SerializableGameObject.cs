@@ -257,7 +257,7 @@ namespace DaggerfallWorkshop.Game.Serialization
     public class RoomRental_v1
     {
         public string name;
-        public int mapID;
+        public ulong mapID;
         public int buildingKey;
         public int allocatedBedIndex;
         public ulong expiryTime;
@@ -299,7 +299,6 @@ namespace DaggerfallWorkshop.Game.Serialization
         public ItemRepairData_v1 repairData;
         public uint timeForItemToDisappear;
         public uint timeHealthLeechLastUsed;
-        public int artifactIndexBitfield;
     }
 
     [fsObject("v1")]
@@ -484,7 +483,7 @@ namespace DaggerfallWorkshop.Game.Serialization
     public class HouseData_v1
     {
         public string location;
-        public int mapID;
+        public ulong mapID;
         public int buildingKey;
         public int regionIndex;
     }
