@@ -375,7 +375,7 @@ namespace DaggerfallWorkshop
         public bool hasLocation;                    // True if location present
         public int mapRegionIndex;                  // Map region index (if location present)
         public int mapLocationIndex;                // Map location index (if location present)
-        public int locationID;                      // Location ID (if location present)
+        public ulong locationID;                      // Location ID (if location present)
         public string locationName;                 // Location name (if location present)
         public DFRegion.LocationTypes LocationType; // Location type (if location present)       
         public float averageHeight;                 // Average height of terrain for location placement
@@ -425,8 +425,8 @@ namespace DaggerfallWorkshop
     {
         public ulong questUID;                      // Quest who owns this site
         public SiteTypes siteType;                  // Type of site
-        public int mapId;                           // MapID of this location
-        public uint locationId;                     // LocationID of this location
+        public ulong mapId;                           // MapID of this location
+        public ulong locationId;                     // LocationID of this location
         public int regionIndex;                     // Index of region containing this location
         public string regionName;                   // Canonical name Name of region containing this location
         public string locationName;                 // Canonical Name of exterior location itself
@@ -454,7 +454,7 @@ namespace DaggerfallWorkshop
         public ulong questUID;                      // Quest which reserved link
         public Symbol placeSymbol;                  // Symbol of Place/site target
         public SiteTypes siteType;                  // Type of site involved in quest
-        public int mapId;                           // MapID of site location in world
+        public ulong mapId;                           // MapID of site location in world
         public int buildingKey;                     // Key for building site types
         public int magicNumberIndex;                // Static index specified by fixed places only (one-based)
     }

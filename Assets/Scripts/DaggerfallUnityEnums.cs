@@ -61,6 +61,21 @@ namespace DaggerfallWorkshop
     }
 
     /// <summary>
+    /// Government types. I put them here because I don't know where else.
+    /// Probably the wrong place...
+    /// </summary>
+    public enum GovernmentType
+    {
+            Kingdom = 1,
+            Duchy = 2,
+            March = 3,
+            County = 4,
+            Barony = 5,
+            Fiefdom = 6,
+            Empire = 7,
+        }
+
+    /// <summary>
     /// Base types for climate-aware texture sets.
     /// </summary>
     public enum ClimateBases
@@ -773,11 +788,6 @@ namespace DaggerfallWorkshop
         TextFlats,
         TextQuests,
         TextLocations,
-        TextSettings,
-        TextSpells,
-        TextItems,
-        TextMagicItems,
-        Factions,
     }
 
     /// <summary>
