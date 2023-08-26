@@ -220,7 +220,7 @@ namespace DaggerfallConnect.Save
             {
                 PlayerGPS gps = GameManager.Instance.PlayerGPS;
                 gps.ClearDiscoveryData();
-                for (int regionIndex = 0; regionIndex < 62; regionIndex++)
+                for (int regionIndex = 0; regionIndex < WorldData.WorldSetting.Regions; regionIndex++)
                 {
                     // Generate name from region index
                     string name = string.Format("MAPSAVE.{0:000}", regionIndex);
@@ -234,14 +234,14 @@ namespace DaggerfallConnect.Save
                     byte[] data = mapSave.GetRecordBytes(index);
 
                     // Parse MAPSAVE data for discovered locations
-                    DFRegion regionData = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetRegion(regionIndex);
+                    DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
                     int locationCount = Math.Min(data.Length, (int)regionData.LocationCount);
                     for (int i = 0; i < locationCount; i++)
                     {
                         // If a location is marked as discovered in classic but not DF Unity, discover it for DF Unity
                         if ((data[i] & 0x40) != 0 && !regionData.MapTable[i].Discovered)
                         {
-                            DFLocation location = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetLocation(regionIndex, i);
+                            DFLocation location = WorldMaps.GetLocation(regionIndex, i);
                             gps.DiscoverLocation(regionData.Name, location.Name);
                         }
                     }

@@ -52,7 +52,7 @@ namespace DaggerfallConnect.Save
 
         const int regionDataOffset = 0x3DA;
         const int regionDataLength = 80;
-        const int regionCount = 62;
+        const int regionCount = 408;
 
         const int factionDataOffset = 0x17D0;
         const int factionDataLength = 92;
