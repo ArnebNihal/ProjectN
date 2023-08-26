@@ -75,6 +75,7 @@ namespace DaggerfallWorkshop
         public GameObject streamingTarget = null;
         public bool suppressWorld = false;
         public bool ShowDebugString = false;
+        public bool updateWorldMaps = false;
 
         // List of terrain objects
         // Terrains all have the same format and will be endlessly recycled
@@ -239,15 +240,25 @@ namespace DaggerfallWorkshop
                 return;
 
             // Handle moving to new map pixel or first-time init
-            DFPosition curMapPixel = LocalPlayerGPS.CurrentMapPixel;
-            if (curMapPixel.X != MapPixelX ||
-                curMapPixel.Y != MapPixelY ||
+            DFPosition mapPixel = LocalPlayerGPS.CurrentMapPixel;
+            if (((mapPixel.X != MapPixelX) && (mapPixel.X % MapsFile.TileDim == 0)) ||
+                ((mapPixel.Y != MapPixelY) && (mapPixel.Y % MapsFile.TileDim == 0)))
+                    updateWorldMaps = true;
+
+            if (updateWorldMaps)
+            {
+                UpdateWorldMaps();
+                updateWorldMaps = false;
+            }
+
+            if (mapPixel.X != MapPixelX ||
+                mapPixel.Y != MapPixelY ||
                 init)
             {
-                Debug.Log(string.Format("Entering new map pixel X={0}, Y={1}", curMapPixel.X, curMapPixel.Y));
+                Debug.Log(string.Format("Entering new map pixel X={0}, Y={1}", mapPixel.X, mapPixel.Y));
                 prevMapPixel = new DFPosition(MapPixelX, MapPixelY);
-                MapPixelX = curMapPixel.X;
-                MapPixelY = curMapPixel.Y;
+                MapPixelX = mapPixel.X;
+                MapPixelY = mapPixel.Y;
                 UpdateWorld();
                 InitPlayerTerrain();
                 StartCoroutine(UpdateTerrains());
@@ -281,14 +292,14 @@ namespace DaggerfallWorkshop
                         PositionPlayerToLocation();
                         break;
                     case RepositionMethods.Offset:
-                        RepositionPlayer(MapPixelX, MapPixelY, autoRepositionOffset);
+                        RepositionPlayer(LocalPlayerGPS.CurrentMapPixel.X, LocalPlayerGPS.CurrentMapPixel.Y, autoRepositionOffset);
                         break;
                     case RepositionMethods.DungeonEntrance:
                         PositionPlayerToDungeonExit();
                         break;
                     default:
                     case RepositionMethods.Origin:
-                        RepositionPlayer(MapPixelX, MapPixelY, Vector3.zero);
+                        RepositionPlayer(LocalPlayerGPS.CurrentMapPixel.X, LocalPlayerGPS.CurrentMapPixel.Y, Vector3.zero);
                         break;
                 }
                 autoRepositionMethod = RepositionMethods.None;
@@ -612,6 +623,14 @@ namespace DaggerfallWorkshop
                     PlaceTerrain(x, y);
                 }
             }
+        }
+
+        private void UpdateWorldMaps()
+        {
+            ClimateData.Climate = ClimateData.GetTextureMatrix("climate");
+            PoliticData.Politic = ClimateData.GetTextureMatrix("politic");
+            WoodsData.Woods = WoodsData.GetTextureMatrix("woods");
+            WoodsLargeData.WoodsLarge = WoodsLargeData.GetLargeHeightmapMatrix();
         }
 
         // Fully init central terrain so player can be dropped into world as soon as possible
@@ -1084,6 +1103,7 @@ namespace DaggerfallWorkshop
             DFPosition worldPos = MapsFile.MapPixelToWorldCoord(mapPixelX, mapPixelY);
             LocalPlayerGPS.WorldX = worldPos.X;
             LocalPlayerGPS.WorldZ = worldPos.Y;
+            UpdateWorldMaps();
             LocalPlayerGPS.UpdateWorldInfo();
             autoRepositionOffset = repositionOffset;
             autoRepositionMethod = autoReposition;
@@ -1681,7 +1701,7 @@ namespace DaggerfallWorkshop
 
                 // Smooth steep location on steep gradients
                 // TODO: What is this supposed to be doing? It doesn't seem to change any data that's used anywhere..
-                TerrainHelper.SmoothLocationNeighbourhood();
+                // TerrainHelper.SmoothLocationNeighbourhood();
             }
 
             // Raise ready flag

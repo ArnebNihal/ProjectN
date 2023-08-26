@@ -16,6 +16,7 @@ using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Utility;
 using Unity.Jobs;
 using Unity.Collections;
+using DaggerfallWorkshop.Game;
 
 namespace DaggerfallWorkshop
 {
@@ -33,13 +34,14 @@ namespace DaggerfallWorkshop
         // Map pixel ranges are slightly smaller to allow for interpolation of neighbours
         public const int minMapPixelX = 3;
         public const int minMapPixelY = 3;
-        public const int maxMapPixelX = 998;
-        public const int maxMapPixelY = 498;
-        public const int defaultMapPixelX = 207;
-        public const int defaultMapPixelY = 213;
+        public const int maxMapPixelX = 7680;
+        public const int maxMapPixelY = 6114;
+        public const int defaultMapPixelX = 1746;
+        public const int defaultMapPixelY = 2330;
         public const float minTerrainScale = 1.0f;
         public const float maxTerrainScale = 10.0f;
         public const float defaultTerrainScale = 1.5f;
+        public static PlayerGPS LocalPlayerGPS = GameManager.Instance.PlayerGPS;
 
         /// <summary>
         /// Gets the Terrain name for a given map pixel
@@ -60,8 +62,8 @@ namespace DaggerfallWorkshop
         {
             // Read general data from world maps
             int worldHeight = (int)WoodsData.GetHeightMapValue(mapPixelX, mapPixelY);
-            int worldClimate = ClimateData.Climate[mapPixelX, mapPixelY];
-            int worldPolitic = PoliticData.Politic[mapPixelX, mapPixelY];
+            int worldClimate = ClimateData.GetClimateValue(mapPixelX, mapPixelY);
+            int worldPolitic = PoliticData.GetPoliticValue(mapPixelX, mapPixelY);
 
             // Get location if present
             ulong id = 0;
@@ -434,13 +436,13 @@ namespace DaggerfallWorkshop
 
             // Source must be land
             int srcOffset = srcY * MapsFile.WorldWidth + (srcX + 1);
-            int srcClimate = ClimateData.Climate[srcX, srcY];
+            int srcClimate = ClimateData.GetClimateValue(srcX, srcY);
             if (srcClimate == oceanClimate)
                 return;
 
             // Destination must be ocean
             int dstOffset = dstY * MapsFile.WorldWidth + (dstX + 1);
-            int dstClimate = ClimateData.Climate[dstX, dstY];
+            int dstClimate = ClimateData.GetClimateValue(dstX, dstY);
             if (dstClimate == oceanClimate)
             {
                 dstClimateArray[dstX, dstY] = srcClimate;
