@@ -156,7 +156,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         protected DFPosition mapCenter;
         protected int zoomfactor                  = 4;
-        protected int maxZoomFactor               = 15;
+        protected int maxZoomFactor               = 100;
         protected int mouseOverRegion             = -1;
         protected int selectedRegion              = -1;
         protected int mapIndex                    = 0;        // Current index of loaded map from selectedRegionMapNames
@@ -651,7 +651,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     int offset = (((height - y - 1) * width) + x);
                     if (offset >= (width * height))
                         continue;
-                    int sampleRegion = PoliticData.Politic[originX + x, originY + y] - 128;
+                    int sampleRegion = PoliticData.GetPoliticValue(originX + x, originY + y);
 
                     MapSummary summary;
                     if (WorldMaps.HasLocation(originX + x, originY + y, out summary))
@@ -711,7 +711,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int originX = mapCenter.X - (width / 2);
             int originY = mapCenter.Y - (height / 2);
 
-            int actualClimate = ClimateData.Climate[mapCenter.X, mapCenter.Y];
+            int actualClimate = ClimateData.GetClimateValue(mapCenter.X, mapCenter.Y);
             Color32[] colours = new Color32[width * height];
             Array.Clear(climateBuffer, 0, climateBuffer.Length);
 
@@ -726,7 +726,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     byte heightmap = WoodsData.GetHeightMapValue(area.X, area.Y);
                     int value = 0;
 
-                    value = ClimateData.Climate[area.X, area.Y];
+                    value = ClimateData.GetClimateValue(area.X, area.Y);
 
                     Color32 colour;
 
@@ -794,7 +794,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int originX = mapCenter.X - (width / 2);
             int originY = mapCenter.Y - (height / 2);
 
-            int actualPolitic = PoliticData.ConvertMapPixelToRegionIndex(mapCenter.X, mapCenter.Y);
+            int actualPolitic = PoliticData.GetPoliticValue(mapCenter.X, mapCenter.Y);
             Color32[] colours = new Color32[width * height];
             Array.Clear(regionBuffer, 0, regionBuffer.Length);
 
@@ -806,268 +806,271 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 for (int y = 0; y < height; y++)
                 {
                     DFPosition area = new DFPosition(mapCenter.X + x - (width / 2), mapCenter.Y + y - (height / 2));
-                    int value = PoliticData.ConvertMapPixelToRegionIndex(area.X, area.Y);
+                    int value = PoliticData.GetPoliticValue(area.X, area.Y, false);
 
                     Color32 colour;
 
-                    if (value == actualPolitic)                        
-                        value = -1;
+                    if (value == 0)
+                    {
+                        colour = new Color32(0, 0, 0, 0);
+                        continue;
+                    }
+
+                    value -= 128;
+
+                    value = value % 10;
 
                     switch (value)
                     {
-                        case 64:    // Sea
-                            colour = new Color32(0, 0, 0, 0);
-                            break;
-
                         case 0:     // The Alik'r Desert
-                            colour = new Color32(55, 170, 253, mapAlphaChannel);
+                            colour = new Color32(236, 42, 50, (byte)mapAlphaChannel);
                             break;
 
                         case 1:     // The Dragontail Mountains
-                            colour = new Color32(149, 43, 29, mapAlphaChannel);
+                            colour = new Color32(149, 43, 29, (byte)mapAlphaChannel);
                             break;
 
-                        case 2:     // Glenpoint Foothills - unused
-                            colour = new Color32(123, 156, 118, mapAlphaChannel);
+                        // case 2:     // Glenpoint Foothills - unused
+                        //     colour = new Color32(123, 156, 118, (byte)mapAlphaChannel);
+                        //     break;
+
+                        // case 3:     // Daggerfall Bluffs - unused
+                        //     colour = new Color32(107, 144, 109, (byte)mapAlphaChannel);
+                        //     break;
+
+                        // case 4:     // Yeorth Burrowland - unused
+                        //     colour = new Color32(93, 130, 94, (byte)mapAlphaChannel);
+                        //     break;
+
+                        case 2:     // Dwynnen
+                            colour = new Color32(212, 180, 105, (byte)mapAlphaChannel);
                             break;
 
-                        case 3:     // Daggerfall Bluffs - unused
-                            colour = new Color32(107, 144, 109, mapAlphaChannel);
+                        // case 6:     // Ravennian Forest - unused
+                        //     colour = new Color32(77, 110, 78, (byte)mapAlphaChannel);
+                        //     break;
+
+                        // case 7:     // Devilrock - unused
+                        //     colour = new Color32(68, 99, 67, (byte)mapAlphaChannel);
+                        //     break;
+
+                        // case 8:     // Malekna Forest - unused
+                        //     colour = new Color32(61, 89, 53, (byte)mapAlphaChannel);
+                        //     break;
+
+                        case 3:     // The Isle of Balfiera
+                            colour = new Color32(158, 0, 0, (byte)mapAlphaChannel);
                             break;
 
-                        case 4:     // Yeorth Burrowland - unused
-                            colour = new Color32(93, 130, 94, mapAlphaChannel);
+                        // case 10:    // Bantha - unused
+                        //     colour = new Color32(34, 51, 34, (byte)mapAlphaChannel);
+                        //     break;
+
+                        case 4:    // Dak'fron
+                            colour = new Color32(36, 116, 84, (byte)mapAlphaChannel);
                             break;
 
-                        case 5:     // Dwynnen
-                            colour = new Color32(212, 180, 105, mapAlphaChannel);
+                        // case 12:    // The Islands in the Western Iliac Bay - unused
+                        //     colour = new Color32(36, 116, 84, (byte)mapAlphaChannel);
+                        //     break;
+
+                        // case 13:    // Tamarilyn Point - unused
+                        //     colour = new Color32(36, 116, 84, (byte)mapAlphaChannel);
+                        //     break;
+
+                        // case 14:    // Lainlyn Cliffs - unused
+                        //     colour = new Color32(36, 116, 84, (byte)mapAlphaChannel);
+                        //     break;
+
+                        // case 15:    // Bjoulsae River - unused
+                        //     colour = new Color32(36, 116, 84, (byte)mapAlphaChannel);
+                        //     break;
+
+                        case 5:    // The Wrothgarian Mountains
+                            colour = new Color32(250, 201, 11, (byte)mapAlphaChannel);
                             break;
 
-                        case 6:     // Ravennian Forest - unused
-                            colour = new Color32(77, 110, 78, mapAlphaChannel);
+                        case 6:    // Daggerfall
+                            colour = new Color32(0, 126, 13, (byte)mapAlphaChannel);
                             break;
 
-                        case 7:     // Devilrock - unused
-                            colour = new Color32(68, 99, 67, mapAlphaChannel);
+                        case 7:    // Glenpoint
+                            colour = new Color32(152, 152, 152, (byte)mapAlphaChannel);
                             break;
 
-                        case 8:     // Malekna Forest - unused
-                            colour = new Color32(61, 89, 53, mapAlphaChannel);
+                        case 8:    // Betony
+                            colour = new Color32(31, 55, 132, (byte)mapAlphaChannel);
                             break;
 
-                        case 9:     // The Isle of Balfiera
-                            colour = new Color32(158, 0, 0, mapAlphaChannel);
+                        case 9:    // Sentinel
+                            colour = new Color32(158, 134, 17, (byte)mapAlphaChannel);
                             break;
 
-                        case 10:    // Bantha - unused
-                            colour = new Color32(34, 51, 34, mapAlphaChannel);
-                            break;
+                        // case 21:    // Anticlere
+                        //     colour = new Color32(30, 30, 30, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 11:    // Dak'fron
-                            colour = new Color32(36, 116, 84, mapAlphaChannel);
-                            break;
+                        // case 22:    // Lainlyn
+                        //     colour = new Color32(38, 127, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 12:    // The Islands in the Western Iliac Bay - unused
-                            colour = new Color32(36, 116, 84, mapAlphaChannel);
-                            break;
+                        // case 23:    // Wayrest
+                        //     colour = new Color32(0, 248, 255, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 13:    // Tamarilyn Point - unused
-                            colour = new Color32(36, 116, 84, mapAlphaChannel);
-                            break;
+                        // case 24:    // Gen Tem High Rock village - unused
+                        //     colour = new Color32(158, 134, 17, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 14:    // Lainlyn Cliffs - unused
-                            colour = new Color32(36, 116, 84, mapAlphaChannel);
-                            break;
+                        // case 25:    // Gen Rai Hammerfell village - unused
+                        //     colour = new Color32(158, 134, 17, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 15:    // Bjoulsae River - unused
-                            colour = new Color32(36, 116, 84, mapAlphaChannel);
-                            break;
+                        // case 26:    // The Orsinium Area
+                        //     colour = new Color32(0, 99, 46, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 16:    // The Wrothgarian Mountains
-                            colour = new Color32(250, 201, 11, mapAlphaChannel);
-                            break;
+                        // case 27:    // Skeffington Wood - unused
+                        //     colour = new Color32(0, 99, 46, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 17:    // Daggerfall
-                            colour = new Color32(0, 126, 13, mapAlphaChannel);
-                            break;
+                        // case 28:    // Hammerfell bay coast - unused
+                        //     colour = new Color32(0, 99, 46, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 18:    // Glenpoint
-                            colour = new Color32(152, 152, 152, mapAlphaChannel);
-                            break;
+                        // case 29:    // Hammerfell sea coast - unused
+                        //     colour = new Color32(0, 99, 46, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 19:    // Betony
-                            colour = new Color32(31, 55, 132, mapAlphaChannel);
-                            break;
+                        // case 30:    // High Rock bay coast - unused
+                        //     colour = new Color32(0, 99, 46, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 20:    // Sentinel
-                            colour = new Color32(158, 134, 17, mapAlphaChannel);
-                            break;
+                        // case 31:    // High Rock sea coast
+                        //     colour = new Color32(0, 0, 0, 0);
+                        //     break;
 
-                        case 21:    // Anticlere
-                            colour = new Color32(30, 30, 30, mapAlphaChannel);
-                            break;
+                        // case 32:    // Northmoor
+                        //     colour = new Color32(127, 127, 127, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 22:    // Lainlyn
-                            colour = new Color32(38, 127, 0, mapAlphaChannel);
-                            break;
+                        // case 33:    // Menevia
+                        //     colour = new Color32(229, 115, 39, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 23:    // Wayrest
-                            colour = new Color32(0, 248, 255, mapAlphaChannel);
-                            break;
+                        // case 34:    // Alcaire
+                        //     colour = new Color32(238, 90, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 24:    // Gen Tem High Rock village - unused
-                            colour = new Color32(158, 134, 17, mapAlphaChannel);
-                            break;
+                        // case 35:    // Koegria
+                        //     colour = new Color32(0, 83, 165, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 25:    // Gen Rai Hammerfell village - unused
-                            colour = new Color32(158, 134, 17, mapAlphaChannel);
-                            break;
+                        // case 36:    // Bhoriane
+                        //     colour = new Color32(255, 124, 237, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 26:    // The Orsinium Area
-                            colour = new Color32(0, 99, 46, mapAlphaChannel);
-                            break;
+                        // case 37:    // Kambria
+                        //     colour = new Color32(0, 19, 127, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 27:    // Skeffington Wood - unused
-                            colour = new Color32(0, 99, 46, mapAlphaChannel);
-                            break;
+                        // case 38:    // Phrygias
+                        //     colour = new Color32(81, 46, 26, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 28:    // Hammerfell bay coast - unused
-                            colour = new Color32(0, 99, 46, mapAlphaChannel);
-                            break;
+                        // case 39:    // Urvaius
+                        //     colour = new Color32(246, 207, 74, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 29:    // Hammerfell sea coast - unused
-                            colour = new Color32(0, 99, 46, mapAlphaChannel);
-                            break;
+                        // case 40:    // Ykalon
+                        //     colour = new Color32(87, 0, 127, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 30:    // High Rock bay coast - unused
-                            colour = new Color32(0, 99, 46, mapAlphaChannel);
-                            break;
+                        // case 41:    // Daenia
+                        //     colour = new Color32(32, 142, 142, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 31:    // High Rock sea coast
-                            colour = new Color32(0, 0, 0, 0);
-                            break;
+                        // case 42:    // Shalgora
+                        //     colour = new Color32(202, 0, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 32:    // Northmoor
-                            colour = new Color32(127, 127, 127, mapAlphaChannel);
-                            break;
+                        // case 43:    // Abibon-Gora
+                        //     colour = new Color32(142, 74, 173, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 33:    // Menevia
-                            colour = new Color32(229, 115, 39, mapAlphaChannel);
-                            break;
+                        // case 44:    // Kairou
+                        //     colour = new Color32(68, 27, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 34:    // Alcaire
-                            colour = new Color32(238, 90, 0, mapAlphaChannel);
-                            break;
+                        // case 45:    // Pothago
+                        //     colour = new Color32(207, 20, 43, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 35:    // Koegria
-                            colour = new Color32(0, 83, 165, mapAlphaChannel);
-                            break;
+                        // case 46:    // Myrkwasa
+                        //     colour = new Color32(119, 108, 59, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 36:    // Bhoriane
-                            colour = new Color32(255, 124, 237, mapAlphaChannel);
-                            break;
+                        // case 47:    // Ayasofya
+                        //     colour = new Color32(74, 35, 1, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 37:    // Kambria
-                            colour = new Color32(0, 19, 127, mapAlphaChannel);
-                            break;
+                        // case 48:    // Tigonus
+                        //     colour = new Color32(255, 127, 127, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 38:    // Phrygias
-                            colour = new Color32(81, 46, 26, mapAlphaChannel);
-                            break;
+                        // case 49:    // Kozanset
+                        //     colour = new Color32(127, 127, 127, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 39:    // Urvaius
-                            colour = new Color32(12, 12, 12, mapAlphaChannel);
-                            break;
+                        // case 50:    // Satakalaam
+                        //     colour = new Color32(255, 46, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 40:    // Ykalon
-                            colour = new Color32(87, 0, 127, mapAlphaChannel);
-                            break;
+                        // case 51:    // Totambu
+                        //     colour = new Color32(193, 77, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 41:    // Daenia
-                            colour = new Color32(32, 142, 142, mapAlphaChannel);
-                            break;
+                        // case 52:    // Mournoth
+                        //     colour = new Color32(153, 28, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 42:    // Shalgora
-                            colour = new Color32(202, 0, 0, mapAlphaChannel);
-                            break;
+                        // case 53:    // Ephesus
+                        //     colour = new Color32(253, 103, 0, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 43:    // Abibon-Gora
-                            colour = new Color32(142, 74, 173, mapAlphaChannel);
-                            break;
+                        // case 54:    // Santaki
+                        //     colour = new Color32(1, 255, 144, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 44:    // Kairou
-                            colour = new Color32(68, 27, 0, mapAlphaChannel);
-                            break;
+                        // case 55:    // Antiphyllos
+                        //     colour = new Color32(229, 182, 64, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 45:    // Pothago
-                            colour = new Color32(207, 20, 43, mapAlphaChannel);
-                            break;
+                        // case 56:    // Bergama
+                        //     colour = new Color32(196, 169, 37, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 46:    // Myrkwasa
-                            colour = new Color32(119, 108, 59, mapAlphaChannel);
-                            break;
+                        // case 57:    // Gavaudon
+                        //     colour = new Color32(240, 8, 47, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 47:    // Ayasofya
-                            colour = new Color32(74, 35, 1, mapAlphaChannel);
-                            break;
+                        // case 58:    // Tulune
+                        //     colour = new Color32(0, 73, 126, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 48:    // Tigonus
-                            colour = new Color32(255, 127, 127, mapAlphaChannel);
-                            break;
+                        // case 59:    // Glenumbra Moors
+                        //     colour = new Color32(15, 0, 61, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 49:    // Kozanset
-                            colour = new Color32(127, 127, 127, mapAlphaChannel);
-                            break;
+                        // case 60:    // Ilessan Hills
+                        //     colour = new Color32(236, 42, 50, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 50:    // Satakalaam
-                            colour = new Color32(255, 46, 0, mapAlphaChannel);
-                            break;
+                        // case 61:    // Cybiades
+                        //     colour = new Color32(255, 255, 255, (byte)mapAlphaChannel);
+                        //     break;
 
-                        case 51:    // Totambu
-                            colour = new Color32(193, 77, 0, mapAlphaChannel);
-                            break;
-
-                        case 52:    // Mournoth
-                            colour = new Color32(153, 28, 0, mapAlphaChannel);
-                            break;
-
-                        case 53:    // Ephesus
-                            colour = new Color32(253, 103, 0, mapAlphaChannel);
-                            break;
-
-                        case 54:    // Santaki
-                            colour = new Color32(1, 255, 144, mapAlphaChannel);
-                            break;
-
-                        case 55:    // Antiphyllos
-                            colour = new Color32(229, 182, 64, mapAlphaChannel);
-                            break;
-
-                        case 56:    // Bergama
-                            colour = new Color32(196, 169, 37, mapAlphaChannel);
-                            break;
-
-                        case 57:    // Gavaudon
-                            colour = new Color32(240, 8, 47, mapAlphaChannel);
-                            break;
-
-                        case 58:    // Tulune
-                            colour = new Color32(0, 73, 126, mapAlphaChannel);
-                            break;
-
-                        case 59:    // Glenumbra Moors
-                            colour = new Color32(15, 0, 61, mapAlphaChannel);
-                            break;
-
-                        case 60:    // Ilessan Hills
-                            colour = new Color32(236, 42, 50, mapAlphaChannel);
-                            break;
-
-                        case 61:    // Cybiades
-                            colour = new Color32(255, 255, 255, mapAlphaChannel);
-                            break;
-
-                        case -1:
+                        // case -1:
                         default:
                             colour = new Color32(0, 0, 0, 0);
                             break;
@@ -1137,6 +1140,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 }
             }
             identifyTexture.SetPixels32(identifyPixelBuffer);
+            identifyTexture.filterMode = FilterMode.Point;
             identifyTexture.Apply();
             identifyOverlayPanel.BackgroundTexture = identifyTexture;
         }
@@ -1403,8 +1407,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int x = (int)(coordinates.x);
             int y = (int)(coordinates.y);
 
-            int sampleRegion = PoliticData.ConvertMapPixelToRegionIndex(x, y);
-            if (sampleRegion != 64)
+            int sampleRegion = PoliticData.GetPoliticValue(x, y);
+            if (sampleRegion != 0)
             {
                 mouseOverRegion = sampleRegion;
 
@@ -1447,7 +1451,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int x = (int)pos.x;
             int y = (int)pos.y;
 
-            int sampleRegion = PoliticData.ConvertMapPixelToRegionIndex(x, y);
+            int sampleRegion = PoliticData.GetPoliticValue(x, y);
             if (sampleRegion == 64)
             {
                 return;
@@ -1782,7 +1786,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         protected int GetPlayerRegion()
         {
             DFPosition position = TravelTimeCalculator.GetPlayerTravelPosition();
-            int region = PoliticData.ConvertMapPixelToRegionIndex(position.X, position.Y);
+            int region = PoliticData.GetPoliticValue(position.X, position.Y);
             if (region < 0 || region >= MapsFile.TempRegionCount)
                 return -1;
 
@@ -1905,7 +1909,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int zoomedWidth = dynamicMapWidth * zoomfactor;
             int zoomedHeight = dynamicMapHeight * zoomfactor;
 
-            int actualPolitic = PoliticData.Politic[mapCenter.X, mapCenter.Y];
+            int actualPolitic = PoliticData.GetPoliticValue(mapCenter.X, mapCenter.Y);
             Color32[] colours = new Color32[zoomedWidth * zoomedHeight];
 
             for (int x = 0; x < zoomedWidth; x++)
@@ -1924,71 +1928,32 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     // else if (PoliticData.IsBorderPixel(area.X, area.Y, actualPolitic))
                     //     terrain = -2;
 
-                    else terrain = (value / 10);
+                    else terrain = value;
 
-                    switch (terrain)
-                    {
-                        case -2:
-                            colour = new Color32(241, 238, 45, 255);
-                            break;
-
-                        case -1:
-                            colour = new Color32(40, 71, 166, 255);
-                            break;
-
-                        case 0:
-                            colour = new Color32(175, 200, 168, 255);
-                            break;
-
-                        case 1:
-                            colour = new Color32(148, 176, 141, 255);
-                            break;
-
-                        case 2:
-                            colour = new Color32(123, 156, 118, 255);
-                            break;
-
-                        case 3:
-                            colour = new Color32(107, 144, 109, 255);
-                            break;
-
-                        case 4:
-                            colour = new Color32(93, 130, 94, 255);
-                            break;
-
-                        case 5:
-                            colour = new Color32(82, 116, 86, 255);
-                            break;
-
-                        case 6:
-                            colour = new Color32(77, 110, 78, 255);
-                            break;
-
-                        case 7:
-                            colour = new Color32(68, 99, 67, 255);
-                            break;
-
-                        case 8:
-                            colour = new Color32(61, 89, 53, 255);
-                            break;
-
-                        case 9:
-                            colour = new Color32(52, 77, 45, 255);
-                            break;
-
-                        case 10:
-                            colour = new Color32(34, 51, 34, 255);
-                            break;
-
-                        default:
-                            colour = new Color32(40, 47, 40, 255);
-                            break;
-                    }
+                    colour = GetElevationColour(terrain);
                     colours[(zoomedHeight - 1 - y) * zoomedWidth + x] = colour;
                 }
             }
 
             return colours;
+        }
+
+        public static Color32 GetElevationColour(int index)
+        {
+            Color32 colour = new Color32();
+
+            switch (index)
+            {
+                case -1:
+                    colour = new Color32(40, 71, 166, 255);
+                    break;
+
+                default:
+                    colour = new Color32((byte)(index / 2), (byte)(128 + (index / 2)), (byte)(index / 4), 255);
+                    break;
+            }
+
+            return colour;
         }
 
         #endregion

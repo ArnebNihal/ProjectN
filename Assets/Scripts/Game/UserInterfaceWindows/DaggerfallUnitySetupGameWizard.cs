@@ -87,6 +87,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         const string titleScreenFilename = "StartupBackground2";
         const float panelSwipeTime = 1;
         const SongFiles titleSongFile = SongFiles.song_5strong;
+        const string startingBlock = "CUSTAA01.RMB";
 
         string findArena2Tip;
         string pathValidated;
@@ -255,7 +256,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         void CreateBackdrop()
         {
             // Add a block into the scene
-            GameObjectHelper.CreateRMBBlockGameObject("CUSTAA06.RMB", 0, 0, 0, 0);
+            GameObjectHelper.CreateRMBBlockGameObject(startingBlock, 0, 0, 0, 0);
             backdropCreated = true;
 
             // Clear background texture
@@ -493,10 +494,18 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Add title text
             TextLabel titleLabel = new TextLabel(DaggerfallUI.Instance.Font2);
             titleLabel.Text = "Daggerfall Unity";
-            titleLabel.Position = new Vector2(0, 15);
+            titleLabel.Position = new Vector2(0, 8);
             titleLabel.TextScale = 1.4f;
             titleLabel.HorizontalAlignment = HorizontalAlignment.Center;
             optionsPanel.Components.Add(titleLabel);
+
+            // Add fork text
+            TextLabel forkLabel = new TextLabel(DaggerfallUI.DefaultFont);
+            forkLabel.Text = "Project N";
+            forkLabel.Position = new Vector2(0, 30);
+            forkLabel.TextScale = 1.2f;
+            forkLabel.HorizontalAlignment = HorizontalAlignment.Center;
+            optionsPanel.Components.Add(forkLabel);
 
             // Add version text
             TextLabel versionLabel = new TextLabel(DaggerfallUI.DefaultFont);
@@ -525,7 +534,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             vsync = AddOption(x, "vsync", DaggerfallUnity.Settings.VSync);
             swapHealthAndFatigue = AddOption(x, "swapHealthAndFatigue", DaggerfallUnity.Settings.SwapHealthAndFatigueColors);
             invertMouseVertical = AddOption(x, "invertMouseVertical", DaggerfallUnity.Settings.InvertMouseVertical);
-            mouseSmoothing = AddSlider(x, "mouseSmoothing", "mouseSmoothingInfo", SettingsManager.GetMouseLookSmoothingStrength(DaggerfallUnity.Settings.MouseLookSmoothingFactor), TextManager.Instance.GetLocalizedTextList("mouseLookSmoothingStrengths", TextCollections.TextSettings));
+            mouseSmoothing = AddSlider(x, "mouseSmoothing", "mouseSmoothingInfo", SettingsManager.GetMouseLookSmoothingStrength(DaggerfallUnity.Settings.MouseLookSmoothingFactor), SettingsManager.GetMouseLookSmoothingStrengths());
 
             x = 165;
             optionPos = 60;
@@ -540,8 +549,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             enableController = AddOption(x, "enableController", DaggerfallUnity.Settings.EnableController);
             enableController.OnToggleState += EnableController_OnToggleState;
-
-            weaponSwingMode = AddSlider(x, "weaponSwingMode", "weaponSwingModeInfo", DaggerfallUnity.Settings.WeaponSwingMode, TextManager.Instance.GetLocalizedTextList("weaponSwingModes", TextCollections.TextSettings));
+            
+            weaponSwingMode = AddSlider(x, "weaponSwingMode", "weaponSwingModeInfo", DaggerfallUnity.Settings.WeaponSwingMode, "Vanilla", "Click", "Hold");
 
             // Add mod note
             TextLabel modNoteLabel = DaggerfallUI.AddTextLabel(DaggerfallUI.DefaultFont, new Vector2(0, 130), GetText("modNote"), optionsPanel);
@@ -706,6 +715,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 case SetupStages.LaunchGame:
                     SceneManager.LoadScene(DaggerfallWorkshop.Game.Utility.SceneControl.GameSceneIndex);
                     break;
+
+                default:
+                    return;
             }
         }
 

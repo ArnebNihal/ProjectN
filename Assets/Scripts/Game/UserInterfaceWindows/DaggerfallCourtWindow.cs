@@ -451,8 +451,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public void PositionPlayerAtLocationEntrance()
         {
             DFPosition mapPixel = GameManager.Instance.PlayerGPS.CurrentMapPixel;
-            ContentReader.MapSummary mapSummary;
-            if (DaggerfallUnity.Instance.ContentReader.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
+            MapSummary mapSummary;
+            if (WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary))
             {
                 StreamingWorld world = GameManager.Instance.StreamingWorld;
                 StreamingWorld.RepositionMethods reposition = StreamingWorld.RepositionMethods.None;

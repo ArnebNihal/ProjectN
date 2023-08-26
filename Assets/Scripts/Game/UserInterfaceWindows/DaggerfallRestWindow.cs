@@ -572,7 +572,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                        return true;
 
                     // Find room rental record and get remaining time..
-                    int mapId = playerGPS.CurrentLocation.MapTableData.MapId;
+                    ulong mapId = playerGPS.CurrentLocation.MapTableData.MapId;
                     RoomRental_v1 room = GameManager.Instance.PlayerEntity.GetRentedRoom(mapId, buildingKey);
                     remainingHoursRented = PlayerEntity.GetRemainingHours(room);
 
