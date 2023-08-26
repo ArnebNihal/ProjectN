@@ -159,18 +159,18 @@ namespace DaggerfallWorkshop
             get {
                 // Determine region from current politic index
                 int result = 0;
-                if (currentPoliticIndex == 64)
+                if (currentPoliticIndex == 0)
                     result = 31; // High Rock sea coast
                   else
                     result = currentPoliticIndex - 128;
 
                 // Patch known bad value to Wrothgarian Mountains
-                if (result == 105)
-                    result = 16;
+                // if (result == 105)
+                //     result = 16;
 
                 // Clamp any out of range results to 0
-                if (result < 0 || result >= 62)
-                    result = 0;
+                if (result < 0 || result > 408)
+                    result = 31;
 
                 return result;
             }
@@ -249,6 +249,11 @@ namespace DaggerfallWorkshop
         public string CurrentLocalizedLocationName
         {
             get { return TextManager.Instance.GetLocalizedLocationName(currentLocation.MapTableData.MapId, currentLocation.Name); }
+        }
+
+        public string CurrentLocalizedRegionGovernment
+        {
+            get { return TextManager.Instance.GetCurrentRegionGovernment(CurrentRegionIndex); }
         }
 
         /// <summary>
@@ -575,26 +580,15 @@ namespace DaggerfallWorkshop
             if (!ReadyCheck())
                 return;
 
-            // Requires MAPS.BSA connection
-            // if (dfUnity.ContentReader.MapFileReader == null)
-            //     return;
+            currentClimateIndex = ClimateData.GetClimateValue(x, y);
 
-            // Get climate and politic data
-            // if (ClimateData.ClimateModified == null)
-            // {
-                currentClimateIndex = ClimateData.Climate[x, y];
-            // }
-            // else {
-            //     currentClimateIndex = ClimateData.ClimateModified[x, y];
-            // }
-
-            currentPoliticIndex = PoliticData.Politic[x, y];
+            currentPoliticIndex = PoliticData.GetPoliticValue(x, y, false);
 
             climateSettings = MapsFile.GetWorldClimateSettings(currentClimateIndex);
 
             if (currentPoliticIndex >= 128)
                 regionName = WorldMaps.WorldMap[currentPoliticIndex - 128].Name;
-            else if (currentPoliticIndex == 64)
+            else if (currentPoliticIndex == 0)
                 regionName = TextManager.Instance.GetLocalizedText("ocean");
             else
                 regionName = TextManager.Instance.GetLocalizedText("unknownUpper");
@@ -629,6 +623,7 @@ namespace DaggerfallWorkshop
                 }
                 else
                 {
+                    Debug.Log("mapSummary.RegionIndex: " + mapSummary.RegionIndex + ", mapSummary.MapIndex: " + mapSummary.MapIndex + ", currentRegion.MapTable.Length: " + currentRegion.MapTable.Length);
                     currentLocationType = currentRegion.MapTable[mapSummary.MapIndex].LocationType;
                 }
             }
