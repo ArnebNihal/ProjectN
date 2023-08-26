@@ -159,7 +159,7 @@ namespace DaggerfallWorkshop
 
         void ReloadCurrentRegion()
         {
-            regionData = dfUnity.ContentReader.MapFileReader.GetRegion(regionNames[selectedRegion]);
+            regionData = WorldMaps.ConvertWorldMapsToDFRegion(selectedRegion);
             lastSelectedRegion = selectedRegion;
         }
 

@@ -36,7 +36,7 @@ namespace DaggerfallWorkshop
 
         DaggerfallUnity dfUnity;
         ItemHelper itemHelper;
-        FactionFile factionFile;
+        // FactionFile factionFile;
         SaveGames saveGames;
         SaveTree[] saveTrees;
         SaveVars[] saveVars;
@@ -85,7 +85,7 @@ namespace DaggerfallWorkshop
                 currentItems = currentSaveTree.FindRecords(RecordTypes.Item).ToArray();
 
                 // Merge savetree faction data
-                factionDict = factionFile.Merge(currentSaveVars);
+                // factionDict = factionFile.Merge(currentSaveVars);
 
                 lastSelectedSave = selectedSave;
             }
@@ -273,7 +273,7 @@ namespace DaggerfallWorkshop
                         string regionText = "None";
                         if (region > 0)
                         {
-                            regionText = dfUnity.ContentReader.MapFileReader.GetRegionName(region); // Using non-localized name in save explorer editor
+                            regionText = WorldMaps.WorldMap[region].Name; // Using non-localized name in save explorer editor
                         }
                         EditorGUILayout.LabelField(string.Format("Region: {0}", regionText));
 
@@ -470,8 +470,8 @@ namespace DaggerfallWorkshop
             if (!dfUnity.IsReady || string.IsNullOrEmpty(dfUnity.Arena2Path))
                 return false;
 
-            if (factionFile == null)
-                factionFile = new FactionFile(dfUnity.ContentReader.GetFactionFilePath(), FileUsage.UseMemory, true);
+            // if (factionFile == null)
+            //     factionFile = new FactionFile(dfUnity.ContentReader.GetFactionFilePath(), FileUsage.UseMemory, true);
 
             if (saveGames == null || saveTrees == null || saveNames == null)
             {
