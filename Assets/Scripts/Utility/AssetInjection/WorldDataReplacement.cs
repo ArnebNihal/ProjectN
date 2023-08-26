@@ -138,7 +138,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
                     return false;
                 }
                 // Setup local lists for the region arrays and record the location count from data
-                uint dataLocationCount = dfRegion.LocationCount;
+                int dataLocationCount = dfRegion.LocationCount;
                 List<string> mapNames = new List<string>(dfRegion.MapNames);
                 List<DFRegion.RegionMapTable> mapTable = new List<DFRegion.RegionMapTable>(dfRegion.MapTable);
                 bool newBlocksAssigned = false;
