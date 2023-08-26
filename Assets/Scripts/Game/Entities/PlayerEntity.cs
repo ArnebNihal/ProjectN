@@ -96,7 +96,7 @@ namespace DaggerfallWorkshop.Game.Entity
         protected uint timeToBecomeVampireOrWerebeast = 0;
         protected uint lastTimePlayerAteOrDrankAtTavern = 0;
 
-        protected RegionDataRecord[] regionData = new RegionDataRecord[62];
+        protected RegionDataRecord[] regionData = new RegionDataRecord[408];
 
         protected Crimes crimeCommitted = 0;
         protected bool haveShownSurrenderToGuardsDialogue = false;
@@ -240,7 +240,7 @@ namespace DaggerfallWorkshop.Game.Entity
                 return raceTemplate;
         }
 
-        public RoomRental_v1 GetRentedRoom(int mapId, int buildingKey)
+        public RoomRental_v1 GetRentedRoom(ulong mapId, int buildingKey)
         {
             foreach (RoomRental_v1 room in rentedRooms)
                 if (room.mapID == mapId && room.buildingKey == buildingKey)
@@ -249,7 +249,7 @@ namespace DaggerfallWorkshop.Game.Entity
             return null;
         }
 
-        public List<RoomRental_v1> GetRentedRooms(int mapId)
+        public List<RoomRental_v1> GetRentedRooms(ulong mapId)
         {
             return rentedRooms.FindAll(r => r.mapID == mapId);
         }
@@ -983,10 +983,6 @@ namespace DaggerfallWorkshop.Game.Entity
                     Debug.LogErrorFormat("Failed to create effect bundle while importing classic spell '{0}'.", spell.ParsedData.spellName);
                     continue;
                 }
-
-                // Always use spell name from imported classic save as player might have custom names
-                bundle.Name = spell.ParsedData.spellName;
-
                 AddSpell(bundle);
             }
         }
@@ -2224,7 +2220,7 @@ namespace DaggerfallWorkshop.Game.Entity
         {
             ClampLegalReputations();
 
-            for (int i = 0; i < 62; ++i)
+            for (int i = 0; i < WorldData.WorldSetting.Regions; ++i)
             {
                 if (regionData[i].LegalRep < 0)
                     ++regionData[i].LegalRep;

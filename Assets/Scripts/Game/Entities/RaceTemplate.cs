@@ -121,6 +121,7 @@ namespace DaggerfallWorkshop.Game.Entity
                 case FactionFile.FactionRaces.Breton:
                     return Races.Breton;
                 case FactionFile.FactionRaces.Argonian:
+                case FactionFile.FactionRaces.Imperial:
                     return Races.Argonian;
                 case FactionFile.FactionRaces.WoodElf:
                     return Races.WoodElf;
