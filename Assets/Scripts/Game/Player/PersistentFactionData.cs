@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Gavin Clayton (interkarma@dfworkshop.net)
-// Contributors:    
+// Contributors:    Arneb
 // 
 // Notes:
 //
@@ -51,66 +51,66 @@ namespace DaggerfallWorkshop.Game.Player
                                                                              // Borders of:
         readonly byte[] borderRegions = { 44, 45, 47, 21, 56, 48, 49,  2, 55, 12, 57, // Alik'r Desert
                                   1, 49, 55, 12, 54, 53, 52, 50, 23, 10,  0, // Dragontail Mountains
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Glenpoint Foothills
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Daggerfall Bluffs
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Yeorth Burrowland
                                  22, 40, 39, 17, 38, 37, 10,  0,  0,  0,  0, // Dwynnen
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Ravennian Forest
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Devilrock
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Malekna Forest
                                   6, 37, 36, 35, 34, 24, 51, 23,  2,  0,  0, // Isle of Balfiera
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Bantha
                                   1, 55,  2,  0,  0,  0,  0,  0,  0,  0,  0, // Dak'fron
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Islands in the western Iliac Bay
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Tamarilyn Point
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Lainlyn Cliffs
                                  24, 53, 58, 51,  0,  0,  0,  0,  0,  0,  0, // Bjoulsae River
                                  39,  6, 38, 36, 35, 34, 27, 24, 58,  0,  0, // Wrothgarian Mountains
                                  20, 59, 19, 43, 61,  0,  0,  0,  0,  0,  0, // Daggerfall
-                                 18, 59, 60, 33, 61,  0,  0,  0,  0,  0,  0, //
+                                 18, 59, 60, 33, 61,  0,  0,  0,  0,  0,  0, // Glenpoint
                                  18, 59,  0,  0,  0,  0,  0,  0,  0,  0,  0, // Betony
-                                 47,  1, 56, 48, 62,  0,  0,  0,  0,  0,  0, //
+                                 47,  1, 56, 48, 62,  0,  0,  0,  0,  0,  0, // Sentinel
                                  43, 42, 40,  6,  0,  0,  0,  0,  0,  0,  0, // Anticlere
-                                  2, 50, 52, 51, 10,  0,  0,  0,  0,  0,  0, //
-                                 16, 58, 17, 27, 34, 10, 53, 51,  0,  0,  0, //
-                                 17, 34, 24,  0,  0,  0,  0,  0,  0,  0,  0, //
-                                 60, 19, 61, 41,  0,  0,  0,  0,  0,  0,  0, //
+                                  2, 50, 52, 51, 10,  0,  0,  0,  0,  0,  0, // Lainlyn
+                                 16, 58, 17, 27, 34, 10, 53, 51,  0,  0,  0, // Wayrest
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Gen Tem High Rock Village
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Gen Rai Hammerfell Village
+                                 17, 34, 24,  0,  0,  0,  0,  0,  0,  0,  0, // Orsinium
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Skeffington Wood
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Hammerfell bay coast
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *Hammerfell sea coast
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *High Rock bay coast
+                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // *High Rock sea coast
+                                 60, 19, 61, 41,  0,  0,  0,  0,  0,  0,  0, // Northmoor
                                  10, 35, 17, 27, 24,  0,  0,  0,  0,  0,  0, // Menevia
                                  10, 36, 17, 34,  0,  0,  0,  0,  0,  0,  0, // Alcaire
                                  10, 37, 38, 17, 35,  0,  0,  0,  0,  0,  0, // Koegria
                                  10,  6, 38, 36,  0,  0,  0,  0,  0,  0,  0, // Bhoriane
                                  37,  6, 17, 36,  0,  0,  0,  0,  0,  0,  0, // Kambria
                                  41, 40,  6, 17,  0,  0,  0,  0,  0,  0,  0, // Phrygias
-                                 22, 42, 41, 39,  6,  0,  0,  0,  0,  0,  0,
-                                 33, 61, 42, 40, 39,  0,  0,  0,  0,  0,  0,
-                                 22, 43, 61, 41, 40,  0,  0,  0,  0,  0,  0,
-                                 18, 61, 42, 22,  0,  0,  0,  0,  0,  0,  0,
-                                 45,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                 44, 46, 47,  1,  0,  0,  0,  0,  0,  0,  0,
-                                 45, 47,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                 46, 45,  1, 21,  0,  0,  0,  0,  0,  0,  0,
-                                 21, 56,  1, 49, 62,  0,  0,  0,  0,  0,  0,
-                                 48,  1,  2, 62,  0,  0,  0,  0,  0,  0,  0,
-                                  2, 52, 23,  0,  0,  0,  0,  0,  0,  0,  0,
-                                 10, 23, 52, 53, 16, 24,  0,  0,  0,  0,  0,
-                                 23, 50,  2, 53, 51,  0,  0,  0,  0,  0,  0,
-                                 51, 52,  2, 16, 58, 24,  0,  0,  0,  0,  0,
-                                  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  1, 12,  2,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  1, 21, 48,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                 24, 17, 16, 53,  0,  0,  0,  0,  0,  0,  0,
-                                 18, 19, 60, 20,  0,  0,  0,  0,  0,  0,  0,
-                                 33, 19, 59,  0,  0,  0,  0,  0,  0,  0,  0,
-                                 18, 19, 33, 41, 42, 43,  0,  0,  0,  0,  0,
-                                 21, 48, 49,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
-                                  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,
+                                 22, 42, 41, 39,  6,  0,  0,  0,  0,  0,  0, // Urvaius
+                                 33, 61, 42, 40, 39,  0,  0,  0,  0,  0,  0, // Ykalon
+                                 22, 43, 61, 41, 40,  0,  0,  0,  0,  0,  0, // Daenia
+                                 18, 61, 42, 22,  0,  0,  0,  0,  0,  0,  0, // Shalgora
+                                 45,  1,  0,  0,  0,  0,  0,  0,  0,  0,  0, // Abibon-Gora
+                                 44, 46, 47,  1,  0,  0,  0,  0,  0,  0,  0, // Kairou
+                                 45, 47,  0,  0,  0,  0,  0,  0,  0,  0,  0, // Pothago
+                                 46, 45,  1, 21,  0,  0,  0,  0,  0,  0,  0, // Myrkwasa
+                                 21, 56,  1, 49, 62,  0,  0,  0,  0,  0,  0, // Ayasofya
+                                 48,  1,  2, 62,  0,  0,  0,  0,  0,  0,  0, // Tigonus
+                                  2, 52, 23,  0,  0,  0,  0,  0,  0,  0,  0, // Kozanset
+                                 10, 23, 52, 53, 16, 24,  0,  0,  0,  0,  0, // Satakalaam
+                                 23, 50,  2, 53, 51,  0,  0,  0,  0,  0,  0, // Totambu
+                                 51, 52,  2, 16, 58, 24,  0,  0,  0,  0,  0, // Mournoth
+                                  2,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // Ephesus
+                                  1, 12,  2,  0,  0,  0,  0,  0,  0,  0,  0, // Santaki
+                                  1, 21, 48,  0,  0,  0,  0,  0,  0,  0,  0, // Antiphyllos
+                                  1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0, // Bergama
+                                 24, 17, 16, 53,  0,  0,  0,  0,  0,  0,  0, // Gavaudon
+                                 18, 19, 60, 20,  0,  0,  0,  0,  0,  0,  0, // Tulune
+                                 33, 19, 59,  0,  0,  0,  0,  0,  0,  0,  0, // Glenumbra Moors
+                                 18, 19, 33, 41, 42, 43,  0,  0,  0,  0,  0, // Ilessan Hills
+                                 21, 48, 49,  0,  0,  0,  0,  0,  0,  0,  0, // Cybiades
                                };
 
         #endregion
@@ -165,7 +165,6 @@ namespace DaggerfallWorkshop.Game.Player
             if (factionDict.ContainsKey(factionID))
             {
                 factionDataOut = factionDict[factionID];
-                factionDataOut.name = TextManager.Instance.GetLocalizedFactionName(factionID, factionDataOut.name);
                 return true;
             }
 
@@ -298,11 +297,10 @@ namespace DaggerfallWorkshop.Game.Player
         /// <returns>Faction name if name found, otherwise an empty string.</returns>
         public string GetFactionName(int id)
         {
-            string name = string.Empty;
             if (factionDict.ContainsKey(id))
-                name = factionDict[id].name;
+                return factionDict[id].name;
 
-            return TextManager.Instance.GetLocalizedFactionName(id, name);
+            return string.Empty;
         }
 
         /// <summary>
@@ -311,13 +309,13 @@ namespace DaggerfallWorkshop.Game.Player
         public void Reset()
         {
             // Get base faction data
-            FactionFile factionFile = DaggerfallUnity.Instance.ContentReader.FactionFileReader;
-            if (factionFile == null)
-                throw new Exception("PersistentFactionData.Reset() unable to load faction file reader.");
+            // FactionFile factionFile = DaggerfallUnity.Instance.ContentReader.FactionFileReader;
+            // if (factionFile == null)
+            //     throw new Exception("PersistentFactionData.Reset() unable to load faction file reader.");
 
             // Get dictionaries
-            factionDict = factionFile.FactionDict;
-            factionNameToIDDict = factionFile.FactionNameToIDDict;
+            factionDict = FactionsAtlas.FactionDictionary;
+            factionNameToIDDict = FactionsAtlas.FactionToId;
 
             // Add any registered custom factions
             AddCustomFactions();
@@ -333,13 +331,13 @@ namespace DaggerfallWorkshop.Game.Player
         public void ImportClassicReputation(SaveVars saveVars)
         {
             // Get faction reader
-            FactionFile factionFile = DaggerfallUnity.Instance.ContentReader.FactionFileReader;
-            if (factionFile == null)
-                throw new Exception("PersistentFactionData.ImportClassicReputation() unable to load faction file reader.");
+            // FactionFile factionFile = DaggerfallUnity.Instance.ContentReader.FactionFileReader;
+            // if (factionFile == null)
+            //     throw new Exception("PersistentFactionData.ImportClassicReputation() unable to load faction file reader.");
 
             // Assign new faction dict
-            factionDict = factionFile.Merge(saveVars);
-            Debug.Log("Imported faction data from classic save.");
+            // factionDict = factionFile.Merge(saveVars);
+            // Debug.Log("Imported faction data from classic save.");
         }
 
         /// <summary>
@@ -806,13 +804,14 @@ namespace DaggerfallWorkshop.Game.Player
             return false;
         }
 
+        // This should now work correctly: (faction1.region - 1) should now point to the correct region borders
         public bool IsEnemyStatePermanentUntilWarOver(FactionFile.FactionData faction1, FactionFile.FactionData faction2)
         {
             if (faction1.region != -1 && faction2.region != -1)
             {
                 for (int i = 0; i < 11; ++i)
                 {
-                    if (borderRegions[(11 * faction1.region) + i] == faction2.region)
+                    if (WorldData.WorldSetting.regionBorders[(11 * faction1.region) + i] == faction2.region)
                         return true;
                 }
             }
