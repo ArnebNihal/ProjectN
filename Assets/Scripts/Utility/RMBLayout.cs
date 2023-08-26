@@ -44,7 +44,7 @@ namespace DaggerfallWorkshop.Utility
 #if !UNITY_EDITOR
         private static int maxLocationCacheSize = 12;
 #endif
-        private static List<KeyValuePair<int, DFBlock[]>> locationCache = new List<KeyValuePair<int, DFBlock[]>>();
+        private static List<KeyValuePair<ulong, DFBlock[]>> locationCache = new List<KeyValuePair<ulong, DFBlock[]>>();
 
         /// <summary>Clear the location cache. Use if block data is changed dynamically.</summary>
         public static void ClearLocationCache()
@@ -326,7 +326,7 @@ namespace DaggerfallWorkshop.Utility
         public static void AddMiscBlockFlats(
             ref DFBlock blockData,
             Transform flatsParent,
-            int mapId,
+            ulong mapId,
             int locationIndex,
             DaggerfallBillboardBatch animalsBillboardBatch = null,
             TextureAtlasBuilder miscBillboardsAtlas = null,
@@ -386,7 +386,7 @@ namespace DaggerfallWorkshop.Utility
             ref DFBlock blockData,
             Transform flatsParent,
             Transform lightsParent,
-            int mapId,
+            ulong mapId,
             int locationIndex,
             ClimateNatureSets climateNature = ClimateNatureSets.TemperateWoodland,
             ClimateSeason climateSeason = ClimateSeason.Summer)
@@ -591,7 +591,7 @@ namespace DaggerfallWorkshop.Utility
         /// <param name="location">Location to use.</param>
         public static DFBlock[] GetLocationBuildingData(in DFLocation location)
         {
-            int mapId = location.MapTableData.MapId;
+            ulong mapId = location.MapTableData.MapId;
             DFBlock[] blocksArray = locationCache.FirstOrDefault(l => l.Key == mapId).Value;
             if (blocksArray != null)
                 return blocksArray;
@@ -625,7 +625,7 @@ namespace DaggerfallWorkshop.Utility
                 for (int x = 0; x < width; x++)
                 {
                     // Get block name
-                    string blockName = contentReader.BlockFileReader.CheckName(contentReader.MapFileReader.GetRmbBlockName(location, x, y));
+                    string blockName = contentReader.BlockFileReader.CheckName(WorldMaps.GetRmbBlockName(location, x, y));
 
                     // Get block data
                     DFBlock block;

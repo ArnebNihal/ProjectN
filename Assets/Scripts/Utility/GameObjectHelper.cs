@@ -455,7 +455,7 @@ namespace DaggerfallWorkshop.Utility
             string blockName,
             int layoutX,
             int layoutY,
-            int mapId,
+            ulong mapId,
             int locationIndex,
             bool addGroundPlane = true,
             DaggerfallRMBBlock cloneFrom = null,
@@ -499,7 +499,7 @@ namespace DaggerfallWorkshop.Utility
             DFBlock blockData,
             int layoutX,
             int layoutY,
-            int mapId,
+            ulong mapId,
             int locationIndex,
             bool addGroundPlane = true,
             DaggerfallRMBBlock cloneFrom = null,
@@ -1377,7 +1377,7 @@ namespace DaggerfallWorkshop.Utility
             }
 
             // Get location
-            if (!dfUnity.ContentReader.GetLocation(parts[0], parts[1], out locationOut))
+            if (!WorldMaps.GetLocation(parts[0], parts[1], out locationOut))
                 return false;
 
             return true;

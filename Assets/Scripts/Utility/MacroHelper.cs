@@ -247,6 +247,8 @@ namespace DaggerfallWorkshop.Utility
             { "%sign", CurrentSign }, // Current sign (ex: The Lady, The Tower, ...). Not TES2 lore, but it's a staple at this point
             { "%sea", CurrentSeason }, // Current season
             { "%cbd", CurrentBuilding }, // Name of the current building, if any
+        // ProjectN - new macros:
+            { "%lg", LocalGovernment }, // Local government type (fiefdom, barony, etc...)
         };
 
         // Multi-line macro handlers, returns tokens.
@@ -550,7 +552,7 @@ namespace DaggerfallWorkshop.Utility
             if (gps.HasCurrentLocation)
                 return gps.CurrentLocalizedLocationName;
             else
-                return gps.CurrentLocalizedRegionName;
+                return ("the " + gps.CurrentLocalizedRegionGovernment + " of " + gps.CurrentLocalizedRegionName);
         }
 
         private static string CityName2(IMacroContextProvider mcp)
@@ -714,6 +716,7 @@ namespace DaggerfallWorkshop.Utility
         private static string LegalReputation(IMacroContextProvider mcp)
         {   // %ltn
             PlayerGPS gps = GameManager.Instance.PlayerGPS;
+            Debug.Log("gps.CurrentRegionIndex: " + gps.CurrentRegionIndex);
             int rep = GameManager.Instance.PlayerEntity.RegionData[gps.CurrentRegionIndex].LegalRep;
 
             if (rep > 80)
@@ -1099,6 +1102,11 @@ namespace DaggerfallWorkshop.Utility
                 return (racialEffect as VampirismEffect).GetClanName();
             else
                 return "%vam[ERROR: PC not a vampire]";
+        }
+
+        private static string LocalGovernment(IMacroContextProvider mcp)
+        {   // %lg
+            return GameManager.Instance.PlayerGPS.CurrentLocalizedRegionGovernment;
         }
 
         #endregion
