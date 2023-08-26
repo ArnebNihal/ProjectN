@@ -107,7 +107,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
             // Attempt to get location data - using GetLocation(regionName, locationName) as it can support all locations
             DFLocation location;
-            if (!DaggerfallUnity.Instance.ContentReader.GetLocation(place.SiteDetails.regionName, place.SiteDetails.locationName, out location))
+            if (!WorldMaps.GetLocation(place.SiteDetails.regionName, place.SiteDetails.locationName, out location))
                 return;
 
             // Spawn inside dungeon at this world position
