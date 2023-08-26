@@ -28,9 +28,9 @@ namespace DaggerfallConnect.Arena2
     {
         #region Fields
 
-        readonly FileProxy factionFile = new FileProxy();
-        readonly Dictionary<int, FactionData> factionDict = new Dictionary<int, FactionData>();
-        readonly Dictionary<string, int> factionNameToIDDict = new Dictionary<string, int>();
+        // readonly FileProxy factionFile = new FileProxy();
+        // readonly Dictionary<int, FactionData> factionDict = new Dictionary<int, FactionData>();
+        // readonly Dictionary<string, int> factionNameToIDDict = new Dictionary<string, int>();
 
         #endregion
 
@@ -38,12 +38,12 @@ namespace DaggerfallConnect.Arena2
 
         public Dictionary<int, FactionData> FactionDict
         {
-            get { return factionDict; }
+            get { return FactionsAtlas.FactionDictionary; }
         }
 
         public Dictionary<string, int> FactionNameToIDDict
         {
-            get { return factionNameToIDDict; }
+            get { return FactionsAtlas.FactionToId; }
         }
 
         #endregion
@@ -611,6 +611,7 @@ namespace DaggerfallConnect.Arena2
             WoodElf = 5,
             HighElf = 6,
             DarkElf = 7,
+            Imperial = 8,
             Skakmat = 11,       // Only used on #304 "Skakmat"
             Orc = 17,           // Only used on #358 "Orsinium" in the original file
             Vampire = 18,
@@ -718,12 +719,14 @@ namespace DaggerfallConnect.Arena2
 
         public FactionFile()
         {
+            // factionDict = FactionsAtlas.FactionDictionary;
+            // factionNameToIDDict = FactionsAtlas.FactionToId;
         }
 
-        public FactionFile(string filePath, FileUsage usage, bool readOnly)
-        {
-            Load(filePath, usage, readOnly);
-        }
+        // public FactionFile(string filePath, FileUsage usage, bool readOnly)
+        // {
+        //     Load(filePath, usage, readOnly);
+        // }
 
         #endregion
 
@@ -735,22 +738,22 @@ namespace DaggerfallConnect.Arena2
         /// <param name="filePath">Absolute path to FACTION.TXT file.</param>
         /// <param name="usage">Specify if file will be accessed from disk, or loaded into RAM.</param>
         /// <param name="readOnly">File will be read-only if true, read-write if false.</param>
-        public void Load(string filePath, FileUsage usage, bool readOnly)
-        {
-            // Validate filename
-            if (!filePath.EndsWith(Filename, StringComparison.InvariantCultureIgnoreCase))
-                return;
+        // public void Load(string filePath, FileUsage usage, bool readOnly)
+        // {
+        //     // Validate filename
+        //     if (!filePath.EndsWith(Filename, StringComparison.InvariantCultureIgnoreCase))
+        //         return;
 
-            // Load file
-            if (!factionFile.Load(filePath, usage, readOnly))
-                return;
+        //     // Load file
+        //     if (!factionFile.Load(filePath, usage, readOnly))
+        //         return;
 
-            // Parse faction file
-            byte[] buffer = factionFile.Buffer;
-            string txt = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-            ParseFactions(txt);
-            RelinkChildren(factionDict);
-        }
+        //     // Parse faction file
+        //     byte[] buffer = factionFile.Buffer;
+        //     string txt = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+        //     ParseFactions(txt);
+        //     RelinkChildren(factionDict);
+        // }
 
         /// <summary>
         /// Merges faction data from savevars into a new faction dictionary.
@@ -764,7 +767,7 @@ namespace DaggerfallConnect.Arena2
         {
             // Create clone of base faction dictionary
             Dictionary<int, FactionData> dict = new Dictionary<int, FactionData>();
-            foreach (var kvp in factionDict)
+            foreach (var kvp in FactionsAtlas.FactionDictionary)
             {
                 dict.Add(kvp.Key, kvp.Value);
             }
@@ -819,9 +822,6 @@ namespace DaggerfallConnect.Arena2
 
         /// <summary>
         /// Gets faction data from faction ID.
-        /// This method returns static faction data from FACTION.TXT file.
-        /// Does not represent current state of faction simulation and is not localized.
-        /// Use PlayerEntity.FactionData.GetFactionData() for faction data used during gameplay.
         /// </summary>
         /// <param name="factionID">Faction ID.</param>
         /// <param name="factionDataOut">Receives faction data.</param>
@@ -829,9 +829,9 @@ namespace DaggerfallConnect.Arena2
         public bool GetFactionData(int factionID, out FactionData factionDataOut)
         {
             factionDataOut = new FactionData();
-            if (factionDict.ContainsKey(factionID))
+            if (FactionsAtlas.FactionDictionary.ContainsKey(factionID))
             {
-                factionDataOut = factionDict[factionID];
+                factionDataOut = FactionsAtlas.FactionDictionary[factionID];
                 return true;
             }
 
@@ -840,15 +840,13 @@ namespace DaggerfallConnect.Arena2
 
         /// <summary>
         /// Gets faction ID from name. Experimental.
-        /// Do not use for gameplay purposes.
-        /// Use only for development and testing with unmodified FACTION.TXT.
         /// </summary>
         /// <param name="name">Name of faction to get ID of.</param>
         /// <returns>Faction ID if name found, otherwise -1.</returns>
         public int GetFactionID(string name)
         {
-            if (factionNameToIDDict.ContainsKey(name))
-                return factionNameToIDDict[name];
+            if (FactionsAtlas.FactionToId.ContainsKey(name))
+                return FactionsAtlas.FactionToId[name];
 
             return -1;
         }
@@ -914,115 +912,115 @@ namespace DaggerfallConnect.Arena2
 
         #region Private Methods
 
-        void ParseFactions(string txt)
-        {
-            // Unmodded faction.txt contains multiples of same id
-            // This resolver counter is used to give a faction a unique id if needed
-            int resolverId = 980;
+        // void ParseFactions(string txt)
+        // {
+        //     // Unmodded faction.txt contains multiples of same id
+        //     // This resolver counter is used to give a faction a unique id if needed
+        //     int resolverId = 980;
 
-            // Clear existing dictionary
-            factionDict.Clear();
+        //     // Clear existing dictionary
+        //     factionDict.Clear();
 
-            // First pass reads each faction text block in order
-            List<string[]> factionBlocks = new List<string[]>();
-            using (StringReader reader = new StringReader(txt))
-            {
-                List<string> currentblock = new List<string>();
-                while (true)
-                {
-                    // Handle end of file
-                    string line = reader.ReadLine();
-                    if (line == null)
-                    {
-                        // Store final block
-                        if (currentblock.Count > 0)
-                            factionBlocks.Add(currentblock.ToArray());
+        //     // First pass reads each faction text block in order
+        //     List<string[]> factionBlocks = new List<string[]>();
+        //     using (StringReader reader = new StringReader(txt))
+        //     {
+        //         List<string> currentblock = new List<string>();
+        //         while (true)
+        //         {
+        //             // Handle end of file
+        //             string line = reader.ReadLine();
+        //             if (line == null)
+        //             {
+        //                 // Store final block
+        //                 if (currentblock.Count > 0)
+        //                     factionBlocks.Add(currentblock.ToArray());
 
-                        break;
-                    }
+        //                 break;
+        //             }
 
-                    // Ignore comment lines and empty lines
-                    if (line.StartsWith(";") || string.IsNullOrEmpty(line))
-                        continue;
+        //             // Ignore comment lines and empty lines
+        //             if (line.StartsWith(";") || string.IsNullOrEmpty(line))
+        //                 continue;
 
-                    // All factions blocks start with a '#' character
-                    if (line.Contains("#"))
-                    {
-                        // Store current block
-                        if (currentblock.Count > 0)
-                            factionBlocks.Add(currentblock.ToArray());
+        //             // All factions blocks start with a '#' character
+        //             if (line.Contains("#"))
+        //             {
+        //                 // Store current block
+        //                 if (currentblock.Count > 0)
+        //                     factionBlocks.Add(currentblock.ToArray());
 
-                        // Start new block
-                        currentblock.Clear();
-                    }
+        //                 // Start new block
+        //                 currentblock.Clear();
+        //             }
 
-                    // Add line to current faction block
-                    currentblock.Add(line);
-                }
-            }
+        //             // Add line to current faction block
+        //             currentblock.Add(line);
+        //         }
+        //     }
 
-            // Second pass parses the text block into FactionData
-            int lastPrecedingTabs = 0;
-            FactionData previousFaction = new FactionData();
-            Stack<int> parentStack = new Stack<int>();
-            for (int i = 0; i < factionBlocks.Count; i++)
-            {
-                // Start a new faction
-                FactionData faction = new FactionData();
-                string[] block = factionBlocks[i];
+        //     // Second pass parses the text block into FactionData
+        //     int lastPrecedingTabs = 0;
+        //     FactionData previousFaction = new FactionData();
+        //     Stack<int> parentStack = new Stack<int>();
+        //     for (int i = 0; i < factionBlocks.Count; i++)
+        //     {
+        //         // Start a new faction
+        //         FactionData faction = new FactionData();
+        //         string[] block = factionBlocks[i];
 
-                // Parent child relationship determined by preceding tabs
-                int precedingTabs = CountPrecedingTabs(block[0]);
-                if (precedingTabs > lastPrecedingTabs)
-                {
-                    parentStack.Push(previousFaction.id);
-                }
-                else if (precedingTabs < lastPrecedingTabs)
-                {
-                    while (parentStack.Count > precedingTabs)
-                        parentStack.Pop();
-                }
-                lastPrecedingTabs = precedingTabs;
+        //         // Parent child relationship determined by preceding tabs
+        //         int precedingTabs = CountPrecedingTabs(block[0]);
+        //         if (precedingTabs > lastPrecedingTabs)
+        //         {
+        //             parentStack.Push(previousFaction.id);
+        //         }
+        //         else if (precedingTabs < lastPrecedingTabs)
+        //         {
+        //             while (parentStack.Count > precedingTabs)
+        //                 parentStack.Pop();
+        //         }
+        //         lastPrecedingTabs = precedingTabs;
 
-                // Set parent from top of stack
-                if (parentStack.Count > 0)
-                    faction.parent = parentStack.Peek();
+        //         // Set parent from top of stack
+        //         if (parentStack.Count > 0)
+        //             faction.parent = parentStack.Peek();
 
-                // Parse faction block
-                ParseFactionData(ref block, ref faction);
+        //         // Parse faction block
+        //         ParseFactionData(ref block, ref faction);
 
-                // Store faction just read
-                if (!factionDict.ContainsKey(faction.id))
-                {
-                    factionDict.Add(faction.id, faction);
-                }
-                else
-                {
-                    // Duplicate id detected
-                    faction.id = resolverId++;
-                    factionDict.Add(faction.id, faction);
-                }
+        //         // Store faction just read
+        //         if (!factionDict.ContainsKey(faction.id))
+        //         {
+        //             factionDict.Add(faction.id, faction);
+        //         }
+        //         else
+        //         {
+        //             // Duplicate id detected
+        //             faction.id = resolverId++;
+        //             factionDict.Add(faction.id, faction);
+        //         }
 
-                // Key faction name to faction id
-                if (!factionNameToIDDict.ContainsKey(faction.name))
-                {
-                    factionNameToIDDict.Add(faction.name, faction.id);
-                }
-                else
-                {
-                    // Just ignoring duplicates for now
-                    // Currently only using name to id lookup for to find region faction quickly
-                    //UnityEngine.Debug.LogWarningFormat("Duplicate name detected " + faction.name);
-                }
+        //         // Key faction name to faction id
+        //         if (!factionNameToIDDict.ContainsKey(faction.name))
+        //         {
+        //             factionNameToIDDict.Add(faction.name, faction.id);
+        //         }
+        //         else
+        //         {
+        //             // Just ignoring duplicates for now
+        //             // Currently only using name to id lookup for to find region faction quickly
+        //             //UnityEngine.Debug.LogWarningFormat("Duplicate name detected " + faction.name);
+        //         }
 
-                // Calculate ruler name seed and ruler bonus in same manner as classic. These are not read from FACTION.TXT.
-                uint random = DFRandom.rand() << 16;
-                faction.rulerNameSeed = DFRandom.rand() | random;
-                faction.rulerPowerBonus = DFRandom.random_range_inclusive(0, 50) + 20;
+        //         // Calculate ruler name seed and ruler bonus in same manner as classic. These are not read from FACTION.TXT.
+        //         uint random = DFRandom.rand() << 16;
+        //         faction.rulerNameSeed = DFRandom.rand() | random;
+        //         faction.rulerPowerBonus = DFRandom.random_range_inclusive(0, 50) + 20;
 
-                previousFaction = faction;
-            }
-        }
+        //         previousFaction = faction;
+        //     }
+        // }
 
         void ParseFactionData(ref string[] block, ref FactionData faction)
         {

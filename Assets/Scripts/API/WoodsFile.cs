@@ -25,13 +25,13 @@ namespace DaggerfallConnect.Arena2
         #region Class Variables
 
         /// <summary>Width of heightmap in bytes.</summary>
-        public const int mapWidthValue = 1000;
+        public static int mapWidthValue = MapsFile.WorldWidth;
 
         /// <summary>Height of heightmap in bytes.</summary>
-        public const int mapHeightValue = 500;
+        public static int mapHeightValue = MapsFile.WorldHeight;
 
         /// <summary>Memory length of heightmap in bytes.</summary>
-        private const int mapBufferLengthValue = mapWidthValue * mapHeightValue;
+        private static int mapBufferLengthValue = mapWidthValue * mapHeightValue;
 
         /// <summary>
         /// Abstracts WOODS.WLD file to a managed disk or memory stream.
@@ -142,9 +142,17 @@ namespace DaggerfallConnect.Arena2
         /// <summary>
         /// Gets default WOODS.WLD filename.
         /// </summary>
-        static public string Filename
+        static public string VanillaFilename
         {
             get { return "WOODS.WLD"; }
+        }
+
+        /// <summary>
+        /// Gets default Woods.json filename.
+        /// </summary>
+        static public string Filename
+        {
+            get { return "Woods.json"; }
         }
 
         #endregion
@@ -154,9 +162,9 @@ namespace DaggerfallConnect.Arena2
         /// <summary>
         /// Default constructor.
         /// </summary>
-        public WoodsFile()
-        {
-        }
+        // public WoodsData()
+        // {
+        // }
 
         /// <summary>
         /// Load constructor.
@@ -164,10 +172,10 @@ namespace DaggerfallConnect.Arena2
         /// <param name="filePath">Absolute path to WOODS.WLD.</param>
         /// <param name="usage">Specify if file will be accessed from disk, or loaded into RAM.</param>
         /// <param name="readOnly">File will be read-only if true, read-write if false.</param>
-        public WoodsFile(string filePath, FileUsage usage, bool readOnly)
-        {
-            Load(filePath, usage, readOnly);
-        }
+        // public WoodsFile(string filePath, FileUsage usage, bool readOnly)
+        // {
+        //     Load(filePath, usage, readOnly);
+        // }
 
         #endregion
 
@@ -180,22 +188,22 @@ namespace DaggerfallConnect.Arena2
         /// <param name="usage">Specify if file will be accessed from disk, or loaded into RAM.</param>
         /// <param name="readOnly">File will be read-only if true, read-write if false.</param>
         /// <returns>True if successful, otherwise false.</returns>
-        public bool Load(string filePath, FileUsage usage, bool readOnly)
-        {
-            // Validate filename
-            if (!filePath.EndsWith(Filename, StringComparison.InvariantCultureIgnoreCase))
-                return false;
+        // public bool Load(string filePath, FileUsage usage, bool readOnly)
+        // {
+        //     // Validate filename
+        //     if (!filePath.EndsWith(Filename, StringComparison.InvariantCultureIgnoreCase))
+        //         return false;
 
-            // Load file into memory
-            if (!managedFile.Load(filePath, usage, readOnly))
-                return false;
+        //     // Load file into memory
+        //     if (!managedFile.Load(filePath, usage, readOnly))
+        //         return false;
 
-            // Read file
-            if (!Read())
-                return false;
+        //     // Read file
+        //     if (!Read())
+        //         return false;
 
-            return true;
-        }
+        //     return true;
+        // }
 
         /// <summary>
         /// Get extracted heightmap data as an indexed image.
@@ -228,7 +236,7 @@ namespace DaggerfallConnect.Arena2
             if (mapPixelY < 0) mapPixelY = 0;
             if (mapPixelY >= MapHeight - 1) mapPixelY = MapHeight - 1;
 
-            return Buffer[(mapPixelY * mapWidthValue) + mapPixelX];
+            return WoodsData.Woods[mapPixelX, mapPixelY];
         }
 
         /// <summary>
@@ -290,8 +298,8 @@ namespace DaggerfallConnect.Arena2
             if (mapPixelY >= MapHeight - 1) mapPixelY = MapHeight - 1;
 
             // Offset directly to this pixel data
-            BinaryReader reader = managedFile.GetReader();
-            reader.BaseStream.Position = dataOffsets[mapPixelY * mapWidthValue + mapPixelX] + 22;
+            // BinaryReader reader = managedFile.GetReader();
+            // reader.BaseStream.Position = dataOffsets[mapPixelY * mapWidthValue + mapPixelX] + 22;
 
             // Read 5x5 data
             Byte[,] data = new Byte[5, 5];
@@ -299,7 +307,7 @@ namespace DaggerfallConnect.Arena2
             {
                 for (int x = 0; x < 5; x++)
                 {
-                    data[x, y] = reader.ReadByte();
+                    data[x, y] = WoodsLargeData.WoodsLarge[mapPixelX + x, mapPixelY + y];
                 }
             }
 

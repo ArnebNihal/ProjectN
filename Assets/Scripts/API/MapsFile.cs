@@ -29,67 +29,50 @@ namespace DaggerfallConnect.Arena2
     {
         #region Class Variables
 
-        public const int WorldWidth = 1115;
-        public const int WorldHeight = 932;
+        public static int WorldWidth = WorldData.WorldSetting.WorldWidth;
+        // {
+        //     get { return WorldData.WorldSetting.WorldWidth; } 
+        // }
+        public static int WorldHeight = WorldData.WorldSetting.WorldHeight;
+        // {
+        //     get { return WorldData.WorldSetting.WorldHeight; }
+        // }
         public const ulong OneBillion = 1000000000;
         public const int WorldMapTerrainDim = 32768;
         public const int WorldMapTileDim = 128;
         public const int WorldMapRMBDim = 4096;
         public const int MinWorldCoordX = 0;
         public const int MinWorldCoordZ = 0;
-        public const int MaxWorldCoordX = WorldMapTerrainDim * WorldWidth;
-        public const int MaxWorldCoordZ = WorldMapTerrainDim * WorldHeight;
+        public static int MaxWorldCoordX = WorldMapTerrainDim * WorldWidth;
+        public static int MaxWorldCoordZ = WorldMapTerrainDim * WorldHeight;
         public const int MinWorldTileCoordX = 0;
-        public const int MaxWorldTileCoordX = WorldMapTileDim * WorldWidth;
+        public static readonly int MaxWorldTileCoordX = WorldMapTileDim * WorldWidth;
         public const int MinWorldTileCoordZ = 0;
-        public const int MaxWorldTileCoordZ = WorldMapTileDim * WorldHeight;
+        public static readonly int MaxWorldTileCoordZ = WorldMapTileDim * WorldHeight;
         public const int MinMapPixelX = 0;
         public const int MinMapPixelY = 0;
-        public const int MaxMapPixelX = int.MaxValue;
-        public const int MaxMapPixelY = int.MaxValue;
-        public const int TempRegionCount = 62;
+        public const int MaxMapPixelX = 7680;
+        public const int MaxMapPixelY = 6144;
+        public static int TempRegionCount = WorldData.WorldSetting.Regions;
+        public const int TileDim = 256;
+        public const int TileX = 30;
+        public const int TileY = 24;
 
         /// <summary>
         /// All region names.
         /// </summary>
-        private static readonly string[] regionNames = {
-            "Alik'r Desert", "Dragontail Mountains", "Glenpoint Foothills", "Daggerfall Bluffs",
-            "Yeorth Burrowland", "Dwynnen", "Ravennian Forest", "Devilrock",
-            "Malekna Forest", "Isle of Balfiera", "Bantha", "Dak'fron",
-            "Islands in the Western Iliac Bay", "Tamarilyn Point", "Lainlyn Cliffs", "Bjoulsae River",
-            "Wrothgarian Mountains", "Daggerfall", "Glenpoint", "Betony", "Sentinel", "Anticlere", "Lainlyn", "Wayrest",
-            "Gen Tem High Rock village", "Gen Rai Hammerfell village", "Orsinium Area", "Skeffington Wood",
-            "Hammerfell bay coast", "Hammerfell sea coast", "High Rock bay coast", "High Rock sea coast",
-            "Northmoor", "Menevia", "Alcaire", "Koegria", "Bhoriane", "Kambria", "Phrygias", "Urvaius",
-            "Ykalon", "Daenia", "Shalgora", "Abibon-Gora", "Kairou", "Pothago", "Myrkwasa", "Ayasofya",
-            "Tigonus", "Kozanset", "Satakalaam", "Totambu", "Mournoth", "Ephesus", "Santaki", "Antiphyllos",
-            "Bergama", "Gavaudon", "Tulune", "Glenumbra Moors", "Ilessan Hills", "Cybiades"
-        };
+        private static readonly string[] regionNames = WorldData.WorldSetting.RegionNames;
 
         /// <summary>
         /// All region races, primarily used to generate townsfolk names. In the array extracted from FALL.EXE:
         /// 0 = Breton, 1 = Redguard.
         /// </summary>
-        private static readonly byte[] regionRaces = {
-            1, 1, 0, 0, 0, 0, 0, 1, 1, 0, 1, 1, 0, 0, 1,
-            0, 0, 0, 0, 0, 1, 0, 1, 0, 0, 1, 0, 0, 1, 1,
-            0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1,
-            1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0,
-            0, 1
-        };
+        private static readonly int[] regionRaces = WorldData.WorldSetting.regionRaces;
 
         /// <summary>
         /// Region temple faction IDs, extracted from FALL.EXE.
         /// </summary>
-        private static readonly int[] regionTemples = {
-            106,  82,   0,   0,   0,  98,   0,  0,   0,  92,
-              0, 106,   0,   0,   0,  84,  36,  36,  84,  88,
-             82,  88,  98,  92,   0,   0,  82,  0,   0,   0,
-              0,   0,  88,  94,  36,  94, 106, 84, 106, 106,
-             88,  98,  82,  98,  84,  94,  36, 88,  94,  36,
-             98,  84, 106,  88, 106,  88,  92, 84,  98,  88,
-             82,  94
-        };
+        private static readonly int[] regionTemples = WorldData.WorldSetting.regionTemples;
 
         /// <summary>
         /// Block file prefixes.
@@ -248,9 +231,9 @@ namespace DaggerfallConnect.Arena2
         }
 
         /// <summary>
-        /// Gets all region races as byte array.
+        /// Gets all region races as int array.
         /// </summary>
-        public static byte[] RegionRaces
+        public static int[] RegionRaces
         {
             get { return regionRaces; }
         }
@@ -324,9 +307,22 @@ namespace DaggerfallConnect.Arena2
 
         #region Static Public Methods
 
+        public static DFPosition ConvertToRelative(int x, int y)
+        {
+            DFPosition centralPosition = WorldMaps.LocalPlayerGPS.CurrentMapPixel;
+            DFPosition resultingCoordinates = new DFPosition();
+
+            int relativeX = x / 256 - centralPosition.X / 256 + 1;
+            int relativeY = y / 256 - centralPosition.Y / 256 + 1;
+            resultingCoordinates.X = x % TileDim + (TileDim * relativeX);
+            resultingCoordinates.Y = y % TileDim + (TileDim * relativeY);
+
+            return resultingCoordinates;
+        }
+
         /// <summary>
         /// Converts longitude and latitude to map pixel coordinates.
-        /// The world is 1000x500 map pixels.
+        /// The world is 7680 x 6144 map pixels.
         /// </summary>
         /// <param name="longitude">Longitude position.</param>
         /// <param name="latitude">Latitude position.</param>
@@ -367,13 +363,13 @@ namespace DaggerfallConnect.Arena2
         {
             ulong X = (ulong)mapPixelX;
             ulong Y = (ulong)mapPixelY;
-            return (Y * OneBillion + X);
+            return (Y * (ulong)MapsFile.WorldWidth + X);
         }
 
         public static DFPosition GetPixelFromPixelID(ulong pixelID)
         {
-            int x = (int)(pixelID % OneBillion);
-            int y = (int)((pixelID - (ulong)x) / OneBillion);
+            int x = (int)(pixelID % (ulong)MapsFile.WorldWidth);
+            int y = (int)((pixelID - (ulong)x) / (ulong)MapsFile.WorldWidth);
             return new DFPosition(x, y);
         }
 
@@ -389,7 +385,7 @@ namespace DaggerfallConnect.Arena2
         {
             DFPosition pos = LongitudeLatitudeToMapPixel(longitude, latitude);
 
-            return (ulong)pos.Y * OneBillion + (ulong)pos.X;
+            return (ulong)(pos.Y * MapsFile.WorldWidth + pos.X);
         }
 
         /// <summary>
@@ -418,6 +414,15 @@ namespace DaggerfallConnect.Arena2
             DFPosition pos = new DFPosition();
             pos.X = worldX / WorldMapTerrainDim;
             pos.Y = WorldHeight - (worldZ / WorldMapTerrainDim);
+
+            return pos;
+        }
+
+        public static DFPosition WorldCoordToRelativeMapPixel(int worldX, int worldY)
+        {
+            DFPosition pos = new DFPosition();
+            pos.X = (worldX / WorldMapTerrainDim) % TileDim + TileDim;
+            pos.Y = (WorldHeight - (worldY / WorldMapTerrainDim)) % TileDim + TileDim;
 
             return pos;
         }
@@ -899,7 +904,7 @@ namespace DaggerfallConnect.Arena2
             // Add +1 to X coordinate to line up with height map
             // mapPixelX += 1;
 
-            return ClimateData.ClimateModified[mapPixelX, mapPixelY];
+            return ClimateData.GetClimateValue(mapPixelX, mapPixelY);
         }
 
         /// <summary>
@@ -910,7 +915,7 @@ namespace DaggerfallConnect.Arena2
         public int GetPoliticIndex(int mapPixelX, int mapPixelY)
         {
             // mapPixelX += 1;
-            return PoliticData.Politic[mapPixelX, mapPixelY];
+            return PoliticData.GetPoliticValue(mapPixelX, mapPixelY);
         }
 
         /// <summary>
@@ -1032,10 +1037,10 @@ namespace DaggerfallConnect.Arena2
             DFPosition pos = LongitudeLatitudeToMapPixel(dfLocation.MapTableData.Longitude, dfLocation.MapTableData.Latitude);
 
             // Read politic data. This should always equal region index + 128.
-            dfLocation.Politic = PoliticData.Politic[pos.X, pos.Y];
+            dfLocation.Politic = PoliticData.GetPoliticValue(pos.X, pos.Y, false);
 
             // Read climate data
-            int worldClimate = ClimateData.ClimateModified[pos.X, pos.Y];
+            int worldClimate = ClimateData.GetClimateValue(pos.X, pos.Y);
             dfLocation.Climate = MapsFile.GetWorldClimateSettings(worldClimate);
         }
 

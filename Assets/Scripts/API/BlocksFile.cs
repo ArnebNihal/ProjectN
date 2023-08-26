@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Gavin Clayton (interkarma@dfworkshop.net)
-// Contributors:    
+// Contributors:    Arneb
 // 
 // Notes:
 //
@@ -15,6 +15,7 @@ using System.Collections.Generic;
 using System.IO;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using Newtonsoft.Json;
 #endregion
 
 namespace DaggerfallConnect.Arena2
@@ -293,15 +294,21 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         /// <param name="block">Index of block to load.</param>
         /// <returns>True if successful, otherwise false.</returns>
-        public bool LoadBlock(int block)
+        public bool LoadBlock(int block, out DFBlock outBlock)
         {
             // Validate
             if (block < 0 || block >= bsaFile.Count)
+            {
+                outBlock = new DFBlock();
                 return false;
+            }
 
             // Exit if file has already been opened
             if (blocks[block].MemoryFile != null)
+            {
+                outBlock = blocks[block].DFBlock;
                 return true;
+            }
 
             // Auto discard previous record
             if (autoDiscardValue && lastBlock != -1)
@@ -310,7 +317,10 @@ namespace DaggerfallConnect.Arena2
             // Load record data
             blocks[block].MemoryFile = bsaFile.GetRecordProxy(block);
             if (blocks[block].MemoryFile == null)
+            {
+                outBlock = new DFBlock();
                 return false;
+            }
 
             // Set record name
             blocks[block].Name = bsaFile.GetRecordName(block);
@@ -322,6 +332,8 @@ namespace DaggerfallConnect.Arena2
             // Set record position and index
             blocks[block].DFBlock.Position = bsaFile.GetRecordPosition(block);
             blocks[block].DFBlock.Index = block;
+
+            outBlock = blocks[block].DFBlock;
 
             // Read record
             if (!Read(block))
@@ -390,7 +402,7 @@ namespace DaggerfallConnect.Arena2
             }
             else
             // Load the record
-            if (!LoadBlock(block))
+            if (!LoadBlock(block, out dfBlock))
                 return new DFBlock();
 
             return blocks[block].DFBlock;
@@ -405,12 +417,21 @@ namespace DaggerfallConnect.Arena2
         {
             // Look for block index
             int index = GetBlockIndex(name);
+
             if (index == -1)
             {
                 // Not found, search for alternate name
                 string alternateName = SearchAlternateRMBName(ref name);
                 if (!string.IsNullOrEmpty(alternateName))
                     index = GetBlockIndex(alternateName);
+
+                string customBlockPath = Path.Combine(WorldMaps.mapPath, name.Remove(0, 9), name + ".json");
+                if (File.Exists(customBlockPath))
+                {
+                    DFBlock customBlock = new DFBlock();
+                    customBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(customBlockPath));
+                    return customBlock;
+                }
             }
 
             return GetBlock(index);

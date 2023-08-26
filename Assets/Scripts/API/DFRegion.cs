@@ -95,6 +95,8 @@ namespace DaggerfallConnect
             Coven = 13,
             /// <summary>Player ship.</summary>
             HomeYourShips = 14,
+            /// <summary>Hidden locations, will be expanded on later.</summary>
+            HiddenLocation = 15,
             /// <summary>No location type.</summary>
             None = 0xffff,
         }
