@@ -365,7 +365,7 @@ namespace DaggerfallWorkshop.Game.Utility
             playerEntity.LastGameMinutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
 
             // Get start parameters
-            DFPosition mapPixel = new DFPosition(173, 581);
+            DFPosition mapPixel = new DFPosition(1746, 2330);
             bool startInDungeon = DaggerfallUnity.Settings.StartInDungeon;
 
             // Read location if any
