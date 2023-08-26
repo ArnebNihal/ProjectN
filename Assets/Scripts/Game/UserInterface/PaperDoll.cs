@@ -16,6 +16,7 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
+using DaggerfallConnect.Arena2;
 
 namespace DaggerfallWorkshop.Game.UserInterface
 {
@@ -211,8 +212,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
                 PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
                 DFPosition position = playerGPS.CurrentMapPixel;
-                int region = DaggerfallUnity.Instance.ContentReader.MapFileReader.GetPoliticIndex(position.X, position.Y) - 128;
-                if (region < 0 || region >= DaggerfallUnity.Instance.ContentReader.MapFileReader.RegionCount || region >= regionBackgroundIdxChars.Length)
+                int region = PoliticData.GetPoliticValue(position.X, position.Y);
+                if (region < 0 || region >= MapsFile.TempRegionCount || region >= regionBackgroundIdxChars.Length)
                     return entity.RaceTemplate.PaperDollBackground;
 
                 // Set background based on location.
