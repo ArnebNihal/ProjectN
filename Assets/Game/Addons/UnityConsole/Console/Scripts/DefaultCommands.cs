@@ -113,7 +113,6 @@ namespace Wenzil.Console
             ConsoleCommandsDatabase.RegisterCommand(ClearCrimeCommitted.name, ClearCrimeCommitted.description, ClearCrimeCommitted.usage, ClearCrimeCommitted.Execute);
             ConsoleCommandsDatabase.RegisterCommand(PrintLegalRep.name, PrintLegalRep.description, PrintLegalRep.usage, PrintLegalRep.Execute);
             ConsoleCommandsDatabase.RegisterCommand(ClearNegativeLegalRep.name, ClearNegativeLegalRep.description, ClearNegativeLegalRep.usage, ClearNegativeLegalRep.Execute);
-            ConsoleCommandsDatabase.RegisterCommand(RefreshBuildingNames.name, RefreshBuildingNames.description, RefreshBuildingNames.usage, RefreshBuildingNames.Execute);
 
             ConsoleCommandsDatabase.RegisterCommand(PrintQuests.name, PrintQuests.description, PrintQuests.usage, PrintQuests.Execute);
 
@@ -1022,7 +1021,7 @@ namespace Wenzil.Console
                 {
                     if (x <= 0 || y <= 0)
                         return "Invalid Coordinates";
-                    else if (x >= MapsFile.MaxMapPixelX || y >= MapsFile.MaxMapPixelY)
+                    else if (x >= MapsFile.WorldWidth || y >= MapsFile.WorldHeight)
                         return "Invalid coordiantes";
                     else
                         streamingWorld.TeleportToCoordinates(x, y);
@@ -1067,8 +1066,8 @@ namespace Wenzil.Console
                                 {
                                     xpos = UnityEngine.Random.Range(0, MapsFile.MaxMapPixelX);
                                     ypos = UnityEngine.Random.Range(0, MapsFile.MaxMapPixelY);
-                                    DaggerfallWorkshop.Utility.ContentReader.MapSummary mapSummary;
-                                    if (DaggerfallWorkshop.DaggerfallUnity.Instance.ContentReader.HasLocation(xpos, ypos, out mapSummary))
+                                    MapSummary mapSummary;
+                                    if (WorldMaps.HasLocation(xpos, ypos, out mapSummary))
                                     {
                                         streamingWorld.TeleportToCoordinates(xpos + 1, ypos - 1); // random location - locations always seem to be one pixel to the northern east - so compensate for this (since locations are never at the border - there should not occur a index out of bounds...)
                                         return (string.Format("Teleported player to location at: {0}, {1}", xpos, ypos));
@@ -2616,19 +2615,6 @@ namespace Wenzil.Console
                 }
 
                 return output;
-            }
-        }
-
-        private static class RefreshBuildingNames
-        {
-            public static readonly string name = "refresh_buildingnames";
-            public static readonly string description = "Refresh discovered building names in current location. Used for testing localization and debugging stale discovery data.";
-            public static readonly string usage = "refresh_buildingnames";
-
-            public static string Execute(params string[] args)
-            {
-                GameManager.Instance.PlayerGPS.RefreshBuildingNamesInCurrentLocation();
-                return "Finished";
             }
         }
 
