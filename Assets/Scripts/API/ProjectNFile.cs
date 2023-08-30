@@ -24,7 +24,6 @@ using Newtonsoft.Json;
 using System.Linq;
 using DaggerfallWorkshop.Game.Guilds;
 using DaggerfallWorkshop.Game;
-using Unity.QuickSearch.Providers;
 using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
 
 #endregion
