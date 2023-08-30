@@ -256,7 +256,7 @@ namespace DaggerfallWorkshop.Game.Items
                 {
                     // Use appropriate artifact description message. (8700-8721)
                     try {
-                        ArtifactsSubTypes artifactType = ItemHelper.GetArtifactSubType(parent);
+                        ArtifactsSubTypes artifactType = ItemHelper.GetArtifactSubType(parent.shortName);
                         return DaggerfallUnity.Instance.TextProvider.GetRSCTokens(8700 + (int)artifactType);
                     } catch (KeyNotFoundException e) {
                         Debug.Log(e.Message);
@@ -342,8 +342,7 @@ namespace DaggerfallWorkshop.Game.Items
                             {
                                 if (spell.index == parent.legacyMagic[i].param)
                                 {
-                                    string spellName = TextManager.Instance.GetLocalizedSpellName(spell.index);
-                                    magicPowersTokens.Add(TextFile.CreateTextToken(firstPart + spellName));
+                                    magicPowersTokens.Add(TextFile.CreateTextToken(firstPart + spell.spellName));
                                     found = true;
                                     break;
                                 }
