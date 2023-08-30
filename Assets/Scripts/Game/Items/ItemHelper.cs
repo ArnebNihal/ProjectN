@@ -74,11 +74,6 @@ namespace DaggerfallWorkshop.Game.Items
         #region Properties
 
         /// <summary>
-        /// Array of all mundane item templates. Does not include magic item data.
-        /// </summary>
-        public ItemTemplate[] ItemTemplates => itemTemplates.ToArray();
-
-        /// <summary>
         /// Array of all magic item templates including artifact data.
         /// Data is loaded from MagicItemTemplates.txt, a JSON dump of fixed MAGIC.DEF.
         /// </summary>
@@ -263,13 +258,12 @@ namespace DaggerfallWorkshop.Game.Items
         /// </summary>
         public string ResolveItemName(DaggerfallUnityItem item)
         {
-            // Get item template and localized template name
+            // Get item template
             ItemTemplate template = item.ItemTemplate;
-            string templateName = TextManager.Instance.GetLocalizedItemName(template.index, template.name);
 
             // Return just the template name if item is unidentified.
             if (!item.IsIdentified)
-                return templateName;
+                return template.name;
 
             // Return the shortName if item is an artifact
             if (item.IsArtifact)
@@ -283,10 +277,10 @@ namespace DaggerfallWorkshop.Game.Items
             string result = item.shortName;
 
             // Resolve %it parameter
-            if (!string.IsNullOrEmpty(templateName))
-                result = result.Replace("%it", templateName);
+            if (!string.IsNullOrEmpty(template.name))
+                result = result.Replace("%it", template.name);
             else
-                Debug.LogErrorFormat("Item template index {0} has a null templateName", template.index);
+                Debug.LogErrorFormat("Item template index {0} has a null template.name", template.index);
 
             return result;
         }
@@ -306,9 +300,9 @@ namespace DaggerfallWorkshop.Game.Items
             if (differentiatePlantIngredients)
             {
                 if (item.ItemGroup == ItemGroups.PlantIngredients1 && item.TemplateIndex < 18)
-                    return string.Format(TextManager.Instance.GetLocalizedText("ingredientFormatString"), result, TextManager.Instance.GetLocalizedText("northern"));
+                    return string.Format("{0} {1}", result, TextManager.Instance.GetLocalizedText("northern"));
                 if (item.ItemGroup == ItemGroups.PlantIngredients2 && item.TemplateIndex < 18)
-                    return string.Format(TextManager.Instance.GetLocalizedText("ingredientFormatString"), result, TextManager.Instance.GetLocalizedText("southern"));
+                    return string.Format("{0} {1}", result, TextManager.Instance.GetLocalizedText("southern"));
             }
 
             // Resolve weapon material
@@ -316,7 +310,7 @@ namespace DaggerfallWorkshop.Game.Items
             {
                 WeaponMaterialTypes weaponMaterial = (WeaponMaterialTypes)item.nativeMaterialValue;
                 string materialName = DaggerfallUnity.Instance.TextProvider.GetWeaponMaterialName(weaponMaterial);
-                result = string.Format(TextManager.Instance.GetLocalizedText("longWeaponNameFormatString"), materialName, result);
+                result = string.Format("{0} {1}", materialName, result);
             }
 
             // Resolve armor material
@@ -324,7 +318,7 @@ namespace DaggerfallWorkshop.Game.Items
             {
                 ArmorMaterialTypes armorMaterial = (ArmorMaterialTypes)item.nativeMaterialValue;
                 string materialName = DaggerfallUnity.Instance.TextProvider.GetArmorMaterialName(armorMaterial);
-                result = string.Format(TextManager.Instance.GetLocalizedText("longArmorNameFormatString"), materialName, result);
+                result = string.Format("{0} {1}", materialName, result);
             }
 
             // Resolve potion names
@@ -481,7 +475,7 @@ namespace DaggerfallWorkshop.Game.Items
                 // Change dye or just update texture
                 ItemGroups group = item.ItemGroup;
                 DyeColors dye = (DyeColors)color;
-                if ((group == ItemGroups.Weapons || group == ItemGroups.Armor) && !item.IsArtifact)
+                if (group == ItemGroups.Weapons || group == ItemGroups.Armor)
                     data = ChangeDye(data, dye, DyeTargets.WeaponsAndArmor);
                 else if (item.ItemGroup == ItemGroups.MensClothing || item.ItemGroup == ItemGroups.WomensClothing)
                     data = ChangeDye(data, dye, DyeTargets.Clothing);
@@ -534,13 +528,11 @@ namespace DaggerfallWorkshop.Game.Items
         }
 
         /// <summary>
-        /// Gets artifact sub type by converting short name to enum type.
-        /// Not compatible with localized artifact names.
-        /// Should only be used when importing classic saves or older save data where artifactIndexBitfield is not present.
+        /// Gets an artifact sub type from an items' short name. (throws exception if no match)
         /// </summary>
-        /// <param name="itemShortName">Item short name.</param>
-        /// <returns>Artifact sub type or ArtifactsSubTypes.None.</returns>
-        public static ArtifactsSubTypes LegacyGetArtifactSubType(string itemShortName)
+        /// <param name="itemShortName">Item short name</param>
+        /// <returns>Artifact sub type.</returns>
+        public static ArtifactsSubTypes GetArtifactSubType(string itemShortName)
         {
             itemShortName = itemShortName.Replace("\'", "").Replace(' ', '_');
             foreach (var artifactName in Enum.GetNames(typeof(ArtifactsSubTypes)))
@@ -548,25 +540,7 @@ namespace DaggerfallWorkshop.Game.Items
                 if (itemShortName.Contains(artifactName))
                     return (ArtifactsSubTypes)Enum.Parse(typeof(ArtifactsSubTypes), artifactName);
             }
-            return ArtifactsSubTypes.None;
-        }
-
-        /// <summary>
-        /// Gets artifact sub type using ArtifactIndexBitfield on item.
-        /// This method is compatible with localized artifact names.
-        /// Throws exception if not an artifact or item's ArtifactIndexBitfield not properly set.
-        /// </summary>
-        /// <param name="item">DaggerfalUnityItem.</param>
-        /// <returns>ArtifactsSubTypes.</returns>
-        public static ArtifactsSubTypes GetArtifactSubType(DaggerfallUnityItem item)
-        {
-            if (!item.IsArtifact)
-                throw new Exception("GetArtifactSubType() item is not an artifact.");
-
-            if ((item.ArtifactIndexBitfield & 1) == 0)
-                throw new Exception("GetArtifactSubType() item does not have an artifact index. Item most likely imported from old save data where item shortName was changed.");
-
-            return (ArtifactsSubTypes)(item.ArtifactIndexBitfield >> 1);
+            throw new KeyNotFoundException("No match found for: " + itemShortName);
         }
 
         /// <summary>
