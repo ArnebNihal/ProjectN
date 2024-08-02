@@ -157,7 +157,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
             GameManager.Instance.PlayerEntity.PreventEnemySpawns = true;
 
             // Raise game time to an evening two weeks later
-            float raiseTime = (2 * DaggerfallDateTime.SecondsPerWeek) + (DaggerfallDateTime.DuskHour + 1 - DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.Hour) * 3600;
+            float raiseTime = (2 * DaggerfallDateTime.SecondsPerWeek) + ((DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.DuskHour * DaggerfallDateTime.MinutesPerHour) + 1 - DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.Hour) * 3600;
             DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.RaiseTime(raiseTime);
             GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease = true;
 
@@ -194,20 +194,20 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
         DFLocation GetRandomCemetery()
         {
             // Get player region data
-            int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
+            int tileIndex = WorldMaps.GetRelativeTile(GameManager.Instance.PlayerGPS.CurrentMapPixel);
+            DFRegion tileData = WorldMaps.ConvertWorldMapsToDFRegion(tileIndex);
 
             // Collect all cemetery locations
             List<int> foundLocationIndices = new List<int>();
-            for (int i = 0; i < regionData.LocationCount; i++)
+            for (int i = 0; i < tileData.LocationCount; i++)
             {
-                if (((int)regionData.MapTable[i].DungeonType) == (int)DFRegion.DungeonTypes.Cemetery)
+                if (((int)tileData.MapTable[i].DungeonType) == (int)DFRegion.DungeonTypes.Cemetery)
                     foundLocationIndices.Add(i);
             }
 
             // Select one at random
             int index = UnityEngine.Random.Range(0, foundLocationIndices.Count);
-            DFLocation location = WorldMaps.GetLocation(regionIndex, foundLocationIndices[index]);
+            DFLocation location = WorldMaps.GetLocation(tileIndex, foundLocationIndices[index]);
             if (!location.Loaded)
                 throw new System.Exception("VampirismInfection.GetRandomCemetery() could not find a cemetery in this region.");
 

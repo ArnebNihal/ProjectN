@@ -267,6 +267,7 @@ namespace DaggerfallWorkshop.Game
                 case MapsFile.Climates.Desert2:
                 case MapsFile.Climates.Rainforest:
                 case MapsFile.Climates.Subtropical:
+                case MapsFile.Climates.Maquis:  // Why?
                     return true;
 
                 default:
@@ -313,7 +314,7 @@ namespace DaggerfallWorkshop.Game
             float shadowStrength = SunlightManager.defaultShadowStrength;
 
             // Apply winter
-            if (_dfUnity.WorldTime.Now.SeasonValue == DaggerfallDateTime.Seasons.Winter)
+            if (_dfUnity.WorldTime.Now.ActualSeasonValue == DaggerfallDateTime.Seasons.Winter)
             {
                 scale = WinterSunlightScale;
                 shadowStrength = WinterShadowStrength;
@@ -394,7 +395,7 @@ namespace DaggerfallWorkshop.Game
             _pollTimer = 0;
 
             var climate = PlayerWeather.PlayerGps.CurrentClimateIndex;
-            var next = _weatherTable.GetWeather(climate, _dfUnity.WorldTime.Now.SeasonValue);
+            var next = _weatherTable.GetWeather(climate, _dfUnity.WorldTime.Now.ActualSeasonValue);
             if (next == PlayerWeather.WeatherType)
                 return;
 
@@ -418,12 +419,12 @@ namespace DaggerfallWorkshop.Game
         // Sets weathers for each of the climate zones, like classic
         public void SetClimateWeathers()
         {
-            PlayerWeather.ClimateWeathers[0] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Desert, _dfUnity.WorldTime.Now.SeasonValue);
-            PlayerWeather.ClimateWeathers[1] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Mountain, _dfUnity.WorldTime.Now.SeasonValue);
-            PlayerWeather.ClimateWeathers[2] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Rainforest, _dfUnity.WorldTime.Now.SeasonValue);
-            PlayerWeather.ClimateWeathers[3] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Swamp, _dfUnity.WorldTime.Now.SeasonValue);
-            PlayerWeather.ClimateWeathers[4] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Subtropical, _dfUnity.WorldTime.Now.SeasonValue);
-            PlayerWeather.ClimateWeathers[5] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Woodlands, _dfUnity.WorldTime.Now.SeasonValue);
+            PlayerWeather.ClimateWeathers[0] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Desert, _dfUnity.WorldTime.Now.ActualSeasonValue);
+            PlayerWeather.ClimateWeathers[1] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Mountain, _dfUnity.WorldTime.Now.ActualSeasonValue);
+            PlayerWeather.ClimateWeathers[2] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Rainforest, _dfUnity.WorldTime.Now.ActualSeasonValue);
+            PlayerWeather.ClimateWeathers[3] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Swamp, _dfUnity.WorldTime.Now.ActualSeasonValue);
+            PlayerWeather.ClimateWeathers[4] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Subtropical, _dfUnity.WorldTime.Now.ActualSeasonValue);
+            PlayerWeather.ClimateWeathers[5] = (byte)_weatherTable.GetWeather((int)MapsFile.Climates.Woodlands, _dfUnity.WorldTime.Now.ActualSeasonValue);
         }
 
         public void SetWeatherFromWeatherClimateArray()

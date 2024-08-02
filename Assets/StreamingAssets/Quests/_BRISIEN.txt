@@ -173,7 +173,7 @@ Message:  1022
 <ce>                            Lady Magnessen
 
 Message:  1026
-<ce>           	You are approached by a young page who smiles in
+<ce>             You approached by a young page who smiles in
 <ce>             recognition and does not ask your name before
 <ce>              he hands you a letter addressed to you. To
 <ce>               all of your questions, he merely responds
@@ -215,6 +215,14 @@ Message:  1025
 <ce>          out of this cave after all. Once free of the cave,
 <ce>                  you can begin the Emperor's quest.
 
+Message:  1027
+<ce>    Disable the main quest for the player? [1/2]
+<ce>
+<ce>If you have enabled Dynamically Progressing Main Quest
+<ce>or you just want to play without the main quest enabled,
+<ce>answer "YES".
+<ce>
+<ce>If you want to play the main quest, answer "NO".
 
 -- Symbols used in the QRC file:
 --
@@ -240,6 +248,12 @@ Clock _oneday_ 1.00:00 0 flag 1 range 0 1
 
 
 --	Quest start-up:
+	prompt 1027 yes _mqdisabled_ no _mqenabled_
+
+_mqdisabled_ task:
+	end quest
+
+_mqenabled_ task:
 	dialog link for person ladyBrisienna 
 	log 1010 step 0 
 	pc at PiratesHold set _exitstarter_ 
@@ -276,7 +290,8 @@ _oneday_ task:
 	end quest 
 
 variable _exitstarter_
-until _exitstarter_ performed:
+_exiting_ task:
+	when not _exitstarter_
 	start quest 999 999 
 	start timer _invitepc_ 
 	remove log step 0 

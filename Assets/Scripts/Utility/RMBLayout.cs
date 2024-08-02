@@ -418,7 +418,7 @@ namespace DaggerfallWorkshop.Utility
                     billboardPosition += subRecordPosition;
 
                     // Add natures using correct climate set archive
-                    if (archive >= (int)DFLocation.ClimateTextureSet.Nature_RainForest && archive <= (int)DFLocation.ClimateTextureSet.Nature_Mountains_Snow)
+                    if (archive >= (int)DFLocation.ClimateTextureSet.Nature_RainForest && archive <= (int)DFLocation.ClimateTextureSet.Nature_Maquis)
                     {
                         archive = natureArchive;
                         billboardPosition.z = natureFlatsOffsetY;

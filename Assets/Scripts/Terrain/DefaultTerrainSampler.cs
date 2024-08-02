@@ -29,7 +29,8 @@ namespace DaggerfallWorkshop
         const float scaledBeachElevation = 5.0f * baseHeightScale;
 
         // Max terrain height of this sampler implementation
-        const float maxTerrainHeight = 1539f;
+        const float roughTerrainHeightMultiplier = 10f;
+        const float maxTerrainHeight = 1539f * roughTerrainHeightMultiplier;  // TODO: multiplied this by 10, just to make it more pronounced; will need further work.
 
         public override int Version
         {

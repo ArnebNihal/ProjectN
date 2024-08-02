@@ -217,6 +217,7 @@ namespace DaggerfallWorkshop.Game.Weather
                     return Subtropical.GetWeather(season);
                 case MapsFile.Climates.Woodlands:
                 case MapsFile.Climates.HauntedWoodlands:
+                case MapsFile.Climates.Maquis:
                     return Woodlands.GetWeather(season);
             }
             Debug.LogWarning("Unknown climate! " + climate);

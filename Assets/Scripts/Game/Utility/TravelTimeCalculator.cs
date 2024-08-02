@@ -27,7 +27,7 @@ namespace DaggerfallWorkshop.Game.Utility
 
         // Gives index to use with terrainMovementModifiers[]. Indexed by terrain type, starting with Ocean at index 0.
         // Also used for getting climate-related indices for dungeon textures.
-        public static byte[] climateIndices = { 0, 0, 0, 1, 2, 3, 4, 5, 5, 5 };
+        public static byte[] climateIndices = { 0, 0, 0, 1, 2, 3, 4, 5, 5, 5, 5 };
 
         // Gives movement modifiers used for different terrain types.
         byte[] terrainMovementModifiers = { 240, 220, 200, 200, 230, 250 };

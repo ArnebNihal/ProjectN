@@ -374,7 +374,7 @@ namespace DaggerfallWorkshop.Game.Utility
             bool hasLocation = WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out mapSummary);
             if (hasLocation)
             {
-                if (!WorldMaps.GetLocation(mapSummary.RegionIndex, mapSummary.MapIndex, out location))
+                if (!WorldMaps.GetLocation(WorldMaps.GetRelativeTile(mapPixel), mapSummary.MapIndex, out location))
                     hasLocation = false;
             }
 

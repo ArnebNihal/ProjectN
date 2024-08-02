@@ -13,8 +13,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using UnityEngine;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using DaggerfallWorkshop.Game.Serialization;
 using Newtonsoft.Json;
 #endregion
 
@@ -429,7 +431,9 @@ namespace DaggerfallConnect.Arena2
                 if (File.Exists(customBlockPath))
                 {
                     DFBlock customBlock = new DFBlock();
-                    customBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(customBlockPath));
+                    string blockReplacementJson = File.ReadAllText(customBlockPath);
+                    customBlock = (DFBlock)SaveLoadManager.Deserialize(typeof(DFBlock), blockReplacementJson);
+                    // customBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(customBlockPath));
                     return customBlock;
                 }
             }
@@ -476,8 +480,8 @@ namespace DaggerfallConnect.Arena2
             if (index == -1)
             {
                 // Name not found, search for alternate name
-                string alternateName = SearchAlternateRMBName(ref name);
-                return alternateName;
+                // string alternateName = SearchAlternateRMBName(ref name);
+                return name;
             }
 
             return name;

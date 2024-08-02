@@ -43,7 +43,7 @@ Message:  1011
  of these fiefdoms.
 
 Message:  1026
-<ce>       You are approached by a young page who smiles in recognition
+<ce>       You approached by a young page who smiles in recognition
 <ce>        and does not ask your name before he hands you a letter
 <ce>         addressed to you. To all of your questions, he merely
 <ce>                responds with a blank look and a smile.
@@ -150,6 +150,15 @@ Dear %pcf,
 <ce>                          Princess of Wayrest
 
 
+Message:  1042
+<ce>    Disable the main quest for the player? [1/2]
+<ce>
+<ce>If you have enabled Dynamically Progressing Main Quest
+<ce>or you just want to play without the main quest enabled,
+<ce>answer "YES".
+<ce>
+<ce>If you want to play the main quest, answer "NO".
+
 -- Symbols used in the QRC file:
 --
 --              %pcf occurs 3 times.
@@ -161,13 +170,17 @@ QBN:
 Item _I.00_ letter used 1040
 Item _I.01_ letter used 1041
 
-
-
 Clock mainquestclock 00:00 0 flag 9 range 0 0
 
 
 --	Quest start-up:
+	prompt 1042 yes _mqdisabled_ no _mqenabled_
+
+_mqenabled_ task:
 	log 1010 step 0 
+
+_mqdisabled_ task:
+	end quest
 
 _S.00_ task:
 	when Prince_Lhotun is available 

@@ -428,6 +428,7 @@ namespace DaggerfallWorkshop
         public ulong mapId;                           // MapID of this location
         public ulong locationId;                     // LocationID of this location
         public int regionIndex;                     // Index of region containing this location
+        public int tileIndex;                       // Absolute tile name of this location
         public string regionName;                   // Canonical name Name of region containing this location
         public string locationName;                 // Canonical Name of exterior location itself
         public int buildingKey;                     // Key of building site in this location

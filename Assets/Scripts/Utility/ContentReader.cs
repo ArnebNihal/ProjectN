@@ -130,15 +130,15 @@ namespace DaggerfallWorkshop.Utility
         /// <param name="locationIndex">Index of location.</param>
         /// <param name="locationOut">DFLocation data out.</param>
         /// <returns>True if successful.</returns>
-        public bool GetLocation(int regionIndex, int locationIndex, out DFLocation locationOut)
+        public bool GetLocation(int relTile, int locationIndex, out DFLocation locationOut)
         {
             locationOut = new DFLocation();
 
             // Get location data
-            locationOut = WorldMaps.GetLocation(regionIndex, locationIndex);
+            locationOut = WorldMaps.GetLocation(relTile, locationIndex);
             if (!locationOut.Loaded)
             {
-                DaggerfallUnity.LogMessage(string.Format("Unknown location RegionIndex='{0}', LocationIndex='{1}'.", regionIndex, locationIndex), true);
+                DaggerfallUnity.LogMessage(string.Format("Unknown location RelativeTile='{0}', LocationIndex='{1}'.", relTile, locationIndex), true);
                 return false;
             }
 
@@ -191,7 +191,7 @@ namespace DaggerfallWorkshop.Utility
             if (WorldMaps.mapDict.ContainsKey(mapId))
             {
                 DaggerfallConnect.Arena2.MapSummary summary = WorldMaps.mapDict[mapId];
-                return GetLocation(summary.RegionIndex, summary.MapIndex, out locationOut);
+                return GetLocation(WorldMaps.GetRelativeTile(MapsFile.GetPixelFromPixelID(mapId)), summary.MapIndex, out locationOut);
             }
 
             return false;
@@ -303,7 +303,7 @@ namespace DaggerfallWorkshop.Utility
         {
             // Build map lookup dictionary
             if (WorldMaps.mapDict == null)
-                EnumerateMaps();
+                WorldMaps.EnumerateMaps();
         }
 
         /// <summary>
@@ -326,8 +326,8 @@ namespace DaggerfallWorkshop.Utility
                     {
                         // Get map summary
                         DFRegion.RegionMapTable mapTable = dfRegion.MapTable[location];
-                        summary.ID = mapTable.MapId & 0x000fffff;
-                        summary.MapID = mapTable.MapId;
+                        summary.ID = mapTable.MapId;
+                        summary.MapID = mapTable.MapId & 0x000fffff;
                         summary.RegionIndex = region;
                         summary.MapIndex = location;
                         summary.LocationType = mapTable.LocationType;

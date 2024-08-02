@@ -351,7 +351,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 if (DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.IsDay)
                 {
                     DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.RaiseTime(
-                        (DaggerfallDateTime.DuskHour - DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.Hour) * 3600);
+                        ((DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.DuskHour / DaggerfallDateTime.MinutesPerHour) - DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.Hour) * 3600);
                 }
             }
             else if (speedCautious)

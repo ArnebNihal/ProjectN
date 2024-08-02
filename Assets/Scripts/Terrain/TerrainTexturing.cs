@@ -62,6 +62,7 @@ namespace DaggerfallWorkshop
 
         public virtual JobHandle ScheduleAssignTilesJob(ITerrainSampler terrainSampler, ref MapPixelData mapData, JobHandle dependencies, bool march = true)
         {
+            Debug.Log("And why do we get here?");
             // Cache tile data to minimise noise sampling during march.
             NativeArray<byte> tileData = new NativeArray<byte>(tileDataDim * tileDataDim, Allocator.TempJob);
             GenerateTileDataJob tileDataJob = new GenerateTileDataJob

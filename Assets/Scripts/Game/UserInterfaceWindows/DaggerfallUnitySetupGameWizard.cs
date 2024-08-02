@@ -28,6 +28,7 @@ using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using ProjectN;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -87,7 +88,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         const string titleScreenFilename = "StartupBackground2";
         const float panelSwipeTime = 1;
         const SongFiles titleSongFile = SongFiles.song_5strong;
-        const string startingBlock = "CUSTAA01.RMB";
+        static string startingBlock = "CUSTAA06";
+        public static string mapPath =  "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps";
 
         string findArena2Tip;
         string pathValidated;
@@ -255,6 +257,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         bool backdropCreated = false;
         void CreateBackdrop()
         {
+            // List<string> blocks = new List<string>(Directory.EnumerateFiles(mapPath + "/RMB"));
+            // int index = UnityEngine.Random.Range(0, blocks.Count);
+            // startingBlock = blocks[index].Substring(blocks[index].Count() - 17, 12);
+            Debug.Log("Using " + startingBlock + " as backgorund");
             // Add a block into the scene
             GameObjectHelper.CreateRMBBlockGameObject(startingBlock, 0, 0, 0, 0);
             backdropCreated = true;

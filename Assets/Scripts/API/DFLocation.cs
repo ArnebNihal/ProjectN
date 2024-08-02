@@ -154,6 +154,7 @@ namespace DaggerfallConnect
             Mountain = 100,
             Temperate = 300,
             Swamp = 400,
+            Maquis = 1100,
         }
 
         /// <summary>
@@ -261,6 +262,7 @@ namespace DaggerfallConnect
             Nature_HauntedWoodlands_Snow = 509,
             Nature_Mountains = 510,
             Nature_Mountains_Snow = 511,
+            Nature_Maquis = 1030,
         }
 
         /// <summary>

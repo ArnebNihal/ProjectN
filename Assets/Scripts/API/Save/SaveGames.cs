@@ -241,7 +241,7 @@ namespace DaggerfallConnect.Save
                         // If a location is marked as discovered in classic but not DF Unity, discover it for DF Unity
                         if ((data[i] & 0x40) != 0 && !regionData.MapTable[i].Discovered)
                         {
-                            DFLocation location = WorldMaps.GetLocation(regionIndex, i);
+                            DFLocation location = WorldMaps.GetLocation(WorldMaps.GetRelativeTile(gps.CurrentMapPixel), i);
                             gps.DiscoverLocation(regionData.Name, location.Name);
                         }
                     }

@@ -104,7 +104,7 @@ namespace DaggerfallWorkshop.Game
                 return;
             }
 
-            DaggerfallDateTime.Seasons playerSeason = dfUnity.WorldTime.Now.SeasonValue;
+            DaggerfallDateTime.Seasons playerSeason = dfUnity.WorldTime.Now.ActualSeasonValue;
             int playerClimateIndex = GameManager.Instance.PlayerGPS.CurrentClimateIndex;
 
             // Get player inside flag

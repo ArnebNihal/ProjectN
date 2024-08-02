@@ -268,6 +268,49 @@ namespace DaggerfallConnect.Arena2
             return colors;
         }
 
+        public Color32[] GetCustomColor32(DFBitmap srcBitmap, int alphaIndex, int border, out DFSize sizeOut, int emissionIndex = -1, int customAlphaValue = 255)
+        {
+            int srcWidth = srcBitmap.Width;
+            int srcHeight = srcBitmap.Height;
+            int dstWidth = srcWidth + border * 2;
+            int dstHeight = srcHeight + border * 2;
+            Texture2D texture = new Texture2D(1, 1);
+            ImageConversion.LoadImage(texture, srcBitmap.Data);
+
+            // int colorIndex;
+
+            Color32[] colors = texture.GetPixels32();
+            Debug.Log("srcBitmap.Data.Length: " + srcBitmap.Data.Length + "; colors.Length: " + colors.Length);
+
+            // for (int i = 0; i < srcBitmap.Data.Length; i++)
+            // {
+            //     colorIndex = i / 4;
+
+            //     switch (i % 4)
+            //     {
+            //         case 0: 
+            //             colors[colorIndex].r = srcBitmap.Data[i];
+            //             break;
+            //         case 1:
+            //             colors[colorIndex].g = srcBitmap.Data[i];
+            //             break;
+            //         case 2:
+            //             colors[colorIndex].b = srcBitmap.Data[i];
+            //             break;
+            //         case 3:
+            //             colors[colorIndex].a = srcBitmap.Data[i];
+            //             break;
+            //     }
+            // }
+
+
+
+            sizeOut = new DFSize(dstWidth, dstHeight);
+            Debug.Log("sizeOut Height: " + sizeOut.Height + ", Width: " + sizeOut.Width);
+
+            return colors;
+        }
+
         /// <summary>
         /// Gets a Color32 array as emission map based for window textures.
         /// </summary>
@@ -295,6 +338,22 @@ namespace DaggerfallConnect.Arena2
                     if (index == emissionIndex)
                         emissionColors[dstRow + x] = Color.white;
                 }
+            }
+
+            return emissionColors;
+        }
+
+        /// <summary>
+        /// Gets a Color32 array as emission map based for custom window textures.
+        /// </summary>
+        public Color32[] GetCustomWindowColors32(Color32[] albedoColors)
+        {
+            Color32[] emissionColors = new Color32[albedoColors.Length];
+
+            for (int i = 0; i < emissionColors.Length; i++)
+            {
+                if (albedoColors[i] == Color.black)
+                    emissionColors[i] = Color.white;
             }
 
             return emissionColors;

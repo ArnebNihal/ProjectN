@@ -552,7 +552,13 @@ namespace DaggerfallWorkshop.Utility
             if (gps.HasCurrentLocation)
                 return gps.CurrentLocalizedLocationName;
             else
-                return ("the " + gps.CurrentLocalizedRegionGovernment + " of " + gps.CurrentLocalizedRegionName);
+            {
+                string government = gps.CurrentLocalizedRegionGovernment;
+                if (government.Equals("None"))
+                    return gps.CurrentLocalizedRegionName;
+                else
+                    return ("the " + gps.CurrentLocalizedRegionGovernment + " of " + gps.CurrentLocalizedRegionName);
+            }
         }
 
         private static string CityName2(IMacroContextProvider mcp)
@@ -846,7 +852,7 @@ namespace DaggerfallWorkshop.Utility
                 buildingData.BuildingType,
                 buildingData.FactionId,
                 location.Name,
-                TextManager.Instance.GetLocalizedRegionName(location.RegionIndex));
+                location.RegionName);
         }
 
         private static string PlayerPronoun(IMacroContextProvider mcp)

@@ -44,6 +44,14 @@ namespace DaggerfallConnect.Utility
             Y = y;
         }
 
+        public bool Equals(DFPosition position)
+        {
+            if (this.X == position.X && this.Y == position.Y)
+                return true;
+
+            else return false;
+        }
+
         public override string ToString()//##Lypyl
         {
             return string.Format("{0}, {1}", X, Y);

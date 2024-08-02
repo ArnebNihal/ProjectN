@@ -24,6 +24,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public const string acuteHearing = "acuteHearing";
         public const string adrenalineRush = "adrenalineRush";
         public const string athleticism = "athleticism";
+        public const string climateSurvival = "climateSurvival";
+        public const string climateUncomfortable = "climateUncomfortable";
         public const string bonusToHit = "bonusToHit";
         public const string expertiseIn = "expertiseIn";
         public const string immunity = "immunity";
@@ -32,6 +34,17 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public const string regenerateHealth = "regenerateHealth";
         public const string resistance = "resistance";
         public const string spellAbsorption = "spellAbsorption";
+        public const string ocean = "ocean";
+        public const string desert = "desert";
+        public const string desert2 = "desert2";
+        public const string mountain = "mountain";
+        public const string rainforest = "rainforest";
+        public const string swamp = "swamp";
+        public const string subtropical = "subtropical";
+        public const string mountainWoods = "mountainWoods";
+        public const string woodlands = "woodlands";
+        public const string hauntedWoodlands = "hauntedWoodlands";
+        public const string maquis = "maquis";
         public const string animals = "animals";
         public const string daedra = "daedra";
         public const string humanoid = "humanoid";
@@ -92,5 +105,15 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public const string towerShield = "towerShield";
         public const string lowerMagicAbilityDarkness = "lowerMagicAbilityDarkness";
         public const string unableToUseMagicInDarkness = "unableToUseMagicInDarkness";
+        public const string goodSoD = "goodSoD";
+        public const string perfectSoD = "perfectSoD";
+        public const string artificialCave = "artificialCave";
+        public const string aviary = "aviary";
+        public const string building = "building";
+        public const string community = "community";
+        public const string naturalCave = "naturalCave";
+        public const string nest = "nest";
+        public const string settlement = "settlement";
+        public const string temple = "temple";
     }
 }

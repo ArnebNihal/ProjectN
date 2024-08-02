@@ -114,11 +114,11 @@ QuestLogEntry:  [1010]
 %qdt:
  Medora, the former court sorceress of
  Daggerfall, has sent me to Shedungent in
- the Wrothgarian Mountains. Shedungent is
+ the Wrothgarian Mountains. Shedugent is
  home to Nulfaga, mother of Lysandus.
  There I must retrieve the horn of the
  Great Unicorn. If Nulfaga is unable to
- help, I must search her castle Shedungent
+ help, I must search her castle Shedugent
  for the horn myself. I have =2shedungent_ days
  to return to Direnni Tower.
 

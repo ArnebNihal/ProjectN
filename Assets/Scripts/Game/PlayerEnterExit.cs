@@ -538,7 +538,7 @@ namespace DaggerfallWorkshop.Game
                 // Start in dungeon
                 DFLocation location;
                 world.TeleportToCoordinates(pos.X, pos.Y, StreamingWorld.RepositionMethods.None);
-                WorldMaps.GetLocation(summary.RegionIndex, summary.MapIndex, out location);
+                WorldMaps.GetLocation(WorldMaps.GetRelativeTile(pos), summary.MapIndex, out location);
                 StartDungeonInterior(location, true, importEnemies);
                 world.suppressWorld = true;
             }
@@ -547,7 +547,7 @@ namespace DaggerfallWorkshop.Game
                 // Start in building
                 DFLocation location;
                 world.TeleportToCoordinates(pos.X, pos.Y, StreamingWorld.RepositionMethods.None);
-                WorldMaps.GetLocation(summary.RegionIndex, summary.MapIndex, out location);
+                WorldMaps.GetLocation(WorldMaps.GetRelativeTile(pos), summary.MapIndex, out location);
                 StartBuildingInterior(location, exteriorDoors[0], start);
                 world.suppressWorld = false;
             }

@@ -68,6 +68,8 @@ namespace DaggerfallWorkshop
         [SerializeField]
         bool showProficienciesFoldout = true;
         [SerializeField]
+        bool showClimateSurvivalFoldout = true;
+        [SerializeField]
         bool showMagickaFoldout = true;
         [SerializeField]
         bool showMiscellaneousFoldout = true;
@@ -131,6 +133,7 @@ namespace DaggerfallWorkshop
                     ShowSkillsGUI();
                     ShowTolerancesGUI();
                     ShowProficienciesGUI();
+                    ShowClimateSurvivalGUI();
                     ShowForbiddenMaterialsGUI();
                     ShowForbiddenArmorGUI();
                     ShowForbiddenShieldsGUI();
@@ -552,6 +555,73 @@ namespace DaggerfallWorkshop
                     {
                         EditorGUILayout.LabelField("Missile Weapons");
                         EditorGUILayout.SelectableLabel(selectedCareer.MissileWeapons.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                });
+            });
+        }
+
+        void ShowClimateSurvivalGUI()
+        {
+            EditorGUILayout.Space();
+            showClimateSurvivalFoldout = GUILayoutHelper.Foldout(showClimateSurvivalFoldout, new GUIContent("Survival Skills"), () =>
+            {
+                EditorGUILayout.Space();
+                GUILayoutHelper.Indent(() =>
+                {
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Ocean");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Ocean.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Desert");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Desert.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Desert2");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Desert2.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Mountain");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Mountain.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Rainforest");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Rainforest.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Swamp");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Swamp.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Subtropical");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Subtropical.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("MountainWoods");
+                        EditorGUILayout.SelectableLabel(selectedCareer.MountainWoods.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Woodlands");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Woodlands.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("HauntedWoodlands");
+                        EditorGUILayout.SelectableLabel(selectedCareer.HauntedWoodlands.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
+                    });
+                    GUILayoutHelper.Horizontal(() =>
+                    {
+                        EditorGUILayout.LabelField("Maquis");
+                        EditorGUILayout.SelectableLabel(selectedCareer.Maquis.ToString(), EditorStyles.textField, GUILayout.Height(EditorGUIUtility.singleLineHeight));
                     });
                 });
             });

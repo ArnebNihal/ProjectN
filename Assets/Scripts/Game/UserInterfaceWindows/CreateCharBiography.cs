@@ -12,6 +12,7 @@
 using UnityEngine;
 using System;
 using System.Collections.Generic;
+using System.IO;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop;
@@ -20,6 +21,7 @@ using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.Player;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -41,18 +43,45 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         const int buttonWidth = 149;
         const int buttonHeight = 24;
         public const int reputationToken = 35;
+        List<int>[] questionAnswers =
+        { 
+            new List<int> { 0, 1, 2, 3, 4, 5, 6, 7, 8 },              // 0."In which area of the world were you born?"
+            new List<int> { 0 },                                      // 1."In which Imperial Province were you born?"
+            new List<int> { },                                        // 2."PLACEHOLDER Akavir",
+            new List<int> { },                                        // 3."PLACEHOLDER Aldmeris",
+            new List<int> { },                                        // 4."PLACEHOLDER Atmora",
+            new List<int> { },                                        // 5."PLACEHOLDER Lyg",
+            new List<int> { },                                        // 6."PLACEHOLDER Pyandonea",
+            new List<int> { },                                        // 7."PLACEHOLDER Yokuda",
+            new List<int> { },                                        // 8."PLACEHOLDER isles",
+            new List<int> { 0 },                                      // 9."In which region were you born?"
+            new List<int> { 0, 10, 11, 12, 13, 14, 15, 16, 17 },      // 10."What kind of settlement your home was?"
+            new List<int> { 0, 26, 27, 28, 29, 30 },                  // 11."What happened to your parents?"
+            new List<int> { 0 },              // 12."How old were you when you left home?"
+        };                                         
 
+        int generalQuestionIndex = 0;
         int questionIndex = 0;
+        int multipageIndex = 0;
+        bool generalQuestionEnded = false;
+        List<int> answers = new List<int>();
         Texture2D nativeTexture;
         TextLabel[] questionLabels = new TextLabel[questionLines];
         Button[] answerButtons = new Button[buttonCount];
         TextLabel[] answerLabels = new TextLabel[buttonCount];
         BiogFile biogFile;
+        public StartLocQuestions sLQuestions;        
 
         public CreateCharBiography(IUserInterfaceManager uiManager, CharacterDocument document)
             : base(uiManager)
         {
             Document = document;
+        }
+
+        public class StartLocQuestions
+        {
+            public string[] Questions;
+            public string[] Answers;
         }
 
         protected override void Setup()
@@ -67,6 +96,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             // Load question data
             biogFile = new BiogFile(Document);
+            sLQuestions = JsonConvert.DeserializeObject<StartLocQuestions>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "StartingLocationQuestions.json")));
 
             // Set background
             NativePanel.BackgroundTexture = nativeTexture;
@@ -97,9 +127,83 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                                             answerButtons[i]);
             }
 
-            PopulateControls(biogFile.Questions[questionIndex]);
+            PopulateControls(generalQuestionIndex);
+            // PopulateControls(biogFile.Questions[questionIndex]);
 
             IsSetup = true;
+        }
+
+        private void PopulateControls(int generalQuestionIndex)
+        {
+            questionLabels[0].Text = sLQuestions.Questions[generalQuestionIndex];
+            // questionLabels[1].Text = string.Empty;
+
+            switch(generalQuestionIndex)
+            {
+                case 0:
+                case 10:
+                case 11:
+                    for (int i = 0; i < questionAnswers[generalQuestionIndex].Count; i++)
+                    {
+                        answerLabels[i].Text = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]];
+                    }
+                    break;
+
+                case 1:
+                    for (int i = 0; i < Enum.GetNames(typeof(ProvinceNames)).Length; i++)
+                    {
+                        if (i == 0)
+                            answerLabels[i].Text = sLQuestions.Answers[0];
+                        else answerLabels[i].Text = Enum.GetName(typeof(ProvinceNames), i);
+                    }
+                    break;
+
+                case 9:
+                    for (int i = 0; i < buttonCount; i++)
+                    {
+                        if (multipageIndex == 0 && i == 0)
+                            answerLabels[i].Text = sLQuestions.Answers[0];
+                        else if (i == 0)
+                            answerLabels[i].Text = sLQuestions.Answers[sLQuestions.Answers.Length - 2];
+                        else if (i < buttonCount - 1)
+                            answerLabels[i].Text = WorldData.WorldSetting.RegionNames[WorldData.WorldSetting.regionInProvince[answers[1]][i + 8 * multipageIndex]];
+                        else answerLabels[i].Text = sLQuestions.Answers[sLQuestions.Answers.Length - 1];
+                    }
+                    break;
+
+                case 12:
+                    switch(answers[generalQuestionIndex - 1])
+                    {
+                        case 26:
+                            questionAnswers[generalQuestionIndex].AddRange(new List<int> { 19, 20, 21, 22, 23, 24 });
+                            break;
+
+                        case 27:
+                        case 29:
+                            questionAnswers[generalQuestionIndex].AddRange(new List<int> { 19, 20, 21 });
+                            break;
+
+                        case 28:
+                            questionAnswers[generalQuestionIndex].AddRange(new List<int> { 19, 20 });
+                            break;
+
+                        case 30:
+                            questionAnswers[generalQuestionIndex].AddRange(new List<int> { 20, 21, 22 });
+                            break;
+                    }
+                    for (int i = 0; i < questionAnswers[generalQuestionIndex].Count; i++)
+                    {
+                        answerLabels[i].Text = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]];
+                    }
+                    break;
+
+                default:
+                    break;
+            }
+            for (int i = questionAnswers[generalQuestionIndex].Count; i < buttonCount; i++)
+            {
+                answerLabels[i].Text = string.Empty;
+            }
         }
 
         private void PopulateControls(BiogFile.Question question)
@@ -120,39 +224,58 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         void AnswerButton_OnMouseClick(BaseScreenComponent sender, Vector2 pos)
         {
             int answerIndex = (int)sender.Tag;
-            List<BiogFile.Answer> curAnswers = biogFile.Questions[questionIndex].Answers;
 
-            if (answerIndex >= curAnswers.Count)
+            if (generalQuestionEnded)
             {
-                return; // not an answer for this question
-            }
-            else if (questionIndex < biogFile.Questions.Length - 1)
-            {
-                foreach (string effect in curAnswers[answerIndex].Effects)
+                List<BiogFile.Answer> curAnswers = biogFile.Questions[questionIndex].Answers;
+
+                if (answerIndex >= curAnswers.Count)
                 {
-                    biogFile.AddEffect(effect, questionIndex);
+                    return; // not an answer for this question
                 }
-                questionIndex++;
-                PopulateControls(biogFile.Questions[questionIndex]);
-            }
-            else
-            {
-                // Add final effects
-                foreach (string effect in curAnswers[answerIndex].Effects)
+                else if (questionIndex < biogFile.Questions.Length - 1)
                 {
-                    biogFile.AddEffect(effect, questionIndex);
+                    foreach (string effect in curAnswers[answerIndex].Effects)
+                    {
+                        biogFile.AddEffect(effect, questionIndex);
+                    }
+                    questionIndex++;
+                    PopulateControls(biogFile.Questions[questionIndex]);
                 }
+                else
+                {
+                    // Add final effects
+                    foreach (string effect in curAnswers[answerIndex].Effects)
+                    {
+                        biogFile.AddEffect(effect, questionIndex);
+                    }
 
-                // Create text biography
-                BackStory = biogFile.GenerateBackstory();
+                    // Create text biography
+                    BackStory = biogFile.GenerateBackstory();
 
-                // Show reputation changes
-                biogFile.DigestRepChanges();
-                DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this);
-                messageBox.SetTextTokens(reputationToken, biogFile);
-                messageBox.ClickAnywhereToClose = true;
-                messageBox.OnClose += MessageBox_OnClose;
-                messageBox.Show();
+                    // Show reputation changes
+                    biogFile.DigestRepChanges();
+                    DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this);
+                    messageBox.SetTextTokens(reputationToken, biogFile);
+                    messageBox.ClickAnywhereToClose = true;
+                    messageBox.OnClose += MessageBox_OnClose;
+                    messageBox.Show();
+                }
+            }
+            else{
+                if (answerIndex >= questionAnswers[generalQuestionIndex].Count)
+                {
+                    return; // not an answer for this question
+                }
+                else if (questionIndex < questionAnswers[generalQuestionIndex].Count - 1)
+                {
+                    // foreach (string effect in curAnswers[answerIndex].Effects)
+                    // {
+                    //     biogFile.AddEffect(effect, questionIndex);
+                    // }
+                    generalQuestionIndex++;
+                    PopulateControls(generalQuestionIndex);
+                }
             }
         }
 

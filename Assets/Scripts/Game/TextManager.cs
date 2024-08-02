@@ -21,6 +21,7 @@ using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.Entity;
 using UnityEngine.Localization.Tables;
 using DaggerfallConnect.Arena2;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -58,6 +59,7 @@ namespace DaggerfallWorkshop.Game
         Dictionary<string, Table> textDatabases = new Dictionary<string, Table>();
         Dictionary<string, string[]> cachedLocalizedTextLists = new Dictionary<string, string[]>();
         Dictionary<string, DaggerfallFont> localizedFonts = new Dictionary<string, DaggerfallFont>();
+        List<string> additionalText = new List<string>{ "climateSurvival", "climateUncomfortable", "ocean", "desert", "desert2", "mountain", "rainforest", "swamp", "subtropical", "mountainWoods", "woodlands", "hauntedWoodlands", "maquis", "goodSoD", "perfectSoD", "artificialCave", "aviary", "building", "community", "naturalCave", "nest", "settlement", "temple" };
 
         #endregion
 
@@ -316,7 +318,12 @@ namespace DaggerfallWorkshop.Game
         public string GetLocalizedText(string key, TextCollections collection = TextCollections.Internal, bool exception = false)
         {
             string localizedText;
-            if (TryGetLocalizedText(GetRuntimeCollectionName(collection), key, out localizedText))
+            if (additionalText.Contains(key))
+            {
+                List<string> text = JsonConvert.DeserializeObject<List<string>>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "AdditionalText.json")));
+                return text[additionalText.IndexOf(key)];
+            }                
+            else if (TryGetLocalizedText(GetRuntimeCollectionName(collection), key, out localizedText))
                 return localizedText;
             else if (TryGetLocalizedText(GetDefaultCollectionName(collection), key, out localizedText))
                 return localizedText;
@@ -403,7 +410,8 @@ namespace DaggerfallWorkshop.Game
             //     regionIndex < 0 || regionIndex >= regionNames.Length)
             // {
                 // Fallback to canonical name using MapsFile when localization not provided or index out of range
-                return WorldMaps.WorldMap[regionIndex].Name;
+                return WorldData.WorldSetting.RegionNames[regionIndex];
+                // WorldMaps.WorldMap[regionIndex].Name;
             // }
             // return regionNames[regionIndex];
         }
@@ -433,7 +441,8 @@ namespace DaggerfallWorkshop.Game
         /// <returns>Government type.</returns>
         public string GetCurrentRegionGovernment(int regionIndex)
         {
-            FactionFile.FactionData faction = FactionsAtlas.FactionDictionary[FactionsAtlas.FactionToId[WorldMaps.WorldMap[regionIndex].Name]];
+            string region = MapsFile.ConvertRegionName(WorldData.WorldSetting.RegionNames[regionIndex]);
+            FactionFile.FactionData faction = FactionsAtlas.FactionDictionary[FactionsAtlas.FactionToId[region]];
             return ((GovernmentType)((faction.ruler + 1) / 2)).ToString();
         }
 

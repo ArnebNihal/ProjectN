@@ -124,7 +124,7 @@ namespace DaggerfallWorkshop
             int groundArchive = climate.GroundArchive;
             bool isWinter = false;
             if (climate.ClimateType != DFLocation.ClimateBaseType.Desert &&
-                DaggerfallUnity.Instance.WorldTime.Now.SeasonValue == DaggerfallDateTime.Seasons.Winter)
+                DaggerfallUnity.Instance.WorldTime.Now.ActualSeasonValue == DaggerfallDateTime.Seasons.Winter)
             {
                 // Offset to snow textures
                 groundArchive++;

@@ -1372,6 +1372,27 @@ namespace DaggerfallWorkshop.Game
 
         private void UpdatePlayerMarker()
         {
+            int refWidth ;
+            int refHeight;
+            if (GameManager.Instance.PlayerEntity.Career.Settlement != DFCareer.OrientationCompetence.Perfect)
+            {
+                Vector3 centerPos;
+                refWidth = 0;
+                refHeight = 0;
+                // refWidth = (int)(blockSizeWidth * numMaxBlocksX * layoutMultiplier);
+                // refHeight = (int)(blockSizeHeight * numMaxBlocksY * layoutMultiplier);
+                centerPos.x = refWidth;
+                centerPos.z = refHeight;
+                centerPos.y = 0.1f;
+                gameobjectPlayerMarkerArrow.transform.position = centerPos;
+                Renderer rend = gameobjectPlayerMarkerArrow.GetComponent<Renderer>();
+                rend.enabled = false;
+                rend = gameobjectPlayerMarkerArrowStamp.GetComponent<Renderer>();
+                rend.enabled = false;
+                rend = gameobjectPlayerMarkerCircle.GetComponent<Renderer>();
+                rend.enabled = false;
+                return;
+            }
             // place player marker            
             Vector3 playerPos;
             float scale = MapsFile.WorldMapTerrainDim * MeshReader.GlobalScale;
@@ -1388,8 +1409,8 @@ namespace DaggerfallWorkshop.Game
                 yOffset =  +3f;
             }
 
-            int refWidth = (int)(blockSizeWidth * numMaxBlocksX * layoutMultiplier); // layoutWidth / layoutMultiplier
-            int refHeight = (int)(blockSizeHeight * numMaxBlocksY * layoutMultiplier); // layoutHeight / layoutMultiplier
+            refWidth = (int)(blockSizeWidth * numMaxBlocksX * layoutMultiplier); // layoutWidth / layoutMultiplier
+            refHeight = (int)(blockSizeHeight * numMaxBlocksY * layoutMultiplier); // layoutHeight / layoutMultiplier
             playerPos.x *= refWidth;
             playerPos.y = 0.1f;
             playerPos.z *= refHeight;

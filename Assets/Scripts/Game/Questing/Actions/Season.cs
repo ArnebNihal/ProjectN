@@ -55,7 +55,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
         public override bool CheckTrigger(Task caller)
         {
-            return DaggerfallUnity.Instance.WorldTime.Now.SeasonValue == season;
+            return DaggerfallUnity.Instance.WorldTime.Now.ActualSeasonValue == season;
         }
 
         #region Serialization

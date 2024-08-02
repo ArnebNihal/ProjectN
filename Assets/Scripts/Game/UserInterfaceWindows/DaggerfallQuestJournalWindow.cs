@@ -450,7 +450,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 place.SiteDetails.locationName != GameManager.Instance.PlayerGPS.CurrentLocation.Name)
             {
                 string findPlaceName = place.SiteDetails.locationName;
-                if (DaggerfallUI.Instance.DfTravelMapWindow.CanFindPlace(place.SiteDetails.regionName, findPlaceName)) // Check using canonical name
+                if (DaggerfallUI.Instance.DfTravelMapWindow.CanFindPlace(place.SiteDetails.tileIndex.ToString("00000"), findPlaceName)) // Check using canonical name
                 {
                     // Workaround for quests compiled before DFU 0.15.0 or later
                     int regionIndex = MapsFile.PatchRegionIndex(place.SiteDetails.regionIndex, place.SiteDetails.regionName);

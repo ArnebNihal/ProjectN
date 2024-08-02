@@ -77,6 +77,11 @@ namespace DaggerfallWorkshop.Game.Questing
             return hours * 3600 + minutes * 60;
         }
 
+        int ToDailyMinutes(int hours, int minutes, int seconds)
+        {
+            return hours * 3600 + minutes * 60 + seconds;
+        }
+
         #region Serialization
 
         [fsObject("v1")]

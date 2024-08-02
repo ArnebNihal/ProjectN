@@ -272,6 +272,7 @@ namespace DaggerfallWorkshop.Utility
             switch (fileType)
             {
                 case ImageTypes.TEXTURE:
+                    Debug.Log("Trying to load file " + filename);
                     TextureFile textureFile = new TextureFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
                     textureFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, textureFile.PaletteName));
                     dfBitmap = textureFile.GetDFBitmap(record, frame);
@@ -287,6 +288,7 @@ namespace DaggerfallWorkshop.Utility
                     imageData.offset = textureFile.GetOffset(record);
                     imageData.scale = textureFile.GetScale(record);
                     imageData.size = textureFile.GetSize(record);
+                    Debug.Log("imageData.size: " + imageData.size.Width + ", " + imageData.size.Height);
 
                     // Texture pack support
                     int archive = AssetInjection.TextureReplacement.FileNameToArchive(filename);

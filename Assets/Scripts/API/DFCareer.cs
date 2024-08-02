@@ -12,6 +12,7 @@
 #region Using Statements
 using System;
 using System.Globalization;
+using System.Runtime.InteropServices;
 #endregion
 
 namespace DaggerfallConnect
@@ -79,11 +80,34 @@ namespace DaggerfallConnect
         public Proficiency BluntWeapons;
         public Proficiency MissileWeapons;
 
+        // Climate Survival Proficiency
+        public ClimateCompetence Ocean;
+        public ClimateCompetence Desert;
+        public ClimateCompetence Desert2;
+        public ClimateCompetence Mountain;
+        public ClimateCompetence Rainforest;
+        public ClimateCompetence Swamp;
+        public ClimateCompetence Subtropical;
+        public ClimateCompetence MountainWoods;
+        public ClimateCompetence Woodlands;
+        public ClimateCompetence HauntedWoodlands;
+        public ClimateCompetence Maquis;
+
         // Attack modifier for enemy groups
         public AttackModifier UndeadAttackModifier;
         public AttackModifier DaedraAttackModifier;
         public AttackModifier HumanoidAttackModifier;
         public AttackModifier AnimalsAttackModifier;
+
+        // Competence for orientation advantages
+        public OrientationCompetence ArtificialCave;
+        public OrientationCompetence Aviary;
+        public OrientationCompetence Building;
+        public OrientationCompetence Community;
+        public OrientationCompetence NaturalCave;
+        public OrientationCompetence Nest;
+        public OrientationCompetence Settlement;
+        public OrientationCompetence Temple;
 
         // Dark and light powered magery
         public DarknessMageryFlags DarknessPoweredMagery;
@@ -103,6 +127,10 @@ namespace DaggerfallConnect
 
         // Expert proficiencies
         public ProficiencyFlags ExpertProficiencies;
+
+        // Climate survival flags
+        public ClimateSurvivalFlags UncomfortableClimate;
+        public ClimateSurvivalFlags ClimateSurvival;
 
         // Spell point multiplier
         public SpellPointMultipliers SpellPointMultiplier;
@@ -258,6 +286,26 @@ namespace DaggerfallConnect
             Expert,
         }
 
+        /// <summary>
+        /// Climate Survival levels for Climate Survival advantage and disadvantage.
+        /// </summary>
+        public enum ClimateCompetence
+        {
+            Normal,         // No penalties, no compass
+            Competent,      // Compass, bonuses
+            Uncomfortable   // Penalties to temperature/clothing combination
+        }
+
+        /// <summary>
+        /// Speleology and Topography competence level.
+        /// <summary/>
+        public enum OrientationCompetence
+        {
+            Normal,      // No compass, no map
+            Good,        // Compass
+            Perfect      // Compass + map
+        }
+
         public enum AttackModifier
         {
             Normal,
@@ -318,6 +366,25 @@ namespace DaggerfallConnect
             Axes = 8,
             BluntWeapons = 16,
             MissileWeapons = 32,
+        }
+
+        /// <summary>
+        /// Climate flags for climate survival
+        /// </summary>
+        [Flags]
+        public enum ClimateSurvivalFlags
+        {
+            Ocean = 1,
+            Desert = 2,
+            Desert2 = 4,
+            Mountain = 8,
+            Rainforest = 16,
+            Swamp = 32,
+            Subtropical = 64,
+            MountainWoods = 128,
+            Woodlands = 256,
+            HauntedWoodlands = 512,
+            Maquis = 1024
         }
 
         /// <summary>
@@ -613,6 +680,27 @@ namespace DaggerfallConnect
             this.BluntWeapons = GetProficiency(ProficiencyFlags.BluntWeapons);
             this.MissileWeapons = GetProficiency(ProficiencyFlags.MissileWeapons);
 
+            this.Ocean = GetSurvivalLevel(ClimateSurvivalFlags.Ocean);
+            this.Desert = GetSurvivalLevel(ClimateSurvivalFlags.Desert);
+            this.Desert2 = GetSurvivalLevel(ClimateSurvivalFlags.Desert2);
+            this.Mountain = GetSurvivalLevel(ClimateSurvivalFlags.Mountain);
+            this.Rainforest = GetSurvivalLevel(ClimateSurvivalFlags.Rainforest);
+            this.Swamp = GetSurvivalLevel(ClimateSurvivalFlags.Swamp);
+            this.Subtropical = GetSurvivalLevel(ClimateSurvivalFlags.Subtropical);
+            this.MountainWoods = GetSurvivalLevel(ClimateSurvivalFlags.MountainWoods);
+            this.Woodlands = GetSurvivalLevel(ClimateSurvivalFlags.Woodlands);
+            this.HauntedWoodlands = GetSurvivalLevel(ClimateSurvivalFlags.HauntedWoodlands);
+            this.Maquis = GetSurvivalLevel(ClimateSurvivalFlags.Maquis);
+
+            this.ArtificialCave = ArtificialCave;
+            this.Aviary = Aviary;
+            this.Building = Building;
+            this.Community = Community;
+            this.NaturalCave = NaturalCave;
+            this.Nest = Nest;
+            this.Settlement = Settlement;
+            this.Temple = Temple;
+
             this.SpellPointMultiplier = GetSpellPointMultiplier(cfg);
             this.SpellPointMultiplierValue = GetSpellPointMultiplierValue(this.SpellPointMultiplier);
 
@@ -687,6 +775,26 @@ namespace DaggerfallConnect
         public bool IsProficiencyExpert(ProficiencyFlags flags)
         {
             return ((ExpertProficiencies & flags) == flags) ? true : false;
+        }
+
+        /// <summary>
+        /// Determines if a Climate Survival level is Uncomfortable.
+        /// </summary>
+        /// <param name="flags">ClimateSurvivalLevel to test.</param>
+        /// <returns>True if Climate Survival level is Uncomfortable.</returns>
+        public bool IsClimateUncomfortable(ClimateSurvivalFlags flags)
+        {
+            return ((UncomfortableClimate & flags) == flags) ? true : false;
+        }
+
+        /// <summary>
+        /// Determines if Climate Survival is present for the current climate.
+        /// </summary>
+        /// <param name="flags">ClimateSurvivalLevel to test.</param>
+        /// <returns>True if Climate Survival level is Basic.</returns>
+        public bool IsClimateSurvival(ClimateSurvivalFlags flags)
+        {
+            return ((ClimateSurvival & flags) == flags) ? true : false;
         }
 
         /// <summary>
@@ -774,6 +882,27 @@ namespace DaggerfallConnect
 
             return result;
         }
+
+        ClimateCompetence GetSurvivalLevel(ClimateSurvivalFlags flags)
+        {
+            ClimateCompetence result;
+
+            if (IsClimateUncomfortable(flags))
+                result = ClimateCompetence.Uncomfortable;
+            else if (IsClimateSurvival(flags))
+                result = ClimateCompetence.Competent;
+            else
+                result = ClimateCompetence.Normal;
+
+            return result;
+        }
+
+        // OrientationCompetence GetOrientationLevel(OrientationCompetence flags)
+        // {
+        //     OrientationCompetence result = flags
+
+            
+        // }
 
         SpellPointMultipliers GetSpellPointMultiplier(CFGData cfg)
         {

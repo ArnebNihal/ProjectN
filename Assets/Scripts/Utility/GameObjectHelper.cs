@@ -448,7 +448,7 @@ namespace DaggerfallWorkshop.Utility
         #region RMB & RDB Block Helpers
 
         /// <summary>
-        /// Layout RMB block gamne object from name only.
+        /// Layout RMB block game object from name only.
         /// This will be missing information like building data and should only be used standalone.
         /// </summary>
         public static GameObject CreateRMBBlockGameObject(
@@ -1390,7 +1390,7 @@ namespace DaggerfallWorkshop.Utility
             if (!FindMultiNameLocation(multiName, out location))
                 return null;
 
-            GameObject go = new GameObject(string.Format("DaggerfallLocation [Region={0}, Name={1}]", location.RegionName, location.Name));
+            GameObject go = new GameObject(string.Format("DaggerfallLocation [Tile={0}, Name={1}]", WorldMaps.ConvertLocationToAbsTile(location).ToString("00000"), location.Name));
             if (parent) go.transform.parent = parent;
             DaggerfallLocation c = go.AddComponent<DaggerfallLocation>() as DaggerfallLocation;
             c.SetLocation(location);

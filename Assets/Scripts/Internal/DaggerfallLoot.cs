@@ -20,6 +20,7 @@ using DaggerfallWorkshop.Game.Formulas;
 using DaggerfallConnect.FallExe;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Questing;
+using System;
 
 namespace DaggerfallWorkshop
 {
@@ -64,6 +65,15 @@ namespace DaggerfallWorkshop
             return (date.Year * 1000) + date.DayOfYear;
         }
 
+        public enum ItemRarity
+        {
+            Rare = 1,
+            Scarce = 2,
+            Regular = 3,
+            Common = 4,
+            Plentiful = 5
+        }
+
         /// <summary>
         /// Generates items in the given item collection based on loot table key.
         /// Any existing items will be destroyed.
@@ -104,7 +114,7 @@ namespace DaggerfallWorkshop
         {
             if (Dice100.SuccessRoll(chance))
             {
-                int recipeIdx = Random.Range(0, PotionRecipe.classicRecipeKeys.Length);
+                int recipeIdx = UnityEngine.Random.Range(0, PotionRecipe.classicRecipeKeys.Length);
                 int recipeKey = PotionRecipe.classicRecipeKeys[recipeIdx];
                 DaggerfallUnityItem potionRecipe = new DaggerfallUnityItem(ItemGroups.MiscItems, 4) { PotionRecipeKey = recipeKey };
                 collection.AddItem(potionRecipe);
@@ -163,6 +173,8 @@ namespace DaggerfallWorkshop
                     break;
                 case DFLocation.BuildingTypes.Bookseller:
                     itemGroups = DaggerfallLootDataTables.itemGroupsBookseller;
+                    if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Common))
+                        items.AddItem(ItemBuilder.CreateItem(ItemGroups.Maps, 570));
                     break;
                 case DFLocation.BuildingTypes.ClothingStore:
                     itemGroups = DaggerfallLootDataTables.itemGroupsClothingStore;
@@ -172,8 +184,12 @@ namespace DaggerfallWorkshop
                     break;
                 case DFLocation.BuildingTypes.GeneralStore:
                     itemGroups = DaggerfallLootDataTables.itemGroupsGeneralStore;
-                    items.AddItem(ItemBuilder.CreateItem(ItemGroups.Transportation, (int)Transportation.Horse));
-                    items.AddItem(ItemBuilder.CreateItem(ItemGroups.Transportation, (int)Transportation.Small_cart));
+                    if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Regular))
+                        items.AddItem(ItemBuilder.CreateItem(ItemGroups.Transportation, (int)Transportation.Horse));
+                    if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Common))
+                        items.AddItem(ItemBuilder.CreateItem(ItemGroups.Transportation, (int)Transportation.Small_cart));
+                    if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Scarce))
+                        items.AddItem(ItemBuilder.CreateItem(ItemGroups.Maps, 570));
                     break;
                 case DFLocation.BuildingTypes.PawnShop:
                     itemGroups = DaggerfallLootDataTables.itemGroupsPawnShop;
@@ -239,7 +255,7 @@ namespace DaggerfallWorkshop
                                     {
                                         item = new DaggerfallUnityItem(itemGroup, j);
                                         if (DaggerfallUnity.Settings.PlayerTorchFromItems && item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Oil))
-                                            item.stackCount = Random.Range(5, 20 + 1);  // Shops stock 5-20 bottles
+                                            item.stackCount = UnityEngine.Random.Range(5, 20 + 1);  // Shops stock 5-20 bottles
                                     }
                                     items.AddItem(item);
                                 }
@@ -323,7 +339,7 @@ namespace DaggerfallWorkshop
                 }
                 if (privatePropertyList == null)
                     return;
-                int randomChoice = Random.Range(0, privatePropertyList.Length);
+                int randomChoice = UnityEngine.Random.Range(0, privatePropertyList.Length);
                 ItemGroups itemGroup = (ItemGroups)privatePropertyList[randomChoice];
                 int continueChance = 100;
                 bool keepGoing = true;
@@ -348,7 +364,7 @@ namespace DaggerfallWorkshop
                             else
                             {
                                 System.Array enumArray = DaggerfallUnity.Instance.ItemHelper.GetEnumArray(itemGroup);
-                                item = new DaggerfallUnityItem(itemGroup, Random.Range(0, enumArray.Length));
+                                item = new DaggerfallUnityItem(itemGroup, UnityEngine.Random.Range(0, enumArray.Length));
                             }
                         }
                     }

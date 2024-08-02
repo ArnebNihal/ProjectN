@@ -44,6 +44,7 @@ namespace DaggerfallWorkshop.Game.Entity
         Vampire = 9,
         Werewolf = 10,
         Wereboar = 11,
+        Orc = 12
     }
 
     /// <summary>

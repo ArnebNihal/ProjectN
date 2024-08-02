@@ -612,8 +612,9 @@ namespace DaggerfallConnect.Arena2
             HighElf = 6,
             DarkElf = 7,
             Imperial = 8,
+            Orc = 9,
             Skakmat = 11,       // Only used on #304 "Skakmat"
-            Orc = 17,           // Only used on #358 "Orsinium" in the original file
+            // Orc = 17,           // Only used on #358 "Orsinium" in the original file
             Vampire = 18,
             Fey = 19,           // Only used on #513 "The Fey" a.k.a. Le Fay :)
         }

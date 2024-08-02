@@ -1391,6 +1391,7 @@ namespace DaggerfallWorkshop.Utility
                         case (int)MapsFile.Climates.Swamp:
                         case (int)MapsFile.Climates.MountainWoods:
                         case (int)MapsFile.Climates.Woodlands:
+                        case (int)MapsFile.Climates.Maquis:
                             encounterTableIndex = 32;
                             break;
                         case (int)MapsFile.Climates.HauntedWoodlands:
@@ -1424,6 +1425,7 @@ namespace DaggerfallWorkshop.Utility
                             case (int)MapsFile.Climates.Swamp:
                             case (int)MapsFile.Climates.MountainWoods:
                             case (int)MapsFile.Climates.Woodlands:
+                            case (int)MapsFile.Climates.Maquis:
                                 encounterTableIndex = 33;
                                 break;
                             case (int)MapsFile.Climates.HauntedWoodlands:
@@ -1455,6 +1457,7 @@ namespace DaggerfallWorkshop.Utility
                             case (int)MapsFile.Climates.Swamp:
                             case (int)MapsFile.Climates.MountainWoods:
                             case (int)MapsFile.Climates.Woodlands:
+                            case (int)MapsFile.Climates.Maquis:
                                 encounterTableIndex = 34;
                                 break;
                             case (int)MapsFile.Climates.HauntedWoodlands:

@@ -54,7 +54,7 @@ namespace DaggerfallWorkshop.Utility
 
             // Bypass winter swaps in desert climates entirely
             // There are too many bad swaps, and you never see this variant in game
-            if (climate == ClimateBases.Desert)
+            if (climate == ClimateBases.Desert || climate == ClimateBases.Maquis)
                 ci.supportsWinter = false;
 
             // Handle swamp climate sets with missing winter textures
@@ -90,7 +90,7 @@ namespace DaggerfallWorkshop.Utility
 
             // Calculate new index
             int climateIndex = 0;
-            if (archive < 500 && !suppressClimateIndex)
+            if ((archive < 500 || archive > 1100) && !suppressClimateIndex)
             {
                 climateIndex = (int)FromUnityClimateBase(climate) + (int)ci.textureSet;
                 if (season == ClimateSeason.Winter && ci.supportsWinter)
@@ -104,7 +104,7 @@ namespace DaggerfallWorkshop.Utility
                 if (season == ClimateSeason.Winter && ci.supportsWinter)
                     climateIndex += (int)DFLocation.ClimateWeather.Winter;
             }
-
+            
             return climateIndex;
         }
 
@@ -120,7 +120,7 @@ namespace DaggerfallWorkshop.Utility
             ci.textureSet = DFLocation.ClimateTextureSet.None;
 
             // Handle nature sets
-            if (archive > 499)
+            if (archive > 499 && archive < 1100)
             {
                 ci.textureSet = (DFLocation.ClimateTextureSet)archive;
                 ci.textureGroup = DFLocation.ClimateTextureGroup.Nature;
@@ -131,6 +131,7 @@ namespace DaggerfallWorkshop.Utility
                     case DFLocation.ClimateTextureSet.Nature_SubTropical:
                     case DFLocation.ClimateTextureSet.Nature_Swamp:
                     case DFLocation.ClimateTextureSet.Nature_Desert:
+                    case DFLocation.ClimateTextureSet.Nature_Maquis:
                         break;
 
                     // Nature sets with snow
@@ -319,6 +320,8 @@ namespace DaggerfallWorkshop.Utility
                     return DFLocation.ClimateBaseType.Temperate;
                 case ClimateBases.Swamp:
                     return DFLocation.ClimateBaseType.Swamp;
+                case ClimateBases.Maquis:
+                    return DFLocation.ClimateBaseType.Maquis;
                 default:
                     return DFLocation.ClimateBaseType.None;
             }
@@ -341,6 +344,8 @@ namespace DaggerfallWorkshop.Utility
                     return ClimateBases.Temperate;
                 case DFLocation.ClimateBaseType.Swamp:
                     return ClimateBases.Swamp;
+                case DFLocation.ClimateBaseType.Maquis:
+                    return ClimateBases.Maquis;
                 default:
                     return ClimateBases.Temperate;
             }
@@ -371,6 +376,8 @@ namespace DaggerfallWorkshop.Utility
                     return ClimateNatureSets.HauntedWoodlands;
                 case DFLocation.ClimateTextureSet.Nature_Mountains:
                     return ClimateNatureSets.Mountains;
+                case DFLocation.ClimateTextureSet.Nature_Maquis:
+                    return ClimateNatureSets.Maquis;
                 default:
                     return ClimateNatureSets.TemperateWoodland;
             }
@@ -415,6 +422,9 @@ namespace DaggerfallWorkshop.Utility
                     break;
                 case ClimateNatureSets.Mountains:
                     textureSet = DFLocation.ClimateTextureSet.Nature_Mountains;
+                    break;
+                case ClimateNatureSets.Maquis:
+                    textureSet = DFLocation.ClimateTextureSet.Nature_Maquis;
                     break;
                 default:
                     textureSet = DFLocation.ClimateTextureSet.Nature_TemperateWoodland;
@@ -463,6 +473,9 @@ namespace DaggerfallWorkshop.Utility
                     archive = 302;
                     break;
                 case ClimateBases.Swamp:
+                    archive = 402;
+                    break;
+                case ClimateBases.Maquis:
                     archive = 402;
                     break;
                 default:

@@ -1,0 +1,15 @@
+{
+	"folders": [
+		{
+			"path": "../.."
+		}
+	],
+	"settings": {
+		"files.associations": {
+			"**/Assets/StreamingAssets/Quests/*.txt": "dftemplate",
+			"**/Assets/StreamingAssets/QuestPacks/[a-zA-Z]*/**/*.txt": "dftemplate",
+			"**/Assets/Game/Mods/**/Quests/*.txt": "dftemplate"
+		},
+		"dotnet.server.useOmnisharp": true
+	}
+}

@@ -66,6 +66,8 @@ namespace DaggerfallWorkshop
         int lastClimateIndex;
         int lastPoliticIndex;
 
+        (int, int) currentTile;
+
         string locationRevealedByMapItem;
 
         float nearbyObjectsUpdateTimer = 0f;
@@ -136,6 +138,14 @@ namespace DaggerfallWorkshop
         }
 
         /// <summary>
+        /// Gets current player tile.
+        /// </summary>
+        public (int, int) CurrentTile
+        {
+            get { return MapsFile.WorldCoordToTile(WorldX, WorldZ); }
+        }
+
+        /// <summary>
         /// Gets climate index based on player world position.
         /// </summary>
         public int CurrentClimateIndex
@@ -169,7 +179,7 @@ namespace DaggerfallWorkshop
                 //     result = 16;
 
                 // Clamp any out of range results to 0
-                if (result < 0 || result > 408)
+                if (result < 0 || result >= WorldData.WorldSetting.Regions)
                     result = 31;
 
                 return result;
@@ -312,6 +322,7 @@ namespace DaggerfallWorkshop
         void Start()
         {
             // Init change trackers for event system
+            currentTile = CurrentTile;
             lastRegionIndex = CurrentRegionIndex;
             lastClimateIndex = CurrentClimateIndex;
             lastPoliticIndex = CurrentPoliticIndex;
@@ -419,7 +430,10 @@ namespace DaggerfallWorkshop
         public NameHelper.BankTypes GetNameBankOfCurrentRegion()
         {
             if (GameManager.Instance.PlayerGPS.CurrentRegionIndex > -1)
-                return (NameHelper.BankTypes) MapsFile.RegionRaces[GameManager.Instance.PlayerGPS.CurrentRegionIndex];
+            {           
+                Races regionRace = MobilePersonNPC.GetEntityRace();
+                return MobilePersonNPC.ConvertRaceToBankType(regionRace);
+            }
 
             return NameHelper.BankTypes.Breton;
         }
@@ -546,6 +560,83 @@ namespace DaggerfallWorkshop
             return query.ToList();
         }
 
+        /// <summary>
+        /// Checks if character has a survival skill applicable to the current climate.
+        /// </summary>
+        public bool CheckSurvivalSkillPresence(DFCareer.ClimateSurvivalFlags survivalSkill)
+        {
+            int skillFlag = (int)survivalSkill;
+            for (int i = Enum.GetNames(typeof(MapsFile.Climates)).Length; i >= 0; i--)
+            {
+                if ((int)Math.Pow(2, GameManager.Instance.PlayerGPS.currentClimateIndex - (int)MapsFile.Climates.Ocean) == skillFlag)
+                    return true;
+                
+                if (skillFlag >= (int)(Math.Pow(2, i)))
+                    skillFlag -= (int)(Math.Pow(2, i));
+            }
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if character has an orientation skill appilcable to the current dungeon.
+        /// </summary>
+        public bool CheckOrientationSkillPresenceDungeon(DFCareer orientationSkill, DFCareer.OrientationCompetence minimumCompRequired = DFCareer.OrientationCompetence.Good)
+        {
+            DFRegion.DungeonTypes dungeonType = GameManager.Instance.PlayerGPS.CurrentLocation.MapTableData.DungeonType;
+            if (dungeonType == DFRegion.DungeonTypes.Mine && (int)orientationSkill.ArtificialCave >= (int)minimumCompRequired)
+                return true;
+            if (dungeonType == DFRegion.DungeonTypes.HarpyNest && (int)orientationSkill.Aviary >= (int)minimumCompRequired)
+                return true;
+            if ((dungeonType == DFRegion.DungeonTypes.GiantStronghold || 
+                 dungeonType == DFRegion.DungeonTypes.HumanStronghold || 
+                 dungeonType == DFRegion.DungeonTypes.Laboratory || 
+                 dungeonType == DFRegion.DungeonTypes.OrcStronghold ||
+                 dungeonType == DFRegion.DungeonTypes.Prison ||
+                 dungeonType == DFRegion.DungeonTypes.RuinedCastle ||
+                 dungeonType == DFRegion.DungeonTypes.VampireHaunt) &&
+                 (int)orientationSkill.Building >= (int)minimumCompRequired)
+                return true;
+            if ((dungeonType == DFRegion.DungeonTypes.BarbarianStronghold ||
+                 dungeonType == DFRegion.DungeonTypes.Coven) &&
+                 (int)orientationSkill.Community >= (int)minimumCompRequired)
+                return true;
+            if ((dungeonType == DFRegion.DungeonTypes.DragonsDen ||
+                 dungeonType == DFRegion.DungeonTypes.NaturalCave ||
+                 dungeonType == DFRegion.DungeonTypes.VolcanicCaves) &&
+                 (int)orientationSkill.NaturalCave >= (int)minimumCompRequired)
+                return true;
+            if ((dungeonType == DFRegion.DungeonTypes.ScorpionNest ||
+                 dungeonType == DFRegion.DungeonTypes.SpiderNest) &&
+                 (int)orientationSkill.Nest >= (int)minimumCompRequired)
+                return true;
+            if ((dungeonType == DFRegion.DungeonTypes.Cemetery ||
+                 dungeonType == DFRegion.DungeonTypes.Crypt ||
+                 dungeonType == DFRegion.DungeonTypes.DesecratedTemple) &&
+                 (int)orientationSkill.Temple >= (int)minimumCompRequired)
+                return true;
+
+            return false;
+        }
+
+        /// <summary>
+        /// Checks if character has the settlement orientation skill.
+        /// </summary>
+        public bool CheckOrientationSkillPresenceSettlement(DFCareer orientationSkill, DFCareer.OrientationCompetence minimumCompRequired = DFCareer.OrientationCompetence.Good)
+        {
+            DFRegion.LocationTypes locationType = GameManager.Instance.PlayerGPS.CurrentLocation.MapTableData.LocationType;
+            if ((locationType == DFRegion.LocationTypes.TownCity ||
+                 locationType == DFRegion.LocationTypes.TownHamlet ||
+                 locationType == DFRegion.LocationTypes.TownVillage ||
+                 locationType == DFRegion.LocationTypes.Tavern ||
+                 locationType == DFRegion.LocationTypes.ReligionTemple ||
+                 locationType == DFRegion.LocationTypes.HomeWealthy ||
+                 locationType == DFRegion.LocationTypes.HomeFarms) &&
+                 (int)orientationSkill.Settlement >= (int)minimumCompRequired)
+                return true;
+
+            return false;
+        }
+
         #endregion
 
         #region Private Methods
@@ -581,13 +672,13 @@ namespace DaggerfallWorkshop
                 return;
 
             currentClimateIndex = ClimateData.GetClimateValue(x, y);
-
             currentPoliticIndex = PoliticData.GetPoliticValue(x, y, false);
-
             climateSettings = MapsFile.GetWorldClimateSettings(currentClimateIndex);
 
+            Debug.Log("currentPoliticIndex: " + currentPoliticIndex);
             if (currentPoliticIndex >= 128)
-                regionName = WorldMaps.WorldMap[currentPoliticIndex - 128].Name;
+                regionName = WorldData.WorldSetting.RegionNames[currentPoliticIndex - 128];
+                // regionName = WorldMaps.WorldMap[currentPoliticIndex - 128].Name;
             else if (currentPoliticIndex == 0)
                 regionName = TextManager.Instance.GetLocalizedText("ocean");
             else
@@ -597,13 +688,13 @@ namespace DaggerfallWorkshop
             // WorldMaps worldMaps = new WorldMaps();
             // worldMaps = WorldMaps.Upload(Path.Combine(arena2Path, "Maps.json"));
             
-            currentRegion = WorldMaps.ConvertWorldMapsToDFRegion(CurrentRegionIndex);
+            currentRegion = WorldMaps.ConvertWorldMapsToDFRegion(WorldMaps.GetRelativeTile(x, y));
 
             // Get location data
             MapSummary mapSummary;
             if (WorldMaps.HasLocation(x, y, out mapSummary))
             {
-                currentLocation = WorldMaps.GetLocation(mapSummary.RegionIndex, mapSummary.MapIndex);
+                currentLocation = WorldMaps.GetLocation(WorldMaps.GetRelativeTile(x, y), mapSummary.MapIndex);
                 hasCurrentLocation = true;
                 CalculateWorldLocationRect();
             }
@@ -869,14 +960,14 @@ namespace DaggerfallWorkshop
         }
 
         /// <summary>
-        /// Discover location with regionName and locationName.
+        /// Discover location with tileName and locationName.
         /// </summary>
-        public void DiscoverLocation(string regionName, string locationName)
+        public void DiscoverLocation(string tileName, string locationName)
         {
             DFLocation location;
-            bool found = WorldMaps.GetLocation(regionName, locationName, out location);
+            bool found = WorldMaps.GetLocation(tileName, locationName, out location);
             if (!found)
-                throw new Exception(String.Format("Error finding location {0} : {1}", regionName, locationName));
+                throw new Exception(String.Format("Error finding location {0} : {1}", tileName, locationName));
             // Check if already discovered
             ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)location.MapTableData.Longitude, location.MapTableData.Latitude);
             if (HasDiscoveredLocation(mapPixelID))
@@ -891,12 +982,12 @@ namespace DaggerfallWorkshop
             discoveredLocations.Add(mapPixelID, dl);
         }
 
-        public DFLocation DiscoverRandomLocation()
+        public DFLocation DiscoverRandomLocation(DFRegion.LocationTypes locationType = DFRegion.LocationTypes.DungeonRuin)
         {
             // Get all undiscovered locations that exist in the current region
             List<int> undiscoveredLocIdxs = new List<int>();
             for (int i = 0; i < currentRegion.LocationCount; i++)
-                if (currentRegion.MapTable[i].Discovered == false && !HasDiscoveredLocation(currentRegion.MapTable[i].MapId & 0x000fffff))
+                if (currentRegion.MapTable[i].Discovered == false && currentRegion.MapTable[i].LocationType == locationType && !HasDiscoveredLocation(currentRegion.MapTable[i].MapId & 0x000fffff))
                     undiscoveredLocIdxs.Add(i);
 
             // If there aren't any left, there's nothing to find. Classic will just keep returning a particular location over and over if this happens.
@@ -905,7 +996,7 @@ namespace DaggerfallWorkshop
 
             // Choose a random location and discover it
             int locIdx = UnityEngine.Random.Range(0, undiscoveredLocIdxs.Count);
-            DFLocation location = WorldMaps.GetLocation(CurrentRegionIndex, undiscoveredLocIdxs[locIdx]);
+            DFLocation location = WorldMaps.GetLocation(WorldMaps.GetRelativeTile(CurrentMapPixel), undiscoveredLocIdxs[locIdx]);
             DiscoverLocation(CurrentRegionName, location.Name);
             return location;
         }
@@ -1257,7 +1348,7 @@ namespace DaggerfallWorkshop
                     buildingSummary.BuildingType,
                     buildingSummary.FactionId,
                     buildingDirectory.LocationData.Name,
-                    TextManager.Instance.GetLocalizedRegionName(buildingDirectory.LocationData.RegionIndex));
+                    buildingDirectory.LocationData.RegionName);
             }
             buildingDiscoveryData.factionID = buildingSummary.FactionId;
             buildingDiscoveryData.quality = buildingSummary.Quality;

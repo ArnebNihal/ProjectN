@@ -1396,7 +1396,7 @@ MonoBehaviour:
 
       [/record]
 
-      After a long session of haggling...[/center]
+      After a long session of haggline...[/center]
 
       "%a
       gold pieces is my final offer."[/center]
@@ -25244,7 +25244,8 @@ MonoBehaviour:
 
       [/record]
 
-      I''m in %fnpc. We don''t normally deal with those in %fpc, but I know they hold
+      I''m
+      in %fnpc. We don''t normally deal with those in %fpc, but I know they hold
       you in high esteem.[/center]
 
       [/record]
@@ -27015,9 +27016,9 @@ MonoBehaviour:
       he clutches a loaf of bread. Behind him[/left]\n    races the baker with a
       cleaver in his hands. You know[/left]\n    that the boy must be hungry, but
       the town is suffering[/left]\n    from a drought, which has made food valuable.
-      Do you:[/left]\n a) Side with justice and urge your father to stop the boy?[/left]\n
-      b) Help the poor waif by running into the baker's way?[/left]\n c) Stand out
-      of the way and wait to see what your father[/left]\n    decides, trusting his
+      Do you:[/left]\n a) Side with justice and urge your father to stop the boy?[/left]\nb)
+      Help the poor waif by running into the baker's way?[/left]\n c) Stand out of
+      the way and wait to see what your father[/left]\n    decides, trusting his
       experience?[/left]"
     m_Metadata:
       m_Items: []
@@ -27076,9 +27077,9 @@ MonoBehaviour:
   - m_Id: 45335265940733958
     m_Localized: "8.   Your mother asks you to help fix the stove. While[/left]\n    
       you are working, a very hot pipe slips its moorings[/left]\n     and falls
-      towards her. Do you:[/left]\n a) Push your mother out of the way?[/left]\n
-      b) Grab the hot pipe and try and push it away?[/left]\n c) Position yourself
-      between the pipe and your mother?[/left]"
+      towards her. Do you:[/left]\n a) Push your mother out of the way?[/left]\nb)
+      Grab the hot pipe and try and push it away?[/left]\n c) Position yourself between
+      the pipe and your mother?[/left]"
     m_Metadata:
       m_Items: []
   - m_Id: 45335265940733959
@@ -27098,8 +27099,8 @@ MonoBehaviour:
   - m_Id: 45335265940733960
     m_Localized: "10.    Entering town you find that you are witness to a[/left]\n    
       very well dressed man running from a crowd. He screams[/left]\n     to you
-      for help. The crowd behind him seems very[/left]\n     angry. Do you:[/left]\n
-      a)  Rush to the man's aid immediately, despite your lack[/left]\n     of knowledge
+      for help. The crowd behind him seems very[/left]\n     angry. Do you:[/left]\na) 
+      Rush to the man's aid immediately, despite your lack[/left]\n     of knowledge
       of the circumstances?[/left]\n b)  Rush to the town's aid immediately, despite
       your lack[/left]\n     of knowledge of the circumstances?[/left]\n c)  Stand
       aside and allow the man and mob to pass,[/left]\n     realizing that it is
@@ -27115,11 +27116,11 @@ MonoBehaviour:
       of the dagger you selected. Your friend asks you to[/left]\n     please watch
       his weapon for him while he runs an[/left]\n     errand. Do you:[/left]\n a) 
       Wait for your friend's return then point out the flaw[/left]\n     in your
-      dagger and return to the weapons shop to[/left]\n     demand a refund.[/left]\n
-      b)  Switch the daggers, rationalizing that since you paid[/left]\n     for
-      them you should get the first choice, and that if[/left]\n     your friend
-      ever notices the notch, you could always[/left]\n     take him back to the
-      weapon shop and get a refund?[/left]\n c)  Keep his dagger safe until his return,
+      dagger and return to the weapons shop to[/left]\n     demand a refund.[/left]\nb) 
+      Switch the daggers, rationalizing that since you paid[/left]\n     for them
+      you should get the first choice, and that if[/left]\n     your friend ever
+      notices the notch, you could always[/left]\n     take him back to the weapon
+      shop and get a refund?[/left]\n c)  Keep his dagger safe until his return,
       then switch the[/left]\n     daggers with your best friend's knowledge, justifying[/left]\n    
       it with the fact that you paid for them, and then[/left]\n     offer to accompany
       him back to the weapons shop?[/left]"
@@ -27136,10 +27137,10 @@ MonoBehaviour:
       to allow the[/left]\n     master to retain dignity, regardless of your personal[/left]\n    
       feelings?[/left]\n b)  Attack him at full speed, knowing that you could[/left]\n    
       probably score the hit and justify his unfair[/left]\n     treatment of you
-      by showing the class that you were[/left]\n     actually doing it right?[/left]\n
-      c)  Refuse and leave practice, unable to compromise your[/left]\n     anger
-      with his dignity, and realizing that whatever[/left]\n     course you choose
-      would cause you to lose respect for[/left]\n     either him or for yourself?[/left]"
+      by showing the class that you were[/left]\n     actually doing it right?[/left]\nc) 
+      Refuse and leave practice, unable to compromise your[/left]\n     anger with
+      his dignity, and realizing that whatever[/left]\n     course you choose would
+      cause you to lose respect for[/left]\n     either him or for yourself?[/left]"
     m_Metadata:
       m_Items: []
   - m_Id: 45335265940733963
@@ -27149,10 +27150,10 @@ MonoBehaviour:
       strict disciplinarian and will[/left]\n     punish your friend severely if
       he takes the blame. You[/left]\n     on the other hand, not being his son,
       could get away[/left]\n     virtually unscathed. Do you:[/left]\n a)  Raise
-      your hand and take the blame before your friend[/left]\n     can answer?[/left]\n
-      b)  Remain silent and not get involved?[/left]\n c)  Point at your friend,
-      knowing that anything else would[/left]\n     probably delay the inevitable
-      and make things just[/left]\n     that much worse for him?[/left]"
+      your hand and take the blame before your friend[/left]\n     can answer?[/left]\nb) 
+      Remain silent and not get involved?[/left]\n c)  Point at your friend, knowing
+      that anything else would[/left]\n     probably delay the inevitable and make
+      things just[/left]\n     that much worse for him?[/left]"
     m_Metadata:
       m_Items: []
   - m_Id: 45335265940733964
@@ -27178,8 +27179,8 @@ MonoBehaviour:
       the Tournament of Students and you find with[/left]\n     dismay that you are
       paired against him for your first[/left]\n     match. As you prepare your friend
       approaches and[/left]\n     offers to tell you of an injury the senior student[/left]\n    
-      suffered in yesterday's sparring class, which you[/left]\n     missed. Do you:[/left]\n
-      a)  Accept the offer, knowing that it would allow you to[/left]\n     concentrate
+      suffered in yesterday's sparring class, which you[/left]\n     missed. Do you:[/left]\na) 
+      Accept the offer, knowing that it would allow you to[/left]\n     concentrate
       on the injured area and greatly increase[/left]\n     your chances of beating
       him?[/left]\n b)  Refuse the offer, knowing that win or lose you would[/left]\n    
       rather do it through your own skill and not some extra[/left]\n     knowledge
@@ -27249,11 +27250,11 @@ MonoBehaviour:
       kill half the men under the[/left]\n     officers command, but the other half
       would survive. The[/left]\n     other path has a fifty percent chance that
       everyone[/left]\n     would die, but also a fifty percent chance that[/left]\n    
-      everyone would survive. As the commanding officer,[/left]\n     would you:[/left]\n
-      a)  Choose the path that would guarantee half your men[/left]\n     would survive?[/left]\n
-      b)  Choose the path that has a fifty percent chance that[/left]\n     all would
-      survive, and a fifty percent chance that all[/left]\n     would perish?[/left]\n
-      c)  Turn the choice over to the men and let them decide by[/left]\n     majority
+      everyone would survive. As the commanding officer,[/left]\n     would you:[/left]\na) 
+      Choose the path that would guarantee half your men[/left]\n     would survive?[/left]\nb) 
+      Choose the path that has a fifty percent chance that[/left]\n     all would
+      survive, and a fifty percent chance that all[/left]\n     would perish?[/left]\nc) 
+      Turn the choice over to the men and let them decide by[/left]\n     majority
       vote which path they should commit[/left]\n     themselves to?[/left]"
     m_Metadata:
       m_Items: []
@@ -27285,8 +27286,8 @@ MonoBehaviour:
       he found it and meant[/left]\n     to return it to you.[/left]\n b)  Confront
       him with his theft. You know that there is no[/left]\n     way the ring just
       fell into his pocket by accident,[/left]\n     and therefore he is nothing
-      but a common thief who[/left]\n     would betray you for material gain.[/left]\n
-      c)  Say nothing, deciding instead to wait and see what[/left]\n     your friend
+      but a common thief who[/left]\n     would betray you for material gain.[/left]\nc) 
+      Say nothing, deciding instead to wait and see what[/left]\n     your friend
       does. If he is innocent or guilty, you[/left]\n     will know by whatever actions
       he takes. At that time,[/left]\n     you can confront him with the truth.[/left]"
     m_Metadata:
@@ -27300,11 +27301,11 @@ MonoBehaviour:
       offer to accompany him to the village for[/left]\n     support.[/left]\n b) 
       Find out more about this girl using any contact he can[/left]\n     find in
       her village. He will not be so shy if he knows[/left]\n     something about
-      her, and may even find out she is not[/left]\n     the right girl for him.[/left]\n
-      c)  Let you help him write anonymous love letters and[/left]\n     poems to
-      see her reaction without needing to face her[/left]\n     directly. If the
-      reaction is favorable, he can talk to[/left]\n     her friends in the village
-      and arrange an \"accidental\"[/left]\n     meeting.[/left]"
+      her, and may even find out she is not[/left]\n     the right girl for him.[/left]\nc) 
+      Let you help him write anonymous love letters and[/left]\n     poems to see
+      her reaction without needing to face her[/left]\n     directly. If the reaction
+      is favorable, he can talk to[/left]\n     her friends in the village and arrange
+      an \"accidental\"[/left]\n     meeting.[/left]"
     m_Metadata:
       m_Items: []
   - m_Id: 45335265940733974
@@ -27312,9 +27313,9 @@ MonoBehaviour:
       king he knew in a faraway land whose inventors created[/left]\n     a wondrous
       balloon of such size, it could transport[/left]\n     dozens of people through
       the air to any place they[/left]\n     chose. If you were this king, he asks
-      you, how would[/left]\n     you use this remarkable balloon? Would you:[/left]\n
-      a)  Explore regions previously impossible or extremely[/left]\n     dangerous
-      to visit by land.[/left]\n b)  Keep the balloon a secret, saving it for surprise[/left]\n    
+      you, how would[/left]\n     you use this remarkable balloon? Would you:[/left]\na) 
+      Explore regions previously impossible or extremely[/left]\n     dangerous to
+      visit by land.[/left]\n b)  Keep the balloon a secret, saving it for surprise[/left]\n    
       attacks or defense in a time of war.[/left]\n c)  Commission the inventor to
       create dozens of these[/left]\n     'balloons' in hopes of making a travel
       system across[/left]\n     your realm that will speed up transportation time
@@ -27358,9 +27359,9 @@ MonoBehaviour:
       interrogate him later when he[/left]\n     wakes up. You want to know why he
       attacked you. You[/left]\n     can then turn him into the Armsmaster at your
       leisure.[/left]\n b)  Slit his throat. You know him from class, and think he[/left]\n    
-      would have done the same had your positions been[/left]\n     reversed.[/left]\n
-      c)  Leave him with a visible scar, the knowledge of his[/left]\n     defeat
-      at your hands and the visible reminder[/left]\n     punishment enough for one
+      would have done the same had your positions been[/left]\n     reversed.[/left]\nc) 
+      Leave him with a visible scar, the knowledge of his[/left]\n     defeat at
+      your hands and the visible reminder[/left]\n     punishment enough for one
       who has resorted to such[/left]\n     dishonorable tactics.[/left]"
     m_Metadata:
       m_Items: []
@@ -27372,13 +27373,12 @@ MonoBehaviour:
       neglected the[/left]\n     sacrifice, the island volcano would erupt, killing[/left]\n    
       hundreds of villagers. You tell your father:[/left]\n a)  You do not believe
       in any such Volcano God. Civilized[/left]\n     men should intervene, find
-      the natural cause behind[/left]\n     the eruptions, and stop the sacrifices.[/left]\n
-      b)  The God Arius must be evil to demand child sacrifice.[/left]\n     The
-      villagers should find some way to combat this God,[/left]\n     instead of
-      just giving in to his demands.[/left]\n c)  It is tragic, but the death of
-      one small child is[/left]\n     preferable to that of many villagers. If it
-      works,[/left]\n     they should keep the tradition. Gods are not to be[/left]\n    
-      toyed with.[/left]"
+      the natural cause behind[/left]\n     the eruptions, and stop the sacrifices.[/left]\nb) 
+      The God Arius must be evil to demand child sacrifice.[/left]\n     The villagers
+      should find some way to combat this God,[/left]\n     instead of just giving
+      in to his demands.[/left]\n c)  It is tragic, but the death of one small child
+      is[/left]\n     preferable to that of many villagers. If it works,[/left]\n    
+      they should keep the tradition. Gods are not to be[/left]\n     toyed with.[/left]"
     m_Metadata:
       m_Items: []
   - m_Id: 45335265940733979
@@ -27386,8 +27386,8 @@ MonoBehaviour:
       class - a small, awkward boy named Tys who does not[/left]\n     seem to have
       any natural talent at all. The class is[/left]\n     divided into two sides
       for a mock battle and, as one of[/left]\n     the 'generals', you are to assign
-      your soldiers. Tys[/left]\n     is one of your men. You decide to:[/left]\n
-      a)  Put Tys at the frontline with the other fighters,[/left]\n     rationalizing
+      your soldiers. Tys[/left]\n     is one of your men. You decide to:[/left]\na) 
+      Put Tys at the frontline with the other fighters,[/left]\n     rationalizing
       that in any realistic battle, he would[/left]\n     probably be a casualty
       anyway, and that there must be[/left]\n     some sacrifices.[/left]\n b)  Use
       Tys as a scout, rationalizing that because of his[/left]\n     small size he
@@ -27401,8 +27401,8 @@ MonoBehaviour:
     m_Localized: "30.    Your mother is terribly ill and you have been sent[/left]\n    
       with a few gold pieces to buy some rare, medicinal[/left]\n     herbs for her.
       As you reach the door to the[/left]\n     apothecary's, you realize there is
-      a hole in your purse[/left]\n     and all the gold has fallen out. Do you:[/left]\n
-      a)  Enter the store, tell the apothecary your dilemma, and[/left]\n     promise
+      a hole in your purse[/left]\n     and all the gold has fallen out. Do you:[/left]\na) 
+      Enter the store, tell the apothecary your dilemma, and[/left]\n     promise
       on your honor to pay him back for the herbs[/left]\n     your mother so desperately
       needs.[/left]\n b)  Attempt to steal the herbs from the apothecary's. You[/left]\n    
       know the old man who works in the store will not be[/left]\n     able to catch
@@ -27434,8 +27434,8 @@ MonoBehaviour:
       you retrieve[/left]\n     the arrow for closer examination you hear your friends[/left]\n    
       arrive. Do you:[/left]\n a)  Claim to have fired the arrow that hit the stag,
       thus[/left]\n     gaining the honor for the kill?[/left]\n b)  Show the others
-      the arrow and proclaim your friend the[/left]\n     archer of the day?[/left]\n
-      c)  Suggest dividing the prize, reasoning that although[/left]\n     your friend's
+      the arrow and proclaim your friend the[/left]\n     archer of the day?[/left]\nc) 
+      Suggest dividing the prize, reasoning that although[/left]\n     your friend's
       arrow brought down the hart, all of you[/left]\n     were instrumental in the
       tracking and the kill?[/left]"
     m_Metadata:
@@ -27444,10 +27444,10 @@ MonoBehaviour:
     m_Localized: "33.    One night after Tales and Tallows, you look at the[/left]\n    
       horde of treats you have collected and find lots of[/left]\n     brandied plums,
       a treat you particularly dislike. You[/left]\n     know your younger cousin
-      likes them. Do you:[/left]\n a)  Give her all your brandied plums?[/left]\n
-      b)  Trade the brandied plums for something she does not[/left]\n     really
-      like but you do?[/left]\n c)  Pretend that they are excellent brandied plums
-      and see[/left]\n     if she will give up something really good in exchange?[/left]"
+      likes them. Do you:[/left]\n a)  Give her all your brandied plums?[/left]\nb) 
+      Trade the brandied plums for something she does not[/left]\n     really like
+      but you do?[/left]\n c)  Pretend that they are excellent brandied plums and
+      see[/left]\n     if she will give up something really good in exchange?[/left]"
     m_Metadata:
       m_Items: []
   - m_Id: 45335265940733984
@@ -27498,9 +27498,9 @@ MonoBehaviour:
       of a[/left]\n     laboratory, many potions and scrolls still on the[/left]\n    
       shelves. Geotina, who thinks you a cowardly sort,[/left]\n     suggests breaking
       into the shack and exploring. Another[/left]\n     fighter named Hunard suggests
-      going to town to find out[/left]\n     more information. You advise:[/left]\n
-      a)  Going into town. They are more familiar with the area[/left]\n     and
-      may have important information about this hut and[/left]\n     the surrounding
+      going to town to find out[/left]\n     more information. You advise:[/left]\na) 
+      Going into town. They are more familiar with the area[/left]\n     and may
+      have important information about this hut and[/left]\n     the surrounding
       area.[/left]\n b)  Breaking into the shack, but leaving one person on[/left]\n    
       the outside in case something goes wrong. You should[/left]\n     investigate
       new things, not run away from them.[/left]\n c)  Daring Geotina to go in first.
@@ -27544,8 +27544,8 @@ MonoBehaviour:
   - m_Id: 45335265940733990
     m_Localized: "40.    Practicing alone, you develop a new fighting style[/left]\n    
       you are very excited about. When you mention it to your[/left]\n     Armsmaster,
-      he tells you it would never work in[/left]\n     practical combat. Do you:[/left]\n
-      a)  Use the new style in the middle of a class spar.[/left]\n     When it works,
+      he tells you it would never work in[/left]\n     practical combat. Do you:[/left]\na) 
+      Use the new style in the middle of a class spar.[/left]\n     When it works,
       he will be forced to admit its[/left]\n     practicality or give a reason for
       not accepting it.[/left]\n b)  Keep asking him questions about it, focusing
       on[/left]\n     details of the form to find his objection. Eventually[/left]\n    

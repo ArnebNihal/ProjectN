@@ -1885,7 +1885,7 @@ namespace DaggerfallWorkshop.Game
                     locationToChoose -= CheckLocationKeyForRegionalBuilding(gps.CurrentRegion.MapTable[i].Key, index, faction);
                     if (locationToChoose == 0)
                     {
-                        location = WorldMaps.GetLocation(gps.CurrentRegionIndex, i);
+                        location = WorldMaps.GetLocation(WorldMaps.GetRelativeTile(gps.CurrentMapPixel), i);
                         return true;
                     }
                 }
@@ -2764,7 +2764,7 @@ namespace DaggerfallWorkshop.Game
                                 buildingSummary.BuildingType,
                                 buildingSummary.FactionId,
                                 location.Name,
-                                TextManager.Instance.GetLocalizedRegionName(location.RegionIndex));
+                                location.RegionName);
                             item.buildingKey = buildingSummary.buildingKey;
                             // Compute building position in map coordinate system
                             float xPosBuilding = blockLayout[index].rect.xpos + (int)(buildingSummary.Position.x / (BlocksFile.RMBDimension * MeshReader.GlobalScale) * ExteriorAutomap.blockSizeWidth) - GameManager.Instance.ExteriorAutomap.LocationWidth * ExteriorAutomap.blockSizeWidth * 0.5f;

@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Gavin Clayton (interkarma@dfworkshop.net)
-// Contributors:    
+// Contributors:    Arneb
 // 
 // Notes:
 //
@@ -12,7 +12,11 @@
 #region Using Statements
 using System;
 using System.IO;
+using UnityEngine;
+using UnityEngine.UI;
 using DaggerfallConnect.Utility;
+using Newtonsoft.Json;
+using DaggerfallWorkshop.Utility;
 #endregion
 
 namespace DaggerfallConnect.Arena2
@@ -53,6 +57,8 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         private Record[] records;
 
+        private FakeHeader fakeReader;
+
         #endregion
 
         #region Class Structures
@@ -76,6 +82,13 @@ namespace DaggerfallConnect.Arena2
             NotRleEncoded = 0,
         }
 
+        private struct FakeHeader
+        {
+            public FileHeader fileHeader;
+            public RecordHeader[] recordHeader;
+            public Record[] record;
+        }
+
         /// <summary>
         /// File header.
         /// </summary>
@@ -84,6 +97,8 @@ namespace DaggerfallConnect.Arena2
             public long Position;
             public Int16 RecordCount;
             public String Name;
+            public int TextureWidth;
+            public int TextureHeight;
         }
 
         /// <summary>
@@ -260,6 +275,13 @@ namespace DaggerfallConnect.Arena2
         /// <returns>True if successful, otherwise false.</returns>
         public override bool Load(string filePath, FileUsage usage, bool readOnly)
         {
+            // string archive = filePath.Substring((filePath.Length - 12));
+            // if (records == null)
+            // {
+            //     fakeReader = JsonConvert.DeserializeObject<FakeHeader>(File.ReadAllText(Path.Combine(TextureReader.MapsPath, "Textures", archive.ToString() + ".json")));
+            //     ReadFakeHeader();
+            // }
+
             // Exit if this file already loaded
             if (managedFile.FilePath == filePath)
                 return true;
@@ -420,6 +442,30 @@ namespace DaggerfallConnect.Arena2
             return records[record].Frames[frame];
         }
 
+        public DFBitmap GetCustomDFBitmap(int archive, int record, int frame, string path)
+        {
+            // byte[] data = new byte[records[record].Width * records[record].Height];
+            DFBitmap result = new DFBitmap();
+            int fakeArchive = archive;
+            if (archive >= 1000) fakeArchive = archive / 100 * 100;
+            string recordName = archive.ToString("0000000") + "_" + record.ToString() + "-" + frame.ToString() + ".png";
+            if (!File.Exists(Path.Combine(path, "Textures", recordName)))
+            {
+                recordName = fakeArchive.ToString("0000000") + "_" + record.ToString() + "-" + frame.ToString() + ".png";
+            }
+            byte[] fileBytes = File.ReadAllBytes(Path.Combine(path, "Textures", recordName));
+
+            fakeReader = JsonConvert.DeserializeObject<FakeHeader>(File.ReadAllText(Path.Combine(TextureReader.MapsPath, "Textures", "TEXTURE." + fakeArchive.ToString("0000000"))));
+            ReadFakeHeader();
+
+            result.Data = new byte[fileBytes.Length];
+            result.Data = fileBytes;
+            result.Width = records[record].Width;
+            result.Height = records[record].Height;
+
+            return result;
+        }
+
         #endregion
 
         #region Static Methods
@@ -433,7 +479,13 @@ namespace DaggerfallConnect.Arena2
         /// <returns>Texture filename in the format TEXTURE.nnn.</returns>
         public static string IndexToFileName(int archiveIndex)
         {
-            return string.Format("TEXTURE.{0:000}", archiveIndex);
+            if (archiveIndex < 1000)
+                return string.Format("TEXTURE.{0:000}", archiveIndex);
+            else if (archiveIndex < 10000)
+                return string.Format("TEXTURE.{0:0000}", archiveIndex);
+            else if (archiveIndex < 100000)
+                return string.Format("TEXTURE.{0:00000}", archiveIndex);
+            else return string.Format("TEXTURE.{0:0000000}", archiveIndex);
         }
 
         /// <summary>
@@ -459,13 +511,41 @@ namespace DaggerfallConnect.Arena2
         /// <returns>True if succeeded, otherwise false.</returns>
         private bool Read()
         {
-            try
+            int archive = int.Parse(managedFile.FileName.Substring(8));
+            string recordName;
+
+            if (archive > 1000 && archive < 10000)
+            {
+                recordName = "TEXTURE." + archive.ToString();
+            }
+            else if (archive >= 10000)
+            {
+                recordName = "TEXTURE." + archive.ToString();
+                if (!File.Exists(Path.Combine(WorldMaps.mapPath, "Textures", "TEXTURE." + archive.ToString())))
+                    recordName = "TEXTURE." + archive.ToString("0000000");
+                fakeReader = JsonConvert.DeserializeObject<FakeHeader>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "Textures", recordName)));
+                ReadFakeHeader();
+            }
+            else try
             {
                 // Step through file
                 BinaryReader reader = managedFile.GetReader();
                 ReadHeader(ref reader);
                 ReadRecordHeaders(ref reader);
                 ReadRecords(ref reader);
+
+                // if (archive == 385)
+                // {
+                //     string path = Path.Combine(WorldMaps.mapPath, "Textures");
+                //     var json = JsonConvert.SerializeObject(header, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                //     File.WriteAllText(Path.Combine(path, "385-header.json"), json);
+
+                //     json = JsonConvert.SerializeObject(recordHeaders, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                //     File.WriteAllText(Path.Combine(path, "385-recordHeaders.json"), json);
+
+                //     json = JsonConvert.SerializeObject(records, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                //     File.WriteAllText(Path.Combine(path, "385-records.json"), json);
+                // }
             }
             catch (Exception e)
             {
@@ -486,6 +566,72 @@ namespace DaggerfallConnect.Arena2
             header.Position = 0;
             header.RecordCount = reader.ReadInt16();
             header.Name = FileProxy.ReadCString(reader, 0).Trim();
+        }
+
+        /// <summary>
+        /// Emulates header reading for added assets.
+        /// </summary>
+        private void ReadFakeHeader()
+        {
+            // if (!File.Exists(Path.Combine(WorldMaps.mapPath, "Textures", archive.ToString() + ".json")))
+            // {
+            //     Debug.Log("Creating fake header for TEXTURE." + archive);
+            //     FakeHeader fakeHeader = new FakeHeader();
+            //     SetFakeHeader();
+            //     fakeHeader.fileHeader = header;
+            //     fakeHeader.recordHeader = recordHeaders;
+            //     fakeHeader.record = records;
+
+            //     string fileDataPath = Path.Combine(WorldMaps.mapPath, "Textures", archive.ToString() + ".json");
+            //     var json = JsonConvert.SerializeObject(fakeHeader, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+            //     File.WriteAllText(fileDataPath, json);
+            // }
+
+            header.Position = 0;
+            header.RecordCount = fakeReader.fileHeader.RecordCount;
+            header.Name = fakeReader.fileHeader.Name;
+            header.TextureWidth = fakeReader.fileHeader.TextureWidth;
+            header.TextureHeight = fakeReader.fileHeader.TextureHeight;
+
+            recordHeaders = new RecordHeader[header.RecordCount];
+            for (int r = 0; r < header.RecordCount; r++)
+            {
+                recordHeaders[r].Position = fakeReader.recordHeader[r].Position;
+                recordHeaders[r].Type1 = fakeReader.recordHeader[r].Type1;
+                recordHeaders[r].RecordPosition = fakeReader.recordHeader[r].RecordPosition;
+                recordHeaders[r].Type2 = fakeReader.recordHeader[r].Type2;
+                recordHeaders[r].Unknown1 = fakeReader.recordHeader[r].Unknown1;
+                recordHeaders[r].NullValue1 = fakeReader.recordHeader[r].NullValue1;
+            }
+
+            records = new Record[header.RecordCount];
+            for (int r = 0; r < header.RecordCount; r++)
+            {
+                records[r].Position = fakeReader.record[r].Position;
+                records[r].OffsetX = fakeReader.record[r].OffsetX;
+                records[r].OffsetY = fakeReader.record[r].OffsetY;
+                records[r].Width = fakeReader.record[r].Width;
+                records[r].Height = fakeReader.record[r].Height;
+                records[r].Compression = fakeReader.record[r].Compression;
+                records[r].RecordSize = fakeReader.record[r].RecordSize;
+                records[r].DataOffset = fakeReader.record[r].DataOffset;
+                records[r].IsNormal = fakeReader.record[r].IsNormal;
+                records[r].FrameCount = fakeReader.record[r].FrameCount;
+                records[r].Unknown1 = fakeReader.record[r].Unknown1;
+                records[r].ScaleX = fakeReader.record[r].ScaleX;
+                records[r].ScaleY = fakeReader.record[r].ScaleY;
+
+                if (SolidTypes.None == solidType)
+                {
+                    records[r].Frames = new DFBitmap[records[r].FrameCount];
+                }
+                else
+                {
+                    records[r].Width = solidSize;
+                    records[r].Height = solidSize;
+                    records[r].Frames = new DFBitmap[1];
+                }
+            }
         }
 
         /// <summary>

@@ -56,7 +56,9 @@ namespace DaggerfallWorkshop
         public static AdditionalLocationBlendSpace ExtraBlendSpace = (locationType) => { return 0; };
 
         /// <summary>
-        /// Gets map pixel data for any location in world.
+        /// Gets map pixel data for any location in nearby tiles.
+        /// TODO: check if this method is needed outside the closest 9 tiles, in that case
+        /// make another one that can actually get any pixel in the world.
         /// </summary>
         public static MapPixelData GetMapPixelData(int mapPixelX, int mapPixelY)
         {
@@ -67,7 +69,7 @@ namespace DaggerfallWorkshop
 
             // Get location if present
             ulong id = 0;
-            int regionIndex = -1, mapIndex = -1;
+            int regionIndex = -1, mapIndex = -1, tileIndex = -1;
             string locationName = string.Empty;
             MapSummary mapSummary = new MapSummary();
             bool hasLocation = WorldMaps.HasLocation(mapPixelX, mapPixelY, out mapSummary);
@@ -75,8 +77,9 @@ namespace DaggerfallWorkshop
             {
                 id = mapSummary.ID;
                 regionIndex = mapSummary.RegionIndex;
+                tileIndex = mapSummary.TileIndex;
                 mapIndex = mapSummary.MapIndex;
-                DFLocation location = WorldMaps.GetLocation(regionIndex, mapIndex);
+                DFLocation location = WorldMaps.GetLocation(WorldMaps.GetRelativeTile(mapPixelX, mapPixelY), mapIndex);
                 locationName = location.Name;
             }
 
@@ -130,7 +133,7 @@ namespace DaggerfallWorkshop
         {
             // Get location
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
-            DFLocation location = WorldMaps.GetLocation(mapPixel.mapRegionIndex, mapPixel.mapLocationIndex);
+            DFLocation location = WorldMaps.GetLocation(WorldMaps.GetRelativeTile(mapPixel.mapPixelX, mapPixel.mapPixelY), mapPixel.mapLocationIndex);
 
             // Position tiles inside terrain area
             DFPosition tilePos = TerrainHelper.GetLocationTerrainTileOrigin(location);

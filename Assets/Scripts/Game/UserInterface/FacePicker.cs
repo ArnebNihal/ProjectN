@@ -40,6 +40,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         Panel facePanel = new Panel();
         Button prevFaceButton;
         Button nextFaceButton;
+        Button randomFaceButton = new Button();
         int faceIndex = 0;
         ImageData[] faceTextures = new ImageData[faceCount];
         Texture2D currentFaceTexture;
@@ -67,6 +68,13 @@ namespace DaggerfallWorkshop.Game.UserInterface
             prevFaceButton.OnMouseClick += PrevFaceButton_OnMouseClick;
             nextFaceButton = DaggerfallUI.AddButton(new Rect(287, 69, 26, 9), this);
             nextFaceButton.OnMouseClick += NextFaceButton_OnMouseClick;
+
+            // Random face button
+            randomFaceButton = DaggerfallUI.AddButton(new Rect(261, 80, 36, 10), this);
+            randomFaceButton.Label.Text = "Random";
+            randomFaceButton.Label.ShadowColor = Color.black;
+            randomFaceButton.BackgroundColor = new Color(0.5f, 0.5f, 0.5f, 0.75f);
+            randomFaceButton.OnMouseClick += RandomFaceButton_OnMouseClick;
         }
 
         #region Public Methods
@@ -123,6 +131,15 @@ namespace DaggerfallWorkshop.Game.UserInterface
         void NextFaceButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
         {
             faceIndex++;
+            if (faceIndex > maxFaceIndex)
+                faceIndex = minFaceIndex;
+
+            SetCurrentFace();
+        }
+
+        private void RandomFaceButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
+        {
+            faceIndex = UnityEngine.Random.Range(0, faceCount);
             if (faceIndex > maxFaceIndex)
                 faceIndex = minFaceIndex;
 

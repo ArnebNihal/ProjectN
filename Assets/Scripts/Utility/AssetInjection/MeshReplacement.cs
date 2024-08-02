@@ -320,7 +320,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             if (!GameManager.HasInstance)
                 return (modelID, (ClimateBases)(-1), (DaggerfallDateTime.Seasons)(-1));
 
-            return (modelID, ClimateSwaps.FromAPIClimateBase(GameManager.Instance.PlayerGPS.ClimateSettings.ClimateType), DaggerfallUnity.Instance.WorldTime.Now.SeasonValue);
+            return (modelID, ClimateSwaps.FromAPIClimateBase(GameManager.Instance.PlayerGPS.ClimateSettings.ClimateType), DaggerfallUnity.Instance.WorldTime.Now.ActualSeasonValue);
         }
 
         ///<summary>

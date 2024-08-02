@@ -27,6 +27,7 @@ using DaggerfallWorkshop.Game.MagicAndEffects;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
 using UnityEngine.Localization.Settings;
 using static DaggerfallWorkshop.Game.UserInterface.BaseScreenComponent;
+using DaggerfallWorkshop.Game.Entity;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -631,12 +632,20 @@ namespace DaggerfallWorkshop.Game
                     }
                     break;
                 case DaggerfallUIMessages.dfuiOpenAutomap:
-                    if (GameManager.Instance.IsPlayerInside) // open automap only if player is in interior or dungeon - TODO: location automap for exterior locations
+                    if (GameManager.Instance.IsPlayerInsideDungeon && GameManager.Instance.PlayerGPS.CheckOrientationSkillPresenceDungeon(GameManager.Instance.PlayerEntity.Career, DFCareer.OrientationCompetence.Perfect)) // open automap only if player is in interior or dungeon - TODO: location automap for exterior locations
                     {
                         GameManager.Instance.PauseGame(true);
                         uiManager.PushWindow(dfAutomapWindow);
                     }
-                    else
+                    else if (!GameManager.Instance.IsPlayerInsideDungeon && GameManager.Instance.IsPlayerInside && GameManager.Instance.PlayerGPS.IsPlayerInLocationRect && (int)GameManager.Instance.PlayerEntity.Career.Settlement >= (int)DFCareer.OrientationCompetence.Perfect)
+                    {
+                        GameManager.Instance.PauseGame(true);
+                        uiManager.PushWindow(dfAutomapWindow);
+                    }
+                    else if (!GameManager.Instance.IsPlayerInsideDungeon && 
+                             GameManager.Instance.PlayerGPS.IsPlayerInLocationRect && 
+                             !GameManager.Instance.IsPlayerInside &&
+                            (GameManager.Instance.PlayerGPS.CheckOrientationSkillPresenceSettlement(GameManager.Instance.PlayerEntity.Career) || GameManager.Instance.PlayerEntity.PlayerHasTownMap(GameManager.Instance.PlayerEntity.Items)))
                     {
                         MapSummary mapSummary;
                         DFPosition mapPixel = GameManager.Instance.PlayerGPS.CurrentMapPixel;
@@ -644,6 +653,9 @@ namespace DaggerfallWorkshop.Game
                         {
                             // There's a location at this map pixel
                             GameManager.Instance.PauseGame(true);
+                            ExteriorAutomap automap = ExteriorAutomap.instance;
+                            if (GameManager.Instance.PlayerEntity.PlayerHasTownMap(GameManager.Instance.PlayerEntity.Items))
+                                automap.RevealUndiscoveredBuildings = true;                            
                             uiManager.PushWindow(dfExteriorAutomapWindow);
                         }
                     }

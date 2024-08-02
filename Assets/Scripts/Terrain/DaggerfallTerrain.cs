@@ -131,7 +131,7 @@ namespace DaggerfallWorkshop
         public void UpdateClimateMaterial(bool init = false)
         {
             // Update atlas texture if world climate changed
-            if (currentWorldClimate != MapData.worldClimate || dfUnity.WorldTime.Now.SeasonValue != season || init)
+            if (currentWorldClimate != MapData.worldClimate || dfUnity.WorldTime.Now.ActualSeasonValue != season || init)
             {
                 currentWorldClimate = MapData.worldClimate;
             }
@@ -191,8 +191,18 @@ namespace DaggerfallWorkshop
                 blendLocationTerrainJobHandle = generateHeightmapSamplesJobHandle;
 
             // Assign tiles for terrain texturing.
-            JobHandle assignTilesJobHandle = (terrainTexturing == null) ? blendLocationTerrainJobHandle :
-                terrainTexturing.ScheduleAssignTilesJob(dfUnity.TerrainSampler, ref MapData, blendLocationTerrainJobHandle);
+            JobHandle assignTilesJobHandle;
+            JobHandle assignTrailsJobHandle;
+            if (terrainTexturing == null)
+            {
+                assignTilesJobHandle = blendLocationTerrainJobHandle;
+            }
+            else{
+                assignTilesJobHandle = terrainTexturing.ScheduleAssignTilesJob(dfUnity.TerrainSampler, ref MapData, blendLocationTerrainJobHandle);
+            }
+
+            // JobHandle assignTilesJobHandle = (terrainTexturing == null) ? blendLocationTerrainJobHandle :
+            //     terrainTexturing.ScheduleAssignTilesJob(dfUnity.TerrainSampler, ref MapData, blendLocationTerrainJobHandle);
 
             // Update tile map for shader.
             JobHandle updateTileMapJobHandle = TerrainHelper.ScheduleUpdateTileMapDataJob(ref MapData, assignTilesJobHandle);

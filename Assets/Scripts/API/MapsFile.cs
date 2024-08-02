@@ -10,6 +10,7 @@
 //
 
 #region Using Statements
+using UnityEngine;
 using System;
 using System.IO;
 using System.Collections.Generic;
@@ -29,17 +30,17 @@ namespace DaggerfallConnect.Arena2
     {
         #region Class Variables
 
-        public static int WorldWidth = WorldData.WorldSetting.WorldWidth;
+        public static int WorldWidth = 7680;
         // {
-        //     get { return WorldData.WorldSetting.WorldWidth; } 
+        //     get { return MapsFile.MaxMapPixelX; } 
         // }
-        public static int WorldHeight = WorldData.WorldSetting.WorldHeight;
+        public static int WorldHeight = 6144;
         // {
         //     get { return WorldData.WorldSetting.WorldHeight; }
         // }
         public const ulong OneBillion = 1000000000;
         public const int WorldMapTerrainDim = 32768;
-        public const int WorldMapTileDim = 128;
+        public const int WorldMapTileDim = 128; // This isn't to touch!!!
         public const int WorldMapRMBDim = 4096;
         public const int MinWorldCoordX = 0;
         public const int MinWorldCoordZ = 0;
@@ -54,9 +55,9 @@ namespace DaggerfallConnect.Arena2
         public const int MaxMapPixelX = 7680;
         public const int MaxMapPixelY = 6144;
         public static int TempRegionCount = WorldData.WorldSetting.Regions;
-        public const int TileDim = 256;
-        public const int TileX = 30;
-        public const int TileY = 24;
+        public const int TileDim = 64; // This is the one to change when modifying MY tiles size
+        public const int TileX = MaxMapPixelX / TileDim;
+        public const int TileY = MaxMapPixelY / TileDim;
 
         /// <summary>
         /// All region names.
@@ -277,14 +278,15 @@ namespace DaggerfallConnect.Arena2
         {
             Ocean = 223,
             Desert = 224,
-            Desert2 = 225, // seen in dak'fron
+            Desert2 = 225,
             Mountain = 226,
             Rainforest = 227,
             Swamp = 228,
             Subtropical = 229,
             MountainWoods = 230,
             Woodlands = 231,
-            HauntedWoodlands = 232 // not sure where this is?
+            HauntedWoodlands = 232,
+            Maquis = 233
         }
 
         /// <summary>
@@ -307,13 +309,39 @@ namespace DaggerfallConnect.Arena2
 
         #region Static Public Methods
 
+        public static string ConvertRegionName(string name)
+        {
+            switch (name)
+            {
+                case "Alik'r Desert":
+                    return "Alik'ra";
+                    break;
+
+                case "Dragontail Mountains":
+                    return "Dragontail";
+                    break;
+
+                case "Wrothgarian Mountains":
+                    return "Wrothgaria";
+                    break;
+
+                case "Orsinium Area":
+                    return "Orsinium";
+                    break;
+
+                default:
+                    break;
+            }
+            return name;
+        }
+        
         public static DFPosition ConvertToRelative(int x, int y)
         {
             DFPosition centralPosition = WorldMaps.LocalPlayerGPS.CurrentMapPixel;
             DFPosition resultingCoordinates = new DFPosition();
 
-            int relativeX = x / 256 - centralPosition.X / 256 + 1;
-            int relativeY = y / 256 - centralPosition.Y / 256 + 1;
+            int relativeX = x / TileDim - centralPosition.X / TileDim + 1;
+            int relativeY = y / TileDim - centralPosition.Y / TileDim + 1;
             resultingCoordinates.X = x % TileDim + (TileDim * relativeX);
             resultingCoordinates.Y = y % TileDim + (TileDim * relativeY);
 
@@ -418,6 +446,20 @@ namespace DaggerfallConnect.Arena2
             return pos;
         }
 
+        /// <summary>
+        /// Converts world coord to tile.
+        /// </summary>
+        /// <param name="worldX">World X position in native Daggerfall units.</param>
+        /// <param name="worldZ">World Z position in native Daggerfall units.</param>
+        /// <returns>Tile tuple identifier.</returns>
+        public static (int, int) WorldCoordToTile(int worldX, int worldY)
+        {
+            DFPosition pos = WorldCoordToMapPixel(worldX, worldY);
+            (int, int) tile = (pos.X / TileDim, pos.Y / TileDim);
+
+            return tile;
+        }
+
         public static DFPosition WorldCoordToRelativeMapPixel(int worldX, int worldY)
         {
             DFPosition pos = new DFPosition();
@@ -443,10 +485,15 @@ namespace DaggerfallConnect.Arena2
             return pos;
         }
 
+        // public static (int, int) WorldCoordToSubPixel(int worldX, int worldZ)
+        // {
+
+        // }
+
         /// <summary>
         /// Gets settings for specified map climate.
         /// </summary>
-        /// <param name="worldClimate">Climate value from CLIMATE.PAK. Valid range is 223-232.</param>
+        /// <param name="worldClimate">Climate value from CLIMATE.PAK. Valid range is 223-233.</param>
         /// <returns>Climate settings for specified world climate value.</returns>
         public static DFLocation.ClimateSettings GetWorldClimateSettings(int worldClimate)
         {
@@ -520,6 +567,13 @@ namespace DaggerfallConnect.Arena2
                     settings.NatureArchive = (int)DFLocation.ClimateTextureSet.Nature_HauntedWoodlands;
                     settings.SkyBase = 16;
                     settings.People = FactionFile.FactionRaces.Breton;
+                    break;
+                case (int)Climates.Maquis:
+                    settings.ClimateType = DFLocation.ClimateBaseType.Maquis;
+                    settings.GroundArchive = 2;
+                    settings.NatureArchive = (int)DFLocation.ClimateTextureSet.Nature_Maquis;
+                    settings.SkyBase = 24;
+                    settings.People = FactionFile.FactionRaces.DarkElf;
                     break;
                 default:
                     settings.ClimateType = DFLocation.ClimateBaseType.Temperate;

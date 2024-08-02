@@ -12,6 +12,7 @@
 using UnityEngine;
 using System;
 using DaggerfallWorkshop.Game.UserInterface;
+using DaggerfallConnect;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {

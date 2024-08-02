@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Hazelnut
-// Contributors:    
+// Contributors:    Arneb
 // 
 // Notes:
 //
@@ -29,6 +29,22 @@ namespace DaggerfallWorkshop
         public static int Col(int index, int dim)
         {
             return index / dim;
+        }
+
+        ///<summary>
+        /// Used for getting row in LargeHeightmap and trails
+        ///</summary>
+        public static int RowExp(int index, int dim)
+        {
+            return Row(index, dim) / 5;
+        }
+
+        ///<summary>
+        /// Used for getting column in LargeHeightmap and trails
+        ///</summary>
+        public static int ColExp(int index, int dim)
+        {
+            return Col(index, dim) / 5;
         }
     }
 

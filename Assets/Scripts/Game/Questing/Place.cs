@@ -326,6 +326,7 @@ namespace DaggerfallWorkshop.Game.Questing
             siteDetails.mapId = location.MapTableData.MapId;
             siteDetails.locationId = location.Exterior.ExteriorData.LocationId;
             siteDetails.regionIndex = location.RegionIndex;
+            siteDetails.tileIndex = WorldMaps.GetAbsoluteTile(MapsFile.GetPixelFromPixelID(location.MapTableData.MapId));
             siteDetails.buildingKey = buildingKey;
             siteDetails.buildingName = buildingName;
             siteDetails.regionName = location.RegionName;
@@ -780,8 +781,8 @@ namespace DaggerfallWorkshop.Game.Questing
             const int maxAttemptsBeforeFailure = 500;
 
             // Get player region
-            int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
+            int tileIndex = WorldMaps.GetRelativeTile(GameManager.Instance.PlayerGPS.CurrentMapPixel);
+            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(tileIndex);
             int playerLocationIndex = GameManager.Instance.PlayerGPS.CurrentLocationIndex;
 
             // Cannot use a region with no locations
@@ -820,7 +821,7 @@ namespace DaggerfallWorkshop.Game.Questing
                     continue;
 
                 // Get location data for town
-                DFLocation location = WorldMaps.GetLocation(regionIndex, locationIndex);
+                DFLocation location = WorldMaps.GetLocation(tileIndex, locationIndex);
                 if (!location.Loaded)
                     continue;
 

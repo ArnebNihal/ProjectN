@@ -27,6 +27,7 @@ using DaggerfallWorkshop.Game.Serialization;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game.Questing;
 using UnityEditor.Localization.UI;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -78,7 +79,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         protected Color32[] dynamicTravelMap;
         protected const int dynamicMapWidth = 40;
         protected const int dynamicMapHeight = 25;
-        protected DFRegion currentDFRegion;
+        protected DFRegion[] currentDFRegion;
+        protected int[][,] currentPolitic;
+        protected int[][,] currentClimate;
+        protected byte[][,] currentHeightmap;
+        protected (int, int) tilesLoaded;
+        protected (int, int) tileZero;
+        protected (int, int) tileOmega;
+        protected int mouseInRelTile;
         protected int currentDFRegionIndex = -1;
         protected int lastQueryLocationIndex = -1;
         protected string lastQueryLocationName;
@@ -256,7 +264,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             }
             catch (Exception ex)
             {
-                Debug.LogError(string.Format("Error Registering Travelmap Console commands: {0}", ex.Message));
+                // Debug.LogError(string.Format("Error Registering Travelmap Console commands: {0}", ex.Message));
             }
 
             // Prevent duplicate close calls with base class's exitKey (Escape)
@@ -350,6 +358,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Load native overworld texture
             mapCenter = TravelTimeCalculator.GetPlayerTravelPosition();
             JustifyMapCenter();
+            UpdateTilesLoaded();
             SetupTravelMap();
 
             // Setup pixel buffer and texture for region/location identify
@@ -403,6 +412,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         {
             base.Update();
 
+            UpdateTilesLoaded();
+
             // Toggle window closed with same hotkey used to open it
             if (InputManager.Instance.GetKeyUp(toggleClosedBinding) || InputManager.Instance.GetBackButtonUp())
             {
@@ -416,8 +427,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (currentMousePos != lastMousePos)
             {
                 lastMousePos = currentMousePos;
+                UpdateTilesLoaded();
                 UpdateMouseOverRegion();
-                UpdateMouseOverLocation();
+                UpdateMouseOverTile();
+                UpdateMouseOverLocation();                
             }
 
             if (InputManager.Instance.GetMouseButtonUp(1))
@@ -425,7 +438,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 // Zoom to mouse position
                 zoomPosition = GetCoordinates();
                 mapCenter = new DFPosition((int)zoomPosition.x, (int)zoomPosition.y);
+
                 JustifyMapCenter();
+                UpdateTilesLoaded();
                 SetupTravelMap();
                 SetupPixelBuffer();
                 SetupRegionBuffer();
@@ -447,7 +462,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (DaggerfallShortcut.GetBinding(DaggerfallShortcut.Buttons.TravelMapList).IsUpWith(keyModifiers))
             {
 
-                if (currentDFRegion.LocationCount < 1)
+                if (currentDFRegion[mouseInRelTile].LocationCount < 1)
                     return;
 
                 string[] locations = GetCurrentRegionLocalizedMapNames().OrderBy(p => p).ToArray();
@@ -500,9 +515,12 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             findButton.OnMouseClick += FindlocationButtonClickHandler;
 
             // I'm At button
-            atButton = DaggerfallUI.AddButton(new Rect(3, 186, atButtonRect.width, atButtonRect.height), NativePanel);
-            atButton.BackgroundTexture = atButtonTexture;
-            atButton.OnMouseClick += AtButtonClickHandler;
+            if (GameManager.Instance.PlayerGPS.CheckSurvivalSkillPresence(GameManager.Instance.PlayerEntity.Career.ClimateSurvival))
+            {
+                atButton = DaggerfallUI.AddButton(new Rect(3, 186, atButtonRect.width, atButtonRect.height), NativePanel);
+                atButton.BackgroundTexture = atButtonTexture;
+                atButton.OnMouseClick += AtButtonClickHandler;
+            }
 
             // Dungeons filter button
             dungeonsFilterButton.Position = new Vector2(50, 175);
@@ -630,6 +648,29 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             locationDotsTexture.filterMode = FilterMode.Point;
         }
 
+        protected virtual void UpdateTilesLoaded()
+        {
+            (int, int) prevTilesLoaded = tilesLoaded;
+            (int, int) prevTileZero = tileZero;
+            (int, int) prevTileOmega = tileOmega;
+            // Debug.Log("Phase1 - tilesLoaded: " + tilesLoaded + ", tileZero: " + tileZero + ", tileOmega: " + tileOmega);
+            tileZero = ((mapCenter.X - zoomfactor * dynamicMapWidth / 2) / MapsFile.TileDim, (mapCenter.Y - zoomfactor * dynamicMapHeight / 2) / MapsFile.TileDim);
+            tileOmega = ((mapCenter.X + zoomfactor * dynamicMapWidth / 2) / MapsFile.TileDim, (mapCenter.Y + zoomfactor * dynamicMapHeight / 2) / MapsFile.TileDim);
+            tilesLoaded = ((tileOmega.Item1 - tileZero.Item1 + 1), (tileOmega.Item2 - tileZero.Item2 + 1));
+            // Debug.Log("Phase2 - tilesLoaded: " + tilesLoaded + ", tileZero: " + tileZero + ", tileOmega: " + tileOmega);
+            Vector2 coordinates = GetCoordinates();
+            int x = (int)(coordinates.x);
+            int y = (int)(coordinates.y);
+            // int sampleRegion = WorldMaps.GetRelativeTile(x, y);
+            if (!tilesLoaded.Equals(prevTilesLoaded) || !tileZero.Equals(prevTileZero) || !tileOmega.Equals(prevTileOmega))
+            {
+                currentDFRegion = ConvertWorldMapsToDFRegion(tilesLoaded);
+                currentPolitic = ConvertWorldMapsToPolitic(tilesLoaded);
+                currentClimate = ConvertWorldMapsToClimate(tilesLoaded);
+                currentHeightmap = ConvertWorldMapsToHeightmap(tilesLoaded);
+            }
+        }
+
         // Updates location dots
         protected virtual void UpdateMapLocationDotsTexture()
         {
@@ -651,11 +692,12 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     int offset = (((height - y - 1) * width) + x);
                     if (offset >= (width * height))
                         continue;
-                    int sampleRegion = PoliticData.GetPoliticValue(originX + x, originY + y);
+                    // int sampleRegion = PoliticData.GetPoliticValue(originX + x, originY + y);
 
                     MapSummary summary;
-                    if (WorldMaps.HasLocation(originX + x, originY + y, out summary))
+                    if (HasLocation(originX + x, originY + y))
                     {
+                        HasLocation(originX + x, originY + y, out summary);
                         if (!checkLocationDiscovered(summary))
                             continue;
 
@@ -689,6 +731,58 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             regionLocationDotsOverlayPanel.BackgroundTexture = locationDotsTexture;
         }
 
+        /// <summary>
+        /// Determines if the current WorldCoord has a location.
+        /// </summary>
+        /// <param name="mapPixelX">Map pixel X.</param>
+        /// <param name="mapPixelY">Map pixel Y.</param>
+        /// <returns>True if there is a location at this map pixel.</returns>
+        public bool HasLocation(int mapPixelX, int mapPixelY, out MapSummary locationSummary)
+        {
+            ulong id = MapsFile.GetMapPixelID(mapPixelX, mapPixelY);
+            (int, int) tile = (mapPixelX / MapsFile.TileDim, mapPixelY / MapsFile.TileDim);
+            // (int, int) tileZero = ((mapCenter.X - zoomfactor * dynamicMapWidth / 2) / MapsFile.TileDim, (mapCenter.Y - zoomfactor * dynamicMapHeight / 2) / MapsFile.TileDim);            
+            int relTile = tile.Item1 - tileZero.Item1 + tilesLoaded.Item1 * (tile.Item2 - tileZero.Item2);
+
+            if (currentDFRegion[relTile].MapIdLookup.ContainsKey(id))
+            {
+                int index = currentDFRegion[relTile].MapIdLookup[id];
+                locationSummary.ID = currentDFRegion[relTile].MapTable[index].MapId;
+                locationSummary.MapID = currentDFRegion[relTile].MapTable[index].LocationId;
+                locationSummary.RegionIndex = GetPoliticValue(mapPixelX, mapPixelY, true);
+                locationSummary.TileIndex = tile.Item1 + tile.Item2 * MapsFile.TileX;
+                locationSummary.MapIndex = index;
+                locationSummary.LocationType = currentDFRegion[relTile].MapTable[index].LocationType;
+                locationSummary.DungeonType = currentDFRegion[relTile].MapTable[index].DungeonType;
+                locationSummary.Discovered = currentDFRegion[relTile].MapTable[index].Discovered;
+                return true;
+            }
+
+            locationSummary = new MapSummary();
+            return false;
+        }
+
+        protected virtual (int, int) GetCentralTile()
+        {
+            (int, int) midTile = (mapCenter.X / MapsFile.TileDim, mapCenter.Y / MapsFile.TileDim);
+            return midTile;
+        }
+
+        public bool HasLocation(int mapPixelX, int mapPixelY)
+        {
+            ulong id = MapsFile.GetMapPixelID(mapPixelX, mapPixelY);
+            (int, int) tile = (mapPixelX / MapsFile.TileDim, mapPixelY / MapsFile.TileDim);
+            // (int, int) tileZero = ((mapCenter.X - zoomfactor * dynamicMapWidth / 2) / MapsFile.TileDim, (mapCenter.Y - zoomfactor * dynamicMapHeight / 2) / MapsFile.TileDim);            
+            int relTile = tile.Item1 - tileZero.Item1 + tilesLoaded.Item2 * (tile.Item2 - tileZero.Item2);
+            // Debug.Log("relTile: " + relTile + ", tilesLoaded: " + tilesLoaded);
+
+            if (currentDFRegion[relTile].MapIdLookup.ContainsKey(id))
+            {
+                return true;
+            }
+            return false;
+        }
+
         protected virtual void SetupRegionBuffer()
         {
             regionBuffer = new Color32[(dynamicMapWidth * zoomfactor) * (dynamicMapHeight * zoomfactor)];
@@ -711,7 +805,6 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int originX = mapCenter.X - (width / 2);
             int originY = mapCenter.Y - (height / 2);
 
-            int actualClimate = ClimateData.GetClimateValue(mapCenter.X, mapCenter.Y);
             Color32[] colours = new Color32[width * height];
             Array.Clear(climateBuffer, 0, climateBuffer.Length);
 
@@ -723,10 +816,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 for (int y = 0; y < height; y++)
                 {
                     DFPosition area = new DFPosition(mapCenter.X + x - (width / 2), mapCenter.Y + y - (height / 2));
-                    byte heightmap = WoodsData.GetHeightMapValue(area.X, area.Y);
-                    int value = 0;
-
-                    value = ClimateData.GetClimateValue(area.X, area.Y);
+                    int index = (area.X / MapsFile.TileDim - tileZero.Item1) + (area.Y / MapsFile.TileDim - tileZero.Item2) * tilesLoaded.Item1;
+                    int value = currentClimate[index][(mapCenter.X + x - (width / 2)) % MapsFile.TileDim, (mapCenter.Y + y - (height / 2)) % MapsFile.TileDim];
 
                     Color32 colour;
 
@@ -794,7 +885,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int originX = mapCenter.X - (width / 2);
             int originY = mapCenter.Y - (height / 2);
 
-            int actualPolitic = PoliticData.GetPoliticValue(mapCenter.X, mapCenter.Y);
+            // int index = (tilesLoaded.Item1 / 2 + 1) + (tilesLoaded.Item2 / 2 * tilesLoaded.Item1);
+            int actualPolitic = GetPoliticValue(mapCenter.X, mapCenter.Y, true);
             Color32[] colours = new Color32[width * height];
             Array.Clear(regionBuffer, 0, regionBuffer.Length);
 
@@ -805,20 +897,19 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             {
                 for (int y = 0; y < height; y++)
                 {
-                    DFPosition area = new DFPosition(mapCenter.X + x - (width / 2), mapCenter.Y + y - (height / 2));
-                    int value = PoliticData.GetPoliticValue(area.X, area.Y, false);
+                    // DFPosition area = new DFPosition(mapCenter.X + x - (width / 2), mapCenter.Y + y - (height / 2));
+                    // index = (area.X / MapsFile.TileDim - tileZero.Item1) + (area.Y / MapsFile.TileDim - tileZero.Item2) * tilesLoaded.Item1;
+                    int value = GetPoliticValue(mapCenter.X + x - (width / 2), mapCenter.Y + y - (height / 2), true);
 
                     Color32 colour;
 
-                    if (value == 0)
+                    if (value == actualPolitic)
                     {
-                        colour = new Color32(0, 0, 0, 0);
-                        continue;
+                        value = -1;
                     }
-
-                    value -= 128;
-
-                    value = value % 10;
+                    else{
+                        value = value % 10;
+                    }
 
                     switch (value)
                     {
@@ -946,9 +1037,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                         //     colour = new Color32(0, 99, 46, (byte)mapAlphaChannel);
                         //     break;
 
-                        // case 31:    // High Rock sea coast
-                        //     colour = new Color32(0, 0, 0, 0);
-                        //     break;
+                        case 31:    // High Rock sea coast
+                            colour = new Color32(0, 0, 0, 0);
+                            break;
 
                         // case 32:    // Northmoor
                         //     colour = new Color32(127, 127, 127, (byte)mapAlphaChannel);
@@ -1240,6 +1331,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             // SetupArrowButtons();
             JustifyMapCenter();
+            UpdateTilesLoaded();
             SetupTravelMap();
             SetupPixelBuffer();
             SetupRegionBuffer();
@@ -1333,6 +1425,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             }
             else
             {
+                UpdateMapLocationDotsTexture();
                 UpdateRegionAreaTexture();
                 UpdateClimateAreaTexture();
                 regionPanel.Enabled = false;
@@ -1358,14 +1451,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         }
 
         // Check if place is discovered, so it can be found on map.
-        public bool CanFindPlace(string regionName, string name)
+        public bool CanFindPlace(string tileName, string name)
         {
             DFLocation location;
-            if (WorldMaps.GetLocation(regionName, name, out location))
+            if (WorldMaps.GetLocation(tileName, name, out location))
             {
                 DFPosition mapPixel = MapsFile.LongitudeLatitudeToMapPixel(location.MapTableData.Longitude, location.MapTableData.Latitude);
                 MapSummary summary;
-                if (WorldMaps.HasLocation(mapPixel.X, mapPixel.Y, out summary))
+                if (HasLocation(mapPixel.X, mapPixel.Y, out summary))
                     return checkLocationDiscovered(summary);
             }
             return false;
@@ -1407,12 +1500,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int x = (int)(coordinates.x);
             int y = (int)(coordinates.y);
 
-            int sampleRegion = PoliticData.GetPoliticValue(x, y);
-            if (sampleRegion != 0)
-            {
-                mouseOverRegion = sampleRegion;
+            // DFPosition relPosition = MapsFile.ConvertToRelative(x, y);
 
-                currentDFRegion = WorldMaps.ConvertWorldMapsToDFRegion(sampleRegion);
+            // int sampleRegion = WorldMaps.GetRelativeTile(x, y);
+            // if (sampleRegion != 31)
+            // {
+                mouseOverRegion = GetPoliticValue(x, y, true);
+
+                // currentDFRegion = ConvertWorldMapsToDFRegion(sampleRegion, tilesLoaded);
 
                 // if (sampleRegion >= 0 && sampleRegion < MapsFile.TempRegionCount)
                 // {
@@ -1420,11 +1515,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 //     return;
                 // }
 
-                if (WorldMaps.HasLocation(x, y))
+                if (HasLocation(x, y, out locationSummary))
                 {
-                    WorldMaps.HasLocation(x, y, out locationSummary);
+                    // // Debug.Log(x + ", " + y + " has location ID: " + locationSummary.ID + ", MapID: " + locationSummary.MapID + ", MapIndex: " + locationSummary.MapIndex + ", RegionIndex: " + locationSummary.RegionIndex + ", TileIndex: " + locationSummary.TileIndex);
 
-                    if (locationSummary.MapIndex < 0 || locationSummary.MapIndex >= currentDFRegion.MapNames.Length)
+                    if (locationSummary.MapIndex < 0 || locationSummary.MapIndex >= currentDFRegion[mouseInRelTile].MapNames.Length)
                         return;
                     else
                     {
@@ -1439,7 +1534,169 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                         locationSelected = true;
                     }
                 }
+            // }
+        }
+
+        /// <summary>
+        /// Gets the tile the mouse cursor is hovering over.
+        /// </summary>
+        protected virtual void UpdateMouseOverTile()
+        {
+            if (lastMousePos.x < 0 ||
+                lastMousePos.x > 320 ||
+                lastMousePos.y < 0 ||
+                lastMousePos.y > 200)
+                return;
+
+            // float scale = GetRegionMapScale(selectedRegion);
+            Vector2 coordinates = GetCoordinates();
+            int x = (int)(coordinates.x);
+            int y = (int)(coordinates.y);
+            (int, int) tile = (x / MapsFile.TileDim, y / MapsFile.TileDim);
+            // (int, int) tileZero = ((mapCenter.X - zoomfactor * dynamicMapWidth / 2) / MapsFile.TileDim, (mapCenter.Y - zoomfactor * dynamicMapHeight / 2) / MapsFile.TileDim);
+            // (int, int) centralTile = (mapCenter.X / MapsFile.TileDim, mapCenter.Y / MapsFile.TileDim);
+            // // Debug.Log("x: " + x + ", y: " + y + ", tile: " + tile + ", tileZero: " + tileZero + "tilesLoaded: " + tilesLoaded);
+            
+            mouseInRelTile = tile.Item1 - tileZero.Item1 + tilesLoaded.Item2 * (tile.Item2 - tileZero.Item2);
+            return;            
+        }
+
+        /// <summary>
+        /// Converts a certain number of tiles to DFRegion for use in Travel Map.
+        /// <param name="regionSize">Radius of the area to load.
+        protected virtual DFRegion[] ConvertWorldMapsToDFRegion((int, int) regionSize)
+        {
+            int tilesToLoad = regionSize.Item1 * regionSize.Item2;
+
+            // DFPosition center = TravelTimeCalculator.GetPlayerTravelPosition();
+
+            DFRegion[] dfRegion = new DFRegion[tilesToLoad];
+
+            if (tilesToLoad < MapsFile.TileX * MapsFile.TileY)
+            {
+                (int, int) centralTile = GetCentralTile();
+                WorldMap tileToLoad;
+                for (int y = 0; y < regionSize.Item2; y++)
+                {
+                    for (int x = 0; x < regionSize.Item1; x++)
+                    {
+                        int index = x + y * regionSize.Item1;
+                        string tileName = ((centralTile.Item1 + (x - regionSize.Item1 / 2)) + (centralTile.Item2 + (y - regionSize.Item2 / 2)) * MapsFile.TileX).ToString("00000");
+                        tileToLoad = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(WorldMaps.locationPath, "map" + tileName + ".json")));
+
+                        dfRegion[index].Name = tileToLoad.Name;
+                        dfRegion[index].LocationCount = tileToLoad.LocationCount;
+                        if (tileToLoad.LocationCount == 0)
+                        {
+                            dfRegion[index].MapNames = new string[0];
+                            dfRegion[index].MapTable = new DFRegion.RegionMapTable[0];
+                            dfRegion[index].MapIdLookup = new Dictionary<ulong, int>();
+                            dfRegion[index].MapNameLookup = new Dictionary<string, int>();
+                        }
+                        else
+                        {
+                            dfRegion[index].MapNames = tileToLoad.MapNames;
+                            dfRegion[index].MapTable = tileToLoad.MapTable;
+                            dfRegion[index].MapIdLookup = tileToLoad.MapIdLookup;
+                            dfRegion[index].MapNameLookup = tileToLoad.MapNameLookup;
+                        }
+                    }
+                }
             }
+            return dfRegion;
+        }
+
+        /// <summary>
+        /// Converts a certain number of tiles to Politic matrix for use in Travel Map.
+        /// <param name="regionSize">Radius of the area to load.
+        protected virtual int[][,] ConvertWorldMapsToPolitic((int, int) regionSize)
+        {
+            int tilesToLoad = regionSize.Item1 * regionSize.Item2;
+
+            // DFPosition center = TravelTimeCalculator.GetPlayerTravelPosition();
+
+            int[][,] politicTiles = new int[tilesToLoad][,];
+            Texture2D textureTile = new Texture2D(MapsFile.TileDim, MapsFile.TileDim);
+
+            if (tilesToLoad < MapsFile.TileX * MapsFile.TileY)
+            {
+                (int, int) centralTile = GetCentralTile();
+                for (int y = 0; y < regionSize.Item2; y++)
+                {
+                    for (int x = 0; x < regionSize.Item1; x++)
+                    {
+                        int index = x + y * regionSize.Item1;
+                        string tileName = "politic_" + (centralTile.Item1 + (x - regionSize.Item1 / 2)) + "_" + (centralTile.Item2 + (y - regionSize.Item2 / 2)) + ".png";
+                        ImageConversion.LoadImage(textureTile, File.ReadAllBytes(Path.Combine(WorldMaps.tilesPath, tileName)));
+                        PoliticData.ConvertToMatrix(textureTile, out int[,] politicMatrix);
+
+                        politicTiles[index] = politicMatrix;
+                    }
+                }
+            }
+            return politicTiles;
+        }
+
+        /// <summary>
+        /// Converts a certain number of tiles to Climate matrix for use in Travel Map.
+        /// <param name="regionSize">Radius of the area to load.
+        protected virtual int[][,] ConvertWorldMapsToClimate((int, int) regionSize)
+        {
+            int tilesToLoad = regionSize.Item1 * regionSize.Item2;
+
+            // DFPosition center = TravelTimeCalculator.GetPlayerTravelPosition();
+
+            int[][,] climateTiles = new int[tilesToLoad][,];
+            Texture2D textureTile = new Texture2D(MapsFile.TileDim, MapsFile.TileDim);
+
+            if (tilesToLoad < MapsFile.TileX * MapsFile.TileY)
+            {
+                (int, int) centralTile = GetCentralTile();
+                for (int y = 0; y < regionSize.Item2; y++)
+                {
+                    for (int x = 0; x < regionSize.Item1; x++)
+                    {
+                        int index = x + y * regionSize.Item1;
+                        string tileName = "climate_" + (centralTile.Item1 + (x - regionSize.Item1 / 2)) + "_" + (centralTile.Item2 + (y - regionSize.Item2 / 2)) + ".png";
+                        ImageConversion.LoadImage(textureTile, File.ReadAllBytes(Path.Combine(WorldMaps.tilesPath, tileName)));
+                        ClimateData.ConvertToMatrix(textureTile, out int[,] climateMatrix);
+
+                        climateTiles[index] = climateMatrix;
+                    }
+                }
+            }
+            return climateTiles;
+        }
+
+        /// <summary>
+        /// Converts a certain number of tiles to Heightmap matrix for use in Travel Map.
+        /// <param name="regionSize">Radius of the area to load.
+        protected virtual byte[][,] ConvertWorldMapsToHeightmap((int, int) regionSize)
+        {
+            int tilesToLoad = regionSize.Item1 * regionSize.Item2;
+
+            // DFPosition center = TravelTimeCalculator.GetPlayerTravelPosition();
+
+            byte[][,] heightmapTiles = new byte[tilesToLoad][,];
+            Texture2D textureTile = new Texture2D(MapsFile.TileDim, MapsFile.TileDim);
+
+            if (tilesToLoad < MapsFile.TileX * MapsFile.TileY)
+            {
+                (int, int) centralTile = GetCentralTile();
+                for (int y = 0; y < regionSize.Item2; y++)
+                {
+                    for (int x = 0; x < regionSize.Item1; x++)
+                    {
+                        int index = x + y * regionSize.Item1;
+                        string tileName = "woods_" + (centralTile.Item1 + (x - regionSize.Item1 / 2)) + "_" + (centralTile.Item2 + (y - regionSize.Item2 / 2)) + ".png";
+                        ImageConversion.LoadImage(textureTile, File.ReadAllBytes(Path.Combine(WorldMaps.tilesPath, tileName)));
+                        WoodsData.ConvertToMatrix(textureTile, out byte[,] heightmapMatrix);
+
+                        heightmapTiles[index] = heightmapMatrix;
+                    }
+                }
+            }
+            return heightmapTiles;
         }
 
         // Check if mouse over a region
@@ -1451,7 +1708,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int x = (int)pos.x;
             int y = (int)pos.y;
 
-            int sampleRegion = PoliticData.GetPoliticValue(x, y);
+            // int index = (tilesLoaded.Item1 / 2 + 1) + (tilesLoaded.Item2 / 2 * tilesLoaded.Item1);
+            // DFPosition area = new DFPosition(mapCenter.X + x - (zoomedWidth / 2), mapCenter.Y + y - (zoomedHeight / 2));
+
+            int sampleRegion = GetPoliticValue(x, y);
             if (sampleRegion == 64)
             {
                 return;
@@ -1468,7 +1728,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             if (locationSelected)
             {
-                regionLabel.Text = string.Format("{0} : {1}", GetRegionName(mouseOverRegion), GetLocationNameInCurrentRegion(locationSummary.MapIndex, true));
+                Vector2 coordinates = GetCoordinates();
+                int x = (int)(coordinates.x);
+                int y = (int)(coordinates.y);
+                regionLabel.Text = string.Format("{0} : {1}", GetRegionName(GetPoliticValue(x, y, true)), GetLocationNameInCurrentRegion(locationSummary.MapIndex, true));
             }
             // else if (MouseOverOtherRegion)
             //     regionLabel.Text = string.Format(TextManager.Instance.GetLocalizedText("switchToRegion"), GetRegionName(mouseOverRegion));
@@ -1661,11 +1924,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         protected string[] GetCurrentRegionLocalizedMapNames()
         {
             localizedMapNameLookup.Clear();
-            List<string> localizedNames = new List<string>(currentDFRegion.MapNames.Length);
-            for (int l = 0; l < currentDFRegion.MapNames.Length; l++)
+            List<string> localizedNames = new List<string>(currentDFRegion[mouseInRelTile].MapNames.Length);
+            for (int l = 0; l < currentDFRegion[mouseInRelTile].MapNames.Length; l++)
             {
                 // Handle duplicate names in same way as Region.MapNameLookup
-                string name = TextManager.Instance.GetLocalizedLocationName(currentDFRegion.MapTable[l].MapId, currentDFRegion.MapNames[l]);
+                string name = TextManager.Instance.GetLocalizedLocationName(currentDFRegion[mouseInRelTile].MapTable[l].MapId, currentDFRegion[mouseInRelTile].MapNames[l]);
                 if (!localizedNames.Contains(name))
                 {
                     localizedNames.Add(name);
@@ -1684,9 +1947,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 return false;
             }
 
-            if (distanceRegionName != currentDFRegion.Name)
+            if (distanceRegionName != currentDFRegion[mouseInRelTile].Name)
             {
-                distanceRegionName = currentDFRegion.Name;
+                distanceRegionName = currentDFRegion[mouseInRelTile].Name;
                 distance = DaggerfallDistance.GetDistance();
                 distance.SetDictionary(GetCurrentRegionLocalizedMapNames());
             }
@@ -1702,13 +1965,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 // Must have called GetCurrentRegionLocalizedMapNames() prior to this point
                 if (!localizedMapNameLookup.ContainsKey(match.text))
                 {
-                    Debug.LogWarningFormat("Error: location name '{0}' key not found in localizedMapNameLookup dictionary for this region.", match.text);
+                    // Debug.LogWarningFormat("Error: location name '{0}' key not found in localizedMapNameLookup dictionary for this region.", match.text);
                     continue;
                 }
                 int index = localizedMapNameLookup[match.text];
-                DFRegion.RegionMapTable locationInfo = currentDFRegion.MapTable[index];
+                DFRegion.RegionMapTable locationInfo = currentDFRegion[mouseInRelTile].MapTable[index];
                 DFPosition pos = MapsFile.LongitudeLatitudeToMapPixel((int)locationInfo.Longitude, (int)locationInfo.Latitude);
-                if (WorldMaps.HasLocation(pos.X, pos.Y, out findLocationSummary))
+                if (HasLocation(pos.X, pos.Y, out findLocationSummary))
                 {
                     // only make location searchable if it is already discovered
                     if (!checkLocationDiscovered(findLocationSummary))
@@ -1764,7 +2027,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 {
                     // Must have called GetCurrentRegionLocalizedMapNames() prior to this point
                     int index = localizedMapNameLookup[locations[i]];
-                    if (GetPixelColorIndex(currentDFRegion.MapTable[index].LocationType) == -1)
+                    if (GetPixelColorIndex(currentDFRegion[mouseInRelTile].MapTable[index].LocationType) == -1)
                         continue;
                 }
                 locationPicker.ListBox.AddItem(locations[i]);
@@ -1775,7 +2038,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         public void HandleLocationPickEvent(int index, string locationName)
         {
-            if (!RegionSelected || currentDFRegion.LocationCount < 1)
+            if (!RegionSelected || currentDFRegion[mouseInRelTile].LocationCount < 1)
                 return;
 
             CloseWindow();
@@ -1786,7 +2049,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         protected int GetPlayerRegion()
         {
             DFPosition position = TravelTimeCalculator.GetPlayerTravelPosition();
-            int region = PoliticData.GetPoliticValue(position.X, position.Y);
+            int region = GetPoliticValue(position.X, position.Y, true);
             if (region < 0 || region >= MapsFile.TempRegionCount)
                 return -1;
 
@@ -1796,6 +2059,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         // Gets name of region
         protected string GetRegionName(int region)
         {
+            // // Debug.Log("region: " + region);
             return TextManager.Instance.GetLocalizedRegionName(region);
         }
 
@@ -1816,7 +2080,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 return lastQueryLocationName;
 
             // Localized name has first priority if one exists
-            string localizedName = TextManager.Instance.GetLocalizedLocationName(locationSummary.MapID, string.Empty);
+            string localizedName = TextManager.Instance.GetLocalizedLocationName(locationSummary.ID, string.Empty);
             if (!string.IsNullOrEmpty(localizedName))
                 return localizedName;
 
@@ -1830,7 +2094,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             }
             else
             {
-                return currentDFRegion.MapNames[locationSummary.MapIndex];
+                // // Debug.Log("currentDFRegion.Name: " + currentDFRegion[mouseInRelTile].Name + ", mouseInRelTile: " + mouseInRelTile + ", locationSummary.MapIndex: " + locationSummary.MapIndex);
+                return currentDFRegion[mouseInRelTile].MapNames[locationSummary.MapIndex];
             }
         }
 
@@ -1847,7 +2112,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Hack to set location name in text token for now
             textTokens[2].text = textTokens[2].text.Replace(
                 "%tcn",
-                TextManager.Instance.GetLocalizedLocationName(locationSummary.MapID, GetLocationNameInCurrentRegion(locationSummary.MapIndex)));
+                TextManager.Instance.GetLocalizedLocationName(locationSummary.ID, GetLocationNameInCurrentRegion(locationSummary.MapIndex)));
 
             DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this);
             messageBox.SetTextTokens(textTokens);
@@ -1880,15 +2145,20 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         protected virtual void JustifyMapCenter()
         {
-            if ((mapCenter.X - (dynamicMapWidth * zoomfactor / 2)) < 0)
+            // Debug.Log("1 - mapCenter: " + mapCenter.X + ", " + mapCenter.Y);
+            // Debug.Log("1 - currentTile: " + GameManager.Instance.PlayerGPS.CurrentTile.Item1 + ", " + GameManager.Instance.PlayerGPS.CurrentTile.Item2);
+            if ((mapCenter.X - (dynamicMapWidth * zoomfactor / 2) - 1) < MapsFile.MinMapPixelX)
                 mapCenter.X = dynamicMapWidth * zoomfactor / 2;
-            else if ((mapCenter.X + (dynamicMapWidth * zoomfactor / 2)) > MapsFile.WorldWidth)
-                mapCenter.X = MapsFile.WorldWidth - 1 - (dynamicMapWidth * zoomfactor / 2);
+            else if ((mapCenter.X + (dynamicMapWidth * zoomfactor / 2) + 1) > MapsFile.MaxMapPixelX)
+                mapCenter.X = MapsFile.MaxMapPixelX - (dynamicMapWidth * zoomfactor / 2);
 
-            if ((mapCenter.Y - (dynamicMapHeight * zoomfactor / 2)) < 0)
+            if ((mapCenter.Y - (dynamicMapHeight * zoomfactor / 2) - 1) < MapsFile.MinMapPixelY)
                 mapCenter.Y = dynamicMapHeight * zoomfactor / 2;
-            else if ((mapCenter.Y + (dynamicMapHeight * zoomfactor / 2)) > MapsFile.WorldHeight)
-                mapCenter.Y = MapsFile.WorldHeight - 1 - (dynamicMapHeight * zoomfactor / 2);
+            else if ((mapCenter.Y + (dynamicMapHeight * zoomfactor / 2) + 1) > MapsFile.MaxMapPixelY)
+                mapCenter.Y = MapsFile.MaxMapPixelY - (dynamicMapHeight * zoomfactor / 2);
+
+            // Debug.Log("2 - mapCenter: " + mapCenter.X + ", " + mapCenter.Y);
+            // Debug.Log("2 - currentTile: " + GameManager.Instance.PlayerGPS.CurrentTile.Item1 + ", " + GameManager.Instance.PlayerGPS.CurrentTile.Item2);
         }
 
         protected virtual void SetupTravelMap()
@@ -1909,7 +2179,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             int zoomedWidth = dynamicMapWidth * zoomfactor;
             int zoomedHeight = dynamicMapHeight * zoomfactor;
 
-            int actualPolitic = PoliticData.GetPoliticValue(mapCenter.X, mapCenter.Y);
+            int index = (tilesLoaded.Item1 / 2 + 1) + (tilesLoaded.Item2 / 2 * tilesLoaded.Item1);
+            int actualPolitic = GetPoliticValue(mapCenter.X, mapCenter.Y, true);
             Color32[] colours = new Color32[zoomedWidth * zoomedHeight];
 
             for (int x = 0; x < zoomedWidth; x++)
@@ -1917,7 +2188,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 for (int y = 0; y < zoomedHeight; y++)
                 {
                     DFPosition area = new DFPosition(mapCenter.X + x - (zoomedWidth / 2), mapCenter.Y + y - (zoomedHeight / 2));
-                    byte value = WoodsData.GetHeightMapValue(area.X, area.Y);
+                    index = (area.X / MapsFile.TileDim - tileZero.Item1) + (area.Y / MapsFile.TileDim - tileZero.Item2) * tilesLoaded.Item1;
+                    // Debug.Log("index: " + index + "mapCenter: (" + mapCenter.X + ", " + mapCenter.Y + "), area: " + area + ", tileZero: " + tileZero + ", currentHeightmap.Length: " + currentHeightmap.Length);
+                    byte value = currentHeightmap[index][(mapCenter.X + x - (zoomedWidth / 2)) % MapsFile.TileDim, (mapCenter.Y + y - (zoomedHeight / 2)) % MapsFile.TileDim];
                     int terrain;
                     Color32 colour;
                     MapSummary location;
@@ -1925,8 +2198,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     if (value < 3)
                         terrain = -1;
 
-                    // else if (PoliticData.IsBorderPixel(area.X, area.Y, actualPolitic))
-                    //     terrain = -2;
+                    else if (IsBorderPixel(area.X, area.Y, actualPolitic))
+                        terrain = -2;
 
                     else terrain = value;
 
@@ -1938,6 +2211,92 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             return colours;
         }
 
+        protected virtual bool IsBorderPixel(int x, int y, int actualPolitic)
+        {
+            int index = (x / MapsFile.TileDim - tileZero.Item1) + (y / MapsFile.TileDim - tileZero.Item2) * tilesLoaded.Item1;
+            int politicIndex = GetPoliticValue(x, y, true);
+            // // Debug.Log("x: " + x + ", y: " + y + ", index: " + index);
+            int modIndex;
+
+            for (int i = -1; i < 2; i++)
+            {
+                for (int j = -1; j < 2; j++)
+                {
+                    x %= MapsFile.TileDim;
+                    y %= MapsFile.TileDim;
+                    int X = x + i;
+                    int Y = y + j;
+
+                    if ((i == 0 && j == 0) || 
+                        (X < 0 && index % tilesLoaded.Item1 == 0) || 
+                        (X >= MapsFile.TileDim && index % tilesLoaded.Item1 == tilesLoaded.Item1 - 1) ||
+                        (Y < 0 && index / tilesLoaded.Item1 == 0) ||
+                        (Y >= MapsFile.TileDim && index / tilesLoaded.Item1 == tilesLoaded.Item2 - 1))
+                        continue;
+
+                    modIndex = FixXY(X, Y, index, out X, out Y);
+
+                    int comparedPoliticIndex = currentPolitic[modIndex][X, Y] - 128;
+
+                    if (politicIndex != comparedPoliticIndex && 
+                        politicIndex != actualPolitic &&
+                        (currentHeightmap[index][x, y] > 3) && 
+                        (currentHeightmap[modIndex][X, Y] > 3))
+                    {
+                        // // Debug.Log("politicIndex: " + politicIndex + ", comparedPoliticIndex: " + comparedPoliticIndex + "; returning TRUE");
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        protected virtual int FixXY(int x, int y, int index, out int X, out int Y)
+        {
+            X = x;
+            Y= y;
+
+            if (x < 0)
+            {
+                X = MapsFile.TileDim - 1;
+                index--;
+            }
+            else if (x >= MapsFile.TileDim)
+            {
+                X = 0;
+                index++;
+            }
+            if (y < 0)
+            {
+                Y = MapsFile.TileDim - 1;
+                index -= tilesLoaded.Item1;
+            }
+            else if (y >= MapsFile.TileDim)
+            {
+                Y = 0;
+                index += tilesLoaded.Item1;
+            }
+
+            return index;
+        }
+
+        protected virtual int GetPoliticValue(int x, int y, bool convertToRegionIndex = false)
+        {
+            (int, int) tile = (x / MapsFile.TileDim, y / MapsFile.TileDim);
+            // // Debug.Log("tile: " + tile + ", tileZero: " + tileZero + ", tilesLoaded: " + tilesLoaded);
+            int index = (tile.Item1 - tileZero.Item1) + (tile.Item2 - tileZero.Item2) * tilesLoaded.Item1;
+            if (index < 0 || index >= currentPolitic.Length)
+                return -1;
+            if (convertToRegionIndex)
+                return currentPolitic[index][x % MapsFile.TileDim, y % MapsFile.TileDim] - 128;
+            else return currentPolitic[index][x % MapsFile.TileDim, y % MapsFile.TileDim];
+        }
+
+        // protected virtual int GetRelIndex(int x, int y)
+        // {
+
+        // }
+
         public static Color32 GetElevationColour(int index)
         {
             Color32 colour = new Color32();
@@ -1946,6 +2305,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             {
                 case -1:
                     colour = new Color32(40, 71, 166, 255);
+                    break;
+
+                case -2:
+                    colour = new Color32(243, 239, 44, 255);
                     break;
 
                 default:

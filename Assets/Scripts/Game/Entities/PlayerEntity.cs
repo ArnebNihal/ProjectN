@@ -1565,6 +1565,22 @@ namespace DaggerfallWorkshop.Game.Entity
             Array.Clear(reactionMods, 0, socialGroupCount);
         }
 
+        public bool PlayerHasTownMap(ItemCollection items)
+        {
+            if (items.Contains(ItemGroups.Maps, 570))
+            {
+                List<DaggerfallUnityItem> inventoryMaps = items.SearchItems(ItemGroups.Maps, 570);
+                foreach (DaggerfallUnityItem map in inventoryMaps)
+                {
+                    if (map.shortName.Contains(GameManager.Instance.PlayerGPS.CurrentLocalizedLocationName) &&
+                        map.shortName.Contains(GameManager.Instance.PlayerGPS.CurrentLocalizedRegionName))
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         #endregion
 
         #region RegionData

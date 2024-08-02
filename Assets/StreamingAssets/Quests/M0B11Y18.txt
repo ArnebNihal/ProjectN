@@ -85,8 +85,7 @@ Message:  1022
  _ruler_'s court in Sentinel,
  as a traitor. _target_'s dying
  wish was that I deliver the letter
- to _ruler_. She will want
- to see this before =patsy_ days have passed.
+ to _ruler_.
 
 Message:  1023
 %qdt:

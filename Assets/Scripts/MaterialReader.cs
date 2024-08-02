@@ -486,8 +486,10 @@ namespace DaggerfallWorkshop
             {
                 // If we have no texture file, this means this is a non-classic texture
                 // Just use the albedo texture directly
+                DFSize scale = results.textureFile.GetScale(record);
                 recordSizes = new Vector2[1] { new Vector2(results.albedoMap.width, results.albedoMap.height) };
-                recordScales = new Vector2[1] { new Vector2(1.0f, 1.0f) };
+                recordScales = new Vector2[1] { new Vector2(scale.Width, scale.Height) };
+                // recordScales = new Vector2[1] { new Vector2(1.0f, 1.0f) };
                 recordOffsets = new Vector2[1] { new Vector2(0.0f, 0.0f) };
                 singleFrameCount = 1;
             }
@@ -550,6 +552,12 @@ namespace DaggerfallWorkshop
                 return null;
             }
 
+            if (archive >= 1000)
+            {
+                border = 0;
+                dilate = false;
+            }
+
             int key = MakeTextureKey((short)archive, (byte)0, (byte)0, AtlasKeyGroup);
             if (materialDict.ContainsKey(key))
             {
@@ -585,7 +593,12 @@ namespace DaggerfallWorkshop
             settings.copyToOppositeBorder = copyToOppositeBorder;
 
             // Setup material
-            material.name = string.Format("TEXTURE.{0:000} [Atlas]", archive);
+            if (archive < 1000)
+                material.name = string.Format("TEXTURE.{0:000} [Atlas]", archive);
+            else if (archive < 10000)
+                material.name = string.Format("TEXTURE.{0:0000} [Atlas]", archive);
+            else material.name = string.Format("TEXTURE.{0:00000} [Atlas]", archive);
+
             GetTextureResults results = textureReader.GetTexture2DAtlas(settings, AlphaTextureFormat);
 
             material.mainTexture = results.albedoMap;
@@ -964,7 +977,7 @@ namespace DaggerfallWorkshop
         }
 
         public static void ReverseTextureKey(int key, out int archiveOut, out int recordOut, out int frameOut, int group = 0)
-        {
+        {            
             archiveOut = (key >> 16) - group;
             recordOut = (key >> 8) & 0xff;
             frameOut = key & 0xff;
@@ -984,7 +997,7 @@ namespace DaggerfallWorkshop
             }
 
             // Nature set type
-            if (archive >= 500 && archive <= 511)
+            if ((archive >= 500 && archive <= 511) || archive == 1030)
                 return FlatTypes.Nature;
 
             // Everything else is just decoration for now

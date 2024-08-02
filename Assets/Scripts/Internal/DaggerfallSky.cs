@@ -353,7 +353,7 @@ namespace DaggerfallWorkshop
                     break;
                 default:
                     // Season value enum ordered same as sky indices
-                    SkyIndex = LocalPlayerGPS.ClimateSettings.SkyBase + (int)dfUnity.WorldTime.Now.SeasonValue;
+                    SkyIndex = LocalPlayerGPS.ClimateSettings.SkyBase + (int)dfUnity.WorldTime.Now.ActualSeasonValue;
                     break;
             }
 
@@ -373,8 +373,8 @@ namespace DaggerfallWorkshop
             if (!IsNight)
             {
                 // Get value 0-1 for dawn through dusk
-                float dawn = DaggerfallDateTime.DawnHour * DaggerfallDateTime.MinutesPerHour;
-                float dayRange = DaggerfallDateTime.DuskHour * DaggerfallDateTime.MinutesPerHour - dawn;
+                float dawn = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.DawnHour;
+                float dayRange = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.DuskHour - dawn;
                 float time = (dfUnity.WorldTime.Now.MinuteOfDay - dawn) / dayRange;
 
                 // Set sky frame based on curve

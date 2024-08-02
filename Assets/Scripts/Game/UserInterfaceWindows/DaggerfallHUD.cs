@@ -13,6 +13,7 @@ using UnityEngine;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Utility;
+using DaggerfallConnect;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -176,7 +177,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             crosshair.Enabled = ShowCrosshair;
             vitals.Enabled = ShowVitals;
             breathBar.Enabled = ShowBreathBar;
-            compass.Enabled = ShowCompass;
+            if ((!GameManager.Instance.PlayerEnterExit.IsPlayerInside && GameManager.Instance.PlayerGPS.CheckSurvivalSkillPresence(GameManager.Instance.PlayerEntity.Career.ClimateSurvival)) ||
+                (GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeon && GameManager.Instance.PlayerGPS.CheckOrientationSkillPresenceDungeon(GameManager.Instance.PlayerEntity.Career)) ||
+                (GameManager.Instance.PlayerGPS.IsPlayerInLocationRect && GameManager.Instance.PlayerGPS.CheckOrientationSkillPresenceSettlement(GameManager.Instance.PlayerEntity.Career)))
+                compass.Enabled = ShowCompass;
+            else compass.Enabled = false;
             interactionModeIcon.Enabled = ShowInteractionModeIcon;
             placeMarker.Enabled = ShowLocalQuestPlaces;
             escortingFaces.EnableBorder = ShowEscortingFaces;

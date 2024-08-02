@@ -457,7 +457,7 @@ namespace DaggerfallWorkshop.Game.Questing
 
             // Get target location from place resource
             DFLocation location;
-            if (!WorldMaps.GetLocation(place.SiteDetails.regionName, place.SiteDetails.locationName, out location))
+            if (!WorldMaps.GetLocation(place.SiteDetails.tileIndex.ToString("00000"), place.SiteDetails.locationName, out location))
             {
                 Debug.LogErrorFormat("Could not find Quest Place {0}/{1}", place.SiteDetails.regionName, place.SiteDetails.locationName);
                 return 0;

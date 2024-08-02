@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Gavin Clayton (interkarma@dfworkshop.net)
-// Contributors:    
+// Contributors:    Arneb
 // 
 // Notes:
 //
@@ -15,6 +15,7 @@ using DaggerfallConnect.Arena2;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Entity;
+using DaggerfallConnect;
 
 namespace DaggerfallWorkshop.Game.Utility
 {
@@ -42,6 +43,10 @@ namespace DaggerfallWorkshop.Game.Utility
         float updateTimer = 0;
 
         FactionFile.FactionRaces populationRace;
+        int populationRaces;
+        int mainPopulationRace;
+        int secondaryPopulationRace;
+        int tertiaryPopulationRace;
 
         PlayerGPS playerGPS;
         DaggerfallLocation dfLocation;
@@ -90,8 +95,12 @@ namespace DaggerfallWorkshop.Game.Utility
             dfLocation = GetComponent<DaggerfallLocation>();
             cityNavigation = GetComponent<CityNavigation>();
 
-            // Get dominant race in locations climate zone
-            populationRace = playerGPS.ClimateSettings.People;
+            // Get dominant races in locations climate zone
+            // populationRace = playerGPS.ClimateSettings.People;
+            populationRaces = WorldData.WorldSetting.regionRaces[playerGPS.CurrentRegionIndex];
+            mainPopulationRace = populationRaces / 100;
+            secondaryPopulationRace = (populationRaces - mainPopulationRace) / 10;
+            tertiaryPopulationRace = populationRaces - (mainPopulationRace + secondaryPopulationRace);
 
             // Calculate maximum population
             int totalBlocks = dfLocation.Summary.BlockWidth * dfLocation.Summary.BlockHeight;
@@ -176,6 +185,7 @@ namespace DaggerfallWorkshop.Game.Utility
             bool suppressPopulationSpawns = racialOverride != null && racialOverride.SuppressPopulationSpawns;
 
             bool isDaytime = DaggerfallUnity.Instance.WorldTime.Now.IsDay;
+
             for (int i = 0; i < populationPool.Count; i++)
             {
                 PoolItem poolItem = populationPool[i];
@@ -199,7 +209,7 @@ namespace DaggerfallWorkshop.Game.Utility
                     }
                     else
                     {
-                        poolItem.npc.RandomiseNPC(GetEntityRace());
+                        poolItem.npc.RandomiseNPC();
                     }
 
                     poolItem.npc.Motor.InitMotor();
@@ -319,18 +329,85 @@ namespace DaggerfallWorkshop.Game.Utility
 
         Races GetEntityRace()
         {
-            // Convert factionfile race to entity race
-            // DFTFU is mostly isolated from game classes and does not know entity races
-            // Need to convert this into something the billboard can use
-            // Only Redguard, Nord, Breton have mobile NPC assets
-            switch(populationRace)
+            // {Convert factionfile race to entity race}
+            // {DFTFU is mostly isolated from game classes and does not know entity races}
+            // {Need to convert this into something the billboard can use}
+            // {Only Redguard, Nord, Breton have mobile NPC assets}
+            int populationSelected = UnityEngine.Random.Range(0, 100);
+
+            if (playerGPS.CurrentLocationType == DFRegion.LocationTypes.TownCity && playerGPS.CurrentLocation.Exterior.ExteriorData.PortTownAndUnknown != 0)
+            {
+                if (populationSelected < 40)
+                    populationSelected = mainPopulationRace;
+                else if (populationSelected < 65)
+                    populationSelected = secondaryPopulationRace;
+                else if (populationSelected < 85)
+                    populationSelected = tertiaryPopulationRace;
+                else
+                {
+                    populationSelected = UnityEngine.Random.Range(0, 10);
+                }
+            }
+            else if (playerGPS.CurrentLocationType == DFRegion.LocationTypes.TownCity)
+            {
+                if (populationSelected < 50)
+                    populationSelected = mainPopulationRace;
+                else if (populationSelected < 75)
+                    populationSelected = secondaryPopulationRace;
+                else if (populationSelected < 90)
+                    populationSelected = tertiaryPopulationRace;
+                else
+                {
+                    populationSelected = UnityEngine.Random.Range(0, 10);
+                }
+            }
+            else if (playerGPS.CurrentLocationType == DFRegion.LocationTypes.TownHamlet)
+            {
+                if (populationSelected < 75)
+                    populationSelected = mainPopulationRace;
+                else if (populationSelected < 90)
+                    populationSelected = secondaryPopulationRace;
+                else if (populationSelected < 98)
+                    populationSelected = tertiaryPopulationRace;
+                else
+                {
+                    populationSelected = UnityEngine.Random.Range(0, 10);
+                }
+            }
+            else{
+                populationSelected = UnityEngine.Random.Range(0, 100);
+                if (populationSelected < 90)
+                    populationSelected = mainPopulationRace;
+                else if (populationSelected < 96)
+                    populationSelected = secondaryPopulationRace;
+                else if (populationSelected < 99)
+                    populationSelected = tertiaryPopulationRace;
+                else
+                    populationSelected = UnityEngine.Random.Range(0, 10);
+            }
+
+            switch((FactionFile.FactionRaces)populationSelected)
             {
                 case FactionFile.FactionRaces.Redguard:
                     return Races.Redguard;
                 case FactionFile.FactionRaces.Nord:
                     return Races.Nord;
-                default:
+                case FactionFile.FactionRaces.DarkElf:
+                    return Races.DarkElf;
+                case FactionFile.FactionRaces.Argonian:
+                    return Races.Argonian;
+                case FactionFile.FactionRaces.HighElf:
+                    return Races.HighElf;
+                case FactionFile.FactionRaces.Imperial:
+                    return Races.Imperial;
+                case FactionFile.FactionRaces.Khajiit:
+                    return Races.Khajiit;
+                case FactionFile.FactionRaces.Orc:
+                    return Races.Orc;
+                case FactionFile.FactionRaces.WoodElf:
+                    return Races.WoodElf;
                 case FactionFile.FactionRaces.Breton:
+                default:
                     return Races.Breton;
             }
         }

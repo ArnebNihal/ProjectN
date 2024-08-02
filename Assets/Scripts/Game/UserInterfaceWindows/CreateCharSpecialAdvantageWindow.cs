@@ -68,9 +68,12 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             HardStrings.adrenalineRush,
             HardStrings.athleticism,
             HardStrings.bonusToHit,
+            HardStrings.climateSurvival,
             HardStrings.expertiseIn,
+            HardStrings.goodSoD,
             HardStrings.immunity,
             HardStrings.increasedMagery,
+            HardStrings.perfectSoD,
             HardStrings.rapidHealing,
             HardStrings.regenerateHealth,
             HardStrings.resistance,
@@ -88,7 +91,22 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             HardStrings.inabilityToRegen,
             HardStrings.lightPoweredMagery,
             HardStrings.lowTolerance,
-            HardStrings.phobia
+            HardStrings.phobia,
+            HardStrings.climateUncomfortable
+        };
+        string[] climateTypeStringKeys = new string[]
+        {
+            HardStrings.ocean,
+            HardStrings.desert,
+            HardStrings.desert2,
+            HardStrings.mountain,
+            HardStrings.rainforest,
+            HardStrings.swamp,
+            HardStrings.subtropical,
+            HardStrings.mountainWoods,
+            HardStrings.woodlands,
+            HardStrings.hauntedWoodlands,
+            HardStrings.maquis
         };
         string[] enemyTypeStringKeys = new string[]
         {
@@ -177,6 +195,17 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             HardStrings.kiteShield,
             HardStrings.roundShield,
             HardStrings.towerShield
+        };
+        string[] orientationStringKeys = new string[]
+        {
+            HardStrings.artificialCave,
+            HardStrings.aviary,
+            HardStrings.building,
+            HardStrings.community,
+            HardStrings.naturalCave,
+            HardStrings.nest,
+            HardStrings.settlement,
+            HardStrings.temple
         };
 
         #endregion
@@ -332,6 +361,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 case HardStrings.forbiddenWeaponry:
                     secondaryList = weaponTypeStringKeys;
                     break;
+                case HardStrings.climateSurvival:
+                case HardStrings.climateUncomfortable:
+                    secondaryList = climateTypeStringKeys;
+                    break;
                 case HardStrings.immunity:
                 case HardStrings.resistance:
                 case HardStrings.criticalWeakness:
@@ -386,6 +419,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 case HardStrings.lowTolerance:
                     secondaryList = effectTypeStringKeys;
                     break;
+                case HardStrings.goodSoD:
+                case HardStrings.perfectSoD:
+                    secondaryList = orientationStringKeys;
+                    break;
                 default:
                     break;
             }
@@ -428,14 +465,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             string primary = advDisList[advDisList.Count - 1].primaryStringKey;
             string secondaryKey = secondaryPicker.ListBox.GetItem(index).tag as string;
             SpecialAdvDis item = new SpecialAdvDis { primaryStringKey = primary, secondaryStringKey = secondaryKey, difficulty = GetAdvDisAdjustment(primary, secondaryKey) };
-            if (CannotAddAdvantage(item))
-            {
-                advDisList.RemoveAt(advDisList.Count - 1);
-                return;
-            }
-            advDisList[advDisList.Count - 1] = item;
-            UpdateLabels();
-            UpdateDifficultyAdjustment();
+                if (CannotAddAdvantage(item))
+                {
+                    advDisList.RemoveAt(advDisList.Count - 1);
+                    return;
+                }
+                advDisList[advDisList.Count - 1] = item;
+                UpdateLabels();
+                UpdateDifficultyAdjustment();
         }
 
         void SecondaryPicker_OnCancel(DaggerfallPopupWindow sender)
@@ -486,6 +523,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 case HardStrings.forbiddenWeaponry:
                 case HardStrings.lowTolerance:
                 case HardStrings.phobia:
+                case HardStrings.climateSurvival:
+                case HardStrings.climateUncomfortable:
                     return difficultyDict[primary];
                 default:
                     return difficultyDict[primary + secondary];
@@ -504,8 +543,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             for (int i = 0; i < advDisList.Count; i++)
             {
                 int j = -1;
-                while (advantageLabels[++j].Text != string.Empty)
-                    ;
+                while (advantageLabels[++j].Text != string.Empty);
                 advantageLabels[j].Text = TextManager.Instance.GetLocalizedText(advDisList[i].primaryStringKey);
                 advantageLabels[j].Tag = i;
                 if (advDisList[i].secondaryStringKey != string.Empty)
@@ -567,6 +605,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     return true;
                 if (IsMatchingAdvPair(HardStrings.expertiseIn, HardStrings.forbiddenWeaponry, advDis, adList[i]))
                     return true;
+                if (IsMatchingAdvPair(HardStrings.climateSurvival, HardStrings.climateUncomfortable, advDis, adList[i]))
+                    return true;
                 // No immunity, resistance, low tolerance, or critical weakness may co-exist
                 if (IsMatchingAdvPair(HardStrings.immunity, HardStrings.resistance, advDis, adList[i]))
                     return true;
@@ -579,6 +619,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 if (IsMatchingAdvPair(HardStrings.resistance, HardStrings.criticalWeakness, advDis, adList[i]))
                     return true;
                 if (IsMatchingAdvPair(HardStrings.lowTolerance, HardStrings.criticalWeakness, advDis, adList[i]))
+                    return true;
+                // No skilled+expert in the same orientation skill
+                if (IsMatchingAdvPair(HardStrings.goodSoD, HardStrings.perfectSoD, advDis, adList[i]))
                     return true;
             }
 
@@ -707,6 +750,198 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     }
                     break;
                 default:
+                    break;
+            }
+        }
+
+        void SetClimateSurvival(DFCareer.ClimateCompetence mod, string secondary)
+        {
+            switch (secondary)
+            {
+                case HardStrings.ocean:
+                    advantageData.Ocean = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Ocean;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Ocean;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.desert:
+                    advantageData.Desert = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Desert;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Desert;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.desert2:
+                    advantageData.Desert2 = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Desert2;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Desert2;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.mountain:
+                    advantageData.Mountain = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Mountain;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Mountain;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.rainforest:
+                    advantageData.Rainforest = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Rainforest;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Rainforest;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.swamp:
+                    advantageData.Swamp = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Swamp;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Swamp;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.subtropical:
+                    advantageData.Subtropical = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Subtropical;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Subtropical;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.mountainWoods:
+                    advantageData.MountainWoods = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.MountainWoods;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.MountainWoods;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.woodlands:
+                    advantageData.Woodlands = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Woodlands;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Woodlands;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.hauntedWoodlands:
+                    advantageData.HauntedWoodlands = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.HauntedWoodlands;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.HauntedWoodlands;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+                case HardStrings.maquis:
+                    advantageData.Maquis = mod;
+                    switch (mod)
+                    {
+                        case DFCareer.ClimateCompetence.Uncomfortable:
+                            advantageData.UncomfortableClimate |= DFCareer.ClimateSurvivalFlags.Maquis;
+                            break;
+                        case DFCareer.ClimateCompetence.Competent:
+                            advantageData.ClimateSurvival |= DFCareer.ClimateSurvivalFlags.Maquis;
+                            break;
+                        default:
+                            break;
+                    }
+                    break;
+            }
+        }
+
+        void SetOrientationSkill(DFCareer.OrientationCompetence mod, string secondary)
+        {
+            switch (secondary)
+            {
+                case HardStrings.artificialCave:
+                    advantageData.ArtificialCave = mod;
+                    break;
+                case HardStrings.aviary:
+                    advantageData.Aviary = mod;
+                    break;
+                case HardStrings.building:
+                    advantageData.Building = mod;
+                    break;
+                case HardStrings.community:
+                    advantageData.Community = mod;
+                    break;
+                case HardStrings.naturalCave:
+                    advantageData.NaturalCave = mod;
+                    break;
+                case HardStrings.nest:
+                    advantageData.Nest = mod;
+                    break;
+                case HardStrings.settlement:
+                    advantageData.Settlement = mod;
+                    break;
+                case HardStrings.temple:
+                    advantageData.Temple = mod;
                     break;
             }
         }
@@ -968,6 +1203,18 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     case HardStrings.forbiddenWeaponry:
                         SetProficiency(DFCareer.Proficiency.Forbidden, advDis.secondaryStringKey);
                         break;
+                    case HardStrings.climateUncomfortable:
+                        SetClimateSurvival(DFCareer.ClimateCompetence.Uncomfortable, advDis.secondaryStringKey);
+                        break;
+                    case HardStrings.climateSurvival:
+                        SetClimateSurvival(DFCareer.ClimateCompetence.Competent, advDis.secondaryStringKey);
+                        break;
+                    case HardStrings.goodSoD:
+                        SetOrientationSkill(DFCareer.OrientationCompetence.Good, advDis.secondaryStringKey);
+                        break;
+                    case HardStrings.perfectSoD:
+                        SetOrientationSkill(DFCareer.OrientationCompetence.Perfect, advDis.secondaryStringKey);
+                        break;
                     case HardStrings.immunity:
                         SetTolerance(DFCareer.Tolerance.Immune, advDis.secondaryStringKey);
                         break;
@@ -1039,6 +1286,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 { HardStrings.bonusToHit + HardStrings.humanoid, 6 },
                 { HardStrings.bonusToHit + HardStrings.undead, 6 },
                 { HardStrings.expertiseIn, 2 },
+                { HardStrings.climateSurvival, 6},
                 { HardStrings.immunity, 10 },
                 { HardStrings.increasedMagery + HardStrings.intInSpellPoints, 2 },
                 { HardStrings.increasedMagery + HardStrings.intInSpellPoints15, 4 },
@@ -1056,6 +1304,22 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 { HardStrings.spellAbsorption + HardStrings.general, 14 },
                 { HardStrings.spellAbsorption + HardStrings.inDarkness, 12 },
                 { HardStrings.spellAbsorption + HardStrings.inLight, 8 },
+                { HardStrings.goodSoD + HardStrings.aviary, 1 },
+                { HardStrings.perfectSoD + HardStrings.aviary, 5 },
+                { HardStrings.goodSoD + HardStrings.building, 4 },
+                { HardStrings.perfectSoD + HardStrings.building, 8 },
+                { HardStrings.goodSoD + HardStrings.artificialCave, 2 },
+                { HardStrings.perfectSoD + HardStrings.artificialCave, 6 },
+                { HardStrings.goodSoD + HardStrings.naturalCave, 2 },
+                { HardStrings.perfectSoD + HardStrings.naturalCave, 6 },
+                { HardStrings.goodSoD + HardStrings.community, 3 },
+                { HardStrings.perfectSoD + HardStrings.community, 7 },
+                { HardStrings.goodSoD + HardStrings.nest, 2 },
+                { HardStrings.perfectSoD + HardStrings.nest, 6 },
+                { HardStrings.goodSoD + HardStrings.settlement, 4 },
+                { HardStrings.perfectSoD + HardStrings.settlement, 8 },
+                { HardStrings.goodSoD + HardStrings.temple, 3 },
+                { HardStrings.perfectSoD + HardStrings.temple, 7 },
                 { HardStrings.criticalWeakness, -14 },
                 { HardStrings.damage + HardStrings.fromHolyPlaces, -6 },
                 { HardStrings.damage + HardStrings.fromSunlight, -10 },
@@ -1080,7 +1344,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 { HardStrings.lightPoweredMagery + HardStrings.lowerMagicAbilityDarkness, -10 },
                 { HardStrings.lightPoweredMagery + HardStrings.unableToUseMagicInDarkness, -14 },
                 { HardStrings.lowTolerance, -5 },
-                { HardStrings.phobia, -4 }
+                { HardStrings.phobia, -4 },
+                { HardStrings.climateUncomfortable, -3}
             };
         }
 

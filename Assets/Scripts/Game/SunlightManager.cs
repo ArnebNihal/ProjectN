@@ -107,8 +107,8 @@ namespace DaggerfallWorkshop.Game
             }
 
             // Get value 0-1 for dawn through dusk
-            float dawn = DaggerfallDateTime.DawnHour * DaggerfallDateTime.MinutesPerHour;
-            float dayRange = DaggerfallDateTime.DuskHour * DaggerfallDateTime.MinutesPerHour - dawn;
+            float dawn = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.DawnHour;
+            float dayRange = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.DuskHour - dawn;
             float time = (dfUnity.WorldTime.Now.MinuteOfDay - dawn) / dayRange;
 
             // Set angle of rotation based on time of day and user value

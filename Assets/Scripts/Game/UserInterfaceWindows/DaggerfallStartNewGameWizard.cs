@@ -44,6 +44,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         CreateCharClassQuestions createCharClassQuestionsWindow;
         CreateCharClassSelect createCharClassSelectWindow;
         CreateCharCustomClass createCharCustomClassWindow;
+        // CreateCharStartingLocation createCharStartingLocation;
         CreateCharChooseBio createCharChooseBioWindow;
         CreateCharBiography createCharBiographyWindow;
         CreateCharNameSelect createCharNameSelectWindow;

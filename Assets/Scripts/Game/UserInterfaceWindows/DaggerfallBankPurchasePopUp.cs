@@ -262,7 +262,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             // Apply current climate
             ClimateBases climateBase = ClimateSwaps.FromAPIClimateBase(GameManager.Instance.PlayerGPS.ClimateSettings.ClimateType);
-            ClimateSeason season = (DaggerfallUnity.WorldTime.Now.SeasonValue == DaggerfallDateTime.Seasons.Winter) ? ClimateSeason.Winter : ClimateSeason.Summer;
+            ClimateSeason season = (DaggerfallUnity.WorldTime.Now.ActualSeasonValue == DaggerfallDateTime.Seasons.Winter) ? ClimateSeason.Winter : ClimateSeason.Summer;
             DaggerfallMesh dfMesh = goModel.GetComponent<DaggerfallMesh>();
             dfMesh.SetClimate(climateBase, season, WindowStyle.Day);
         }

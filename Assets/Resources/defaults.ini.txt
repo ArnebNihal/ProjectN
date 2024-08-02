@@ -1,5 +1,5 @@
 [Daggerfall]
-MyDaggerfallPath=
+MyDaggerfallPath=/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2
 MyDaggerfallUnitySavePath=
 
 [Video]
@@ -131,7 +131,7 @@ JoystickDeadzone=0.1
 EnableController=True
 HeadBobbing=True
 Handedness=0
-WeaponAttackThreshold=0.005
+WeaponAttackThreshold=0.01
 WeaponSensitivity=1.0
 MovementAcceleration=False
 ToggleSneak=False
@@ -154,7 +154,7 @@ AutomapTempleColor=457DC3FF
 AutomapShopColor=BE5518FF
 AutomapTavernColor=557530FF
 AutomapHouseColor=453C28FF
-DungeonMicMapQoL=True
+DungeonMicMapQoL=False
 DunMicMapInnerColor=D487D0FF
 DunMicMapBorderColor=FAB403FF
 

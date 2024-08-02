@@ -11,9 +11,13 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using UnityEngine;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Serialization;
+using Newtonsoft.Json;
+using DaggerfallConnect.Arena2;
+using System.Linq;
 
 namespace DaggerfallWorkshop.Game.Utility
 {
@@ -24,7 +28,8 @@ namespace DaggerfallWorkshop.Game.Utility
     {
         #region Fields
 
-        const string nameGenFilename = "NameGen";
+        const string nameGenFilename = "NameGen.json";
+        const string mapPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps";
 
         Dictionary<BankTypes, NameBank> bankDict = null;
 
@@ -48,6 +53,8 @@ namespace DaggerfallWorkshop.Game.Utility
             Monster1,
             Monster2,
             Monster3,
+            Argonian,
+            BretonModern,
         }
 
         /// <summary>
@@ -122,11 +129,16 @@ namespace DaggerfallWorkshop.Game.Utility
                 case BankTypes.WoodElf:
                 case BankTypes.Khajiit:
                 case BankTypes.Imperial:
+                case BankTypes.BretonModern:
                     firstName = GetRandomFirstName(nameBank, gender);
                     break;
 
                 case BankTypes.Redguard:                                                // Redguards have just a single name
                     firstName = GetRandomRedguardName(nameBank, gender);
+                    break;
+                
+                case BankTypes.Argonian:
+                    firstName = GetRandomArgonianName(nameBank, gender);
                     break;
             }
 
@@ -145,6 +157,7 @@ namespace DaggerfallWorkshop.Game.Utility
 
             // Generate name by type
             NameBank nameBank = bankDict[type];
+            Debug.Log("BankTypes: " + type.ToString());
             string lastName = string.Empty;
             switch (type)
             {
@@ -154,6 +167,7 @@ namespace DaggerfallWorkshop.Game.Utility
                 case BankTypes.WoodElf:
                 case BankTypes.Khajiit:
                 case BankTypes.Imperial:
+                case BankTypes.BretonModern:
                     lastName = GetRandomSurname(nameBank);
                     break;
 
@@ -283,6 +297,222 @@ namespace DaggerfallWorkshop.Game.Utility
             return stringA + stringB + stringC + stringD;
         }
 
+        // Argonian name can be one word Jel, two words Jel with or without hyphen, Tamrielic
+        // cfr. https://en.uesp.net/wiki/Lore:Argonian_Names
+        string GetRandomArgonianName(NameBank nameBank, Genders gender)
+        {
+            string[] partsA, partsB, partsC, partsD;
+            string stringA, stringB, stringC, stringD;
+            string hyphen;
+            string resultName;
+            int argNameType = UnityEngine.Random.Range(0, 3);
+            int randomSet;
+            uint index;
+
+            switch(argNameType)
+            {
+                // Single word Jel
+                case 0:
+                    return GetRandomJelName(nameBank, gender);
+
+                // Two words Jel
+                case 1:
+                    int twoWordStructure = UnityEngine.Random.Range(0, 4);
+                    char[] sB;
+
+                    switch (twoWordStructure)
+                    {                        
+                        case 0: // Part + Part
+                            randomSet = UnityEngine.Random.Range(0, 1);
+                            if (randomSet == 1 && gender == Genders.Female)
+                                randomSet++;
+                            partsA = nameBank.sets[randomSet].parts;
+                            if (gender == Genders.Male)
+                                partsB = nameBank.sets[1].parts;
+                            else partsB = nameBank.sets[2].parts;
+
+                            stringA = string.Empty;
+
+                            do{
+                                index = DFRandom.rand() % (uint)partsA.Length;
+                                stringA = partsA[index];
+                            }
+                            while (stringA.Length < 2);
+
+                            index = DFRandom.rand() % (uint)partsB.Length;
+                            stringB = partsB[index];
+
+                            sB = stringB.ToCharArray();
+                            sB[0] = char.ToUpper(sB[0]);
+
+                            if (DFRandom.rand() % 100 < 75)
+                                hyphen = "-";
+                            else hyphen = " ";
+
+                            resultName = stringA + hyphen + new string(sB);
+                            return resultName;
+
+                        case 1: // Complete + Part
+                            stringA = GetRandomJelName(nameBank, gender);
+                            stringB = string.Empty;
+
+                            if (gender == Genders.Male)
+                                partsB = nameBank.sets[1].parts;
+                            else partsB = nameBank.sets[2].parts;
+
+                            do{
+                                index = DFRandom.rand() % (uint)partsB.Length;
+                                stringB = partsB[index];
+                            }
+                            while (stringB.Length < 2);
+
+                            sB = stringB.ToCharArray();
+                            sB[0] = char.ToUpper(sB[0]);
+
+                            if (DFRandom.rand() % 100 < 75)
+                                hyphen = "-";
+                            else hyphen = " ";
+
+                            resultName = stringA + hyphen + new string(sB);
+                            return resultName;
+
+                        case 2: // Part + Complete
+                            partsA = nameBank.sets[0].parts;
+                            do{
+                                index = DFRandom.rand() % (uint)partsA.Length;
+                                stringA = partsA[index];
+                            }
+                            while (stringA.Length < 2);
+
+                            stringB = GetRandomJelName(nameBank, gender);
+
+                            if (DFRandom.rand() % 100 < 75)
+                                hyphen = "-";
+                            else hyphen = " ";
+
+                            resultName = stringA + hyphen + stringB;
+                            return resultName;
+
+                        case 3: // Complete + Complete
+                            stringA = GetRandomJelName(nameBank, gender);
+                            stringB = GetRandomJelName(nameBank, gender);
+
+                            if (DFRandom.rand() % 100 < 75)
+                                hyphen = "-";
+                            else hyphen = " ";
+
+                            resultName = stringA + hyphen + stringB;
+                            return resultName;
+                    }
+                    break;
+
+                case 2: // Tamrielic
+                    int tamrielicStructure = UnityEngine.Random.Range(0, 2);
+                    stringA = stringD = string.Empty;
+                    if (DFRandom.rand() % 100 < 5)
+                        stringA = GetRandomJelName(nameBank, gender);
+
+                    if (tamrielicStructure == 0)    // Verb name
+                    {
+                        int verbNameStructure = UnityEngine.Random.Range(0, (nameBank.sets[3].parts.Length + nameBank.sets[5].parts.Length));
+                        if (verbNameStructure <= nameBank.sets[3].parts.Length) // Prefix + Verb
+                        {
+                            partsB = nameBank.sets[3].parts;
+                            partsC = nameBank.sets[4].parts;
+
+                            stringB = partsB[DFRandom.rand() % (uint)partsB.Length];
+                            stringC = partsC[DFRandom.rand() % (uint)partsC.Length];
+
+                            if (gender == Genders.Female && stringB.Contains("He-"))
+                                stringB = stringB.Replace("He", "She");
+                        }
+                        else if (verbNameStructure <= nameBank.sets[5].parts.Length)    // Verb + Suffix
+                        {
+                            partsB = nameBank.sets[4].parts;
+                            partsC = nameBank.sets[5].parts;
+
+                            stringB = partsB[DFRandom.rand() % (uint)partsB.Length];
+                            stringC = partsC[DFRandom.rand() % (uint)partsC.Length];
+
+                            if (gender == Genders.Female)
+                            {
+                                if (stringC.Contains("Him"))
+                                    stringC = stringC.Replace("Him", "Her");
+                                if (stringC.Contains("His"))
+                                    stringC = stringC.Replace("His", "Her");
+                            }
+                        }
+                        else    // Prefix + Verb + Suffix
+                        {
+                            partsB = nameBank.sets[3].parts;
+                            partsC = nameBank.sets[4].parts;
+                            partsD = nameBank.sets[5].parts;
+
+                            stringB = partsB[DFRandom.rand() % (uint)partsB.Length];
+                            stringC = partsC[DFRandom.rand() % (uint)partsC.Length];
+                            stringD = partsD[DFRandom.rand() % (uint)partsD.Length];
+
+                            if (gender == Genders.Female && stringB.Contains("He-"))
+                                stringB = stringB.Replace("He", "She");
+                            if (gender == Genders.Female)
+                            {
+                                if (stringD.Contains("Him"))
+                                    stringD = stringD.Replace("Him", "Her");
+                                if (stringD.Contains("His"))
+                                    stringD = stringD.Replace("His", "Her");
+                            }
+                        }
+
+                        if (stringA != "" && stringD != "")
+                            return stringA + " " + stringB + stringC + stringD;
+                        else if (stringA != "")
+                            return stringA + " " + stringB + stringC;
+                        else if (stringD != "")
+                            return stringB + stringC + stringD;
+                        else return stringB + stringC;
+                    }
+                    else
+                    {
+                        partsB = nameBank.sets[6].parts;
+                        partsC = nameBank.sets[7].parts;
+
+                        stringB = partsB[DFRandom.rand() % (uint)partsB.Length];
+                        stringC = partsC[DFRandom.rand() % (uint)partsC.Length];
+
+                        if (stringA != "")
+                            return stringA + " " + stringB + "-" + stringC;
+                        else return stringB + "-" + stringC;
+                    }
+            }
+
+            return string.Empty;
+        }
+
+        string GetRandomJelName(NameBank nameBank, Genders gender)
+        {
+            string[] partsA, partsB, partsC, partsD;
+            string resultName;
+
+            partsA = nameBank.sets[0].parts;
+            if (gender == Genders.Male)
+                partsB = nameBank.sets[1].parts;
+            else partsB = nameBank.sets[2].parts;
+
+            do
+            {
+                uint index = DFRandom.rand() % (uint)partsA.Length;
+                string stringA = partsA[index];
+
+                index = DFRandom.rand() % (uint)partsB.Length;
+                string stringB = partsB[index];
+
+                resultName = stringA + stringB;
+            }
+            while (resultName.Length < 3);
+
+            return resultName;
+        }
+
         // Get random monster name.
         // Monster1: 0+(50% +1)+2
         // Monster2: 0+(50% +1)+2+(if female, +3)
@@ -370,9 +600,8 @@ namespace DaggerfallWorkshop.Game.Utility
         {
             try
             {
-                TextAsset nameGenText = Resources.Load<TextAsset>(nameGenFilename) as TextAsset;
-                bankDict = SaveLoadManager.Deserialize(typeof(Dictionary<BankTypes, NameBank>), nameGenText.text) as Dictionary<BankTypes, NameBank>;
-            }
+                bankDict = JsonConvert.DeserializeObject<Dictionary<BankTypes, NameBank>>(File.ReadAllText(Path.Combine(mapPath, nameGenFilename)));
+            }            
             catch
             {
                 Debug.Log("Could not load NameGen database from Resources. Check file exists and is in correct format.");

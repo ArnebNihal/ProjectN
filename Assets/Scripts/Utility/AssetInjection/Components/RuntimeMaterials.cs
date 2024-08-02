@@ -166,7 +166,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
 
                 DFLocation.ClimateBaseType climateBaseType = GameManager.Instance.PlayerGPS.ClimateSettings.ClimateType;
                 ClimateBases climate = ClimateSwaps.FromAPIClimateBase(climateBaseType);
-                ClimateSeason season = DaggerfallUnity.Instance.WorldTime.Now.SeasonValue == DaggerfallDateTime.Seasons.Winter ? ClimateSeason.Winter : ClimateSeason.Summer;
+                ClimateSeason season = DaggerfallUnity.Instance.WorldTime.Now.ActualSeasonValue == DaggerfallDateTime.Seasons.Winter ? ClimateSeason.Winter : ClimateSeason.Summer;
 
                 Material[] materials = meshRenderer.sharedMaterials;
                 for (int i = 0; i < Materials.Length; i++)

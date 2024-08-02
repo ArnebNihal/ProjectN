@@ -491,6 +491,77 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (career.Disease != DFCareer.Tolerance.Normal)
                 specials.Add(tolerances[career.Disease] + " " + TextManager.Instance.GetLocalizedText(HardStrings.toDisease));
 
+            // Survival Skills
+            Dictionary<DFCareer.ClimateCompetence, string> survival = new Dictionary<DFCareer.ClimateCompetence, string>
+            {
+                { DFCareer.ClimateCompetence.Uncomfortable, TextManager.Instance.GetLocalizedText(HardStrings.climateUncomfortable) },
+                { DFCareer.ClimateCompetence.Competent, TextManager.Instance.GetLocalizedText(HardStrings.climateSurvival) },
+            };
+
+            if (career.Ocean != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Ocean] + " " + TextManager.Instance.GetLocalizedText(HardStrings.ocean));
+
+            if (career.Desert != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Desert] + " " + TextManager.Instance.GetLocalizedText(HardStrings.desert));
+
+            if (career.Desert2 != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Desert2] + " " + TextManager.Instance.GetLocalizedText(HardStrings.desert2));
+
+            if (career.Mountain != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Mountain] + " " + TextManager.Instance.GetLocalizedText(HardStrings.mountain));
+
+            if (career.Rainforest != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Rainforest] + " " + TextManager.Instance.GetLocalizedText(HardStrings.rainforest));
+
+            if (career.Swamp != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Swamp] + " " + TextManager.Instance.GetLocalizedText(HardStrings.swamp));
+
+            if (career.Subtropical != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Subtropical] + " " + TextManager.Instance.GetLocalizedText(HardStrings.subtropical));
+
+            if (career.MountainWoods != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.MountainWoods] + " " + TextManager.Instance.GetLocalizedText(HardStrings.mountainWoods));
+            
+            if (career.Woodlands != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Woodlands] + " " + TextManager.Instance.GetLocalizedText(HardStrings.woodlands));
+
+            if (career.HauntedWoodlands != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.HauntedWoodlands] + " " + TextManager.Instance.GetLocalizedText(HardStrings.hauntedWoodlands));
+
+            if (career.Maquis != DFCareer.ClimateCompetence.Normal)
+                specials.Add(survival[career.Maquis] + " " + TextManager.Instance.GetLocalizedText(HardStrings.maquis));
+
+            // Orientation Skills
+            Dictionary<DFCareer.OrientationCompetence, string> orientation = new Dictionary<DFCareer.OrientationCompetence, string>
+            {
+                { DFCareer.OrientationCompetence.Good, TextManager.Instance.GetLocalizedText(HardStrings.goodSoD) },
+                { DFCareer.OrientationCompetence.Perfect, TextManager.Instance.GetLocalizedText(HardStrings.perfectSoD)}
+            };
+
+            if (career.ArtificialCave != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.ArtificialCave] + " " + TextManager.Instance.GetLocalizedText(HardStrings.artificialCave));
+
+            if (career.Aviary != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.Aviary] + " " + TextManager.Instance.GetLocalizedText(HardStrings.aviary));
+
+            if (career.Building != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.Building] + " " + TextManager.Instance.GetLocalizedText(HardStrings.building));
+
+            if (career.Community != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.Community] + " " + TextManager.Instance.GetLocalizedText(HardStrings.community));
+
+            if (career.NaturalCave != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.NaturalCave] + " " + TextManager.Instance.GetLocalizedText(HardStrings.naturalCave));
+
+            if (career.Nest != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.Nest] + " " + TextManager.Instance.GetLocalizedText(HardStrings.nest));
+
+            if (career.Settlement != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.Settlement] + " " + TextManager.Instance.GetLocalizedText(HardStrings.settlement));
+
+            if (career.Temple != DFCareer.OrientationCompetence.Normal)
+                specials.Add(orientation[career.Temple] + " " + TextManager.Instance.GetLocalizedText(HardStrings.temple));
+
             // Weapon Proficiencies
             Dictionary<DFCareer.Proficiency, string> profs = new Dictionary<DFCareer.Proficiency, string>
             {

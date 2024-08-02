@@ -36,32 +36,14 @@ MonoBehaviour:
     m_SerializedLabels:
     - Locale-en
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 370845e8f09a49047b19bb35ace82148
-    m_Address: Internal_Settings_en
+  - m_GUID: 891546bc4f66d9243b35152bd1ac06a7
+    m_Address: Internal_RSC_en
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-en
     FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 4c34c3fc483eec543b6d4b1c00ba4d14
-    m_Address: Internal_Spells_en
-    m_ReadOnly: 1
-    m_SerializedLabels:
-    - Locale-en
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 524dc306a656baf4f8f2659fff946a7e
-    m_Address: Internal_Items_en
-    m_ReadOnly: 1
-    m_SerializedLabels:
-    - Locale-en
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 5bf75379373c11b48a5eec8eb18ef3bb
-    m_Address: Internal_MagicItems_en
-    m_ReadOnly: 1
-    m_SerializedLabels:
-    - Locale-en
-    FlaggedDuringContentUpdateRestriction: 0
-  - m_GUID: 342c389699bc9a74da46f47afb5ed51c
-    m_Address: Internal_Factions_en
+  - m_GUID: 01ee95e96643d4444ab5d1917fd122f2
+    m_Address: Internal_Strings_en
     m_ReadOnly: 1
     m_SerializedLabels:
     - Locale-en

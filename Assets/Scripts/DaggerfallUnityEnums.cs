@@ -4,7 +4,7 @@
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
 // Source Code:     https://github.com/Interkarma/daggerfall-unity
 // Original Author: Gavin Clayton (interkarma@dfworkshop.net)
-// Contributors:    
+// Contributors:    Arneb
 // 
 // Notes:
 //
@@ -66,14 +66,31 @@ namespace DaggerfallWorkshop
     /// </summary>
     public enum GovernmentType
     {
-            Kingdom = 1,
-            Duchy = 2,
-            March = 3,
-            County = 4,
-            Barony = 5,
-            Fiefdom = 6,
-            Empire = 7,
-        }
+        None = 0,
+        Kingdom = 1,
+        Duchy = 2,
+        March = 3,
+        County = 4,
+        Barony = 5,
+        Fiefdom = 6,
+        Empire = 7,
+    }
+
+    /// <summary>
+    /// Province names. These will get used in the near future, I guess.
+    /// </summary>
+    public enum ProvinceNames
+    {
+        HighRock = 1,
+        Hammerfell = 2,
+        Skyrim = 3,
+        Morrowind = 4,
+        Cyrodiil = 5,
+        Sumurset = 6,
+        Valenwood = 7,
+        Elsweyr = 8,
+        BlackMarsh = 9
+    }
 
     /// <summary>
     /// Base types for climate-aware texture sets.
@@ -84,6 +101,7 @@ namespace DaggerfallWorkshop
         Mountain,
         Temperate,
         Swamp,
+        Maquis
     }
 
     /// <summary>
@@ -138,6 +156,7 @@ namespace DaggerfallWorkshop
         //SnowHauntedWoodlands,  // TEXTURE.509
         Mountains,               // TEXTURE.510
         //SnowMountains,         // TEXTURE.511
+        Maquis,                  // TEXTURE.1030
     }
 
     public enum DungeonTextureUse

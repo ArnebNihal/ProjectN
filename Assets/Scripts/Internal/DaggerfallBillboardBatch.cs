@@ -18,6 +18,7 @@ using Unity.Collections;
 using Unity.Jobs;
 using Unity.Mathematics;
 using DaggerfallConnect.Arena2;
+using DaggerfallWorkshop.Utility;
 
 namespace DaggerfallWorkshop
 {
@@ -57,7 +58,7 @@ namespace DaggerfallWorkshop
         [System.NonSerialized, HideInInspector]
         public Vector3 BlockOrigin = Vector3.zero;
 
-        [Range(0, 511)]
+        [Range(0, 1030)]
         public int TextureArchive = 504;
         [Range(0, 30)]
         public float FramesPerSecond = 0;
@@ -290,11 +291,23 @@ namespace DaggerfallWorkshop
             ___getMaterialAtlas.Begin();
             // Just going to steal texture and settings
             // TODO: Revise material loading for custom shaders
-            Material material = dfUnity.MaterialReader.GetMaterialAtlas(
+            Material material;
+            if (archive >= 1030)
+            {
+                material = dfUnity.MaterialReader.GetMaterialAtlas(
+                archive, 0, 0, size,
+                out Rect[] atlasRects, out RecordIndex[] atlasIndices,
+                0, true, 0, false, true
+                );
+            }
+            else
+            {
+                material = dfUnity.MaterialReader.GetMaterialAtlas(
                 archive, 0, 4, size,
                 out Rect[] atlasRects, out RecordIndex[] atlasIndices,
                 4, true, 0, false, true
-            );
+                );
+            }
             ___getMaterialAtlas.End();
 
             // Serialize cached material information
@@ -416,7 +429,7 @@ namespace DaggerfallWorkshop
         {
             AddItem(item.textureRecord, item.localPosition);
         }
-        /// <inheritdoc />
+        /// <inheritdoc/>
         [System.Obsolete("Use " + nameof(AddItemsAsync) + " instead. Reason: billboards are never added in amount of one.")]
         public void AddItem(int record, Vector3 localPosition)
         {
@@ -656,8 +669,8 @@ namespace DaggerfallWorkshop
             SetMaterial(TextureArchive, true);
             Clear();
 
-            // Set min record - nature flats will ignore marker index 0
-            int minRecord = (TextureArchive < 500) ? 0 : 1;
+            // Set min record - vanilla nature flats will ignore marker index 0, but new nature flats won't
+            int minRecord = (TextureArchive < 500 || TextureArchive >= 1030) ? 0 : 1;
             int maxRecord = cachedMaterial.atlasIndices.Length;
 
             NativeArray<BasicInfo> items = new NativeArray<BasicInfo>(RandomDepth * RandomWidth, Allocator.TempJob);

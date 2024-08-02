@@ -32,6 +32,7 @@ namespace DaggerfallWorkshop
         public float TimeScale = 12f;
         public bool ShowDebugString = false;
 
+        int lastDailyMinute;
         int lastHour;
         int lastDay;
         int lastMonth;
@@ -51,6 +52,7 @@ namespace DaggerfallWorkshop
         void Start()
         {
             // Init time change trackers to start time
+            lastDailyMinute = DaggerfallDateTime.MinuteOfDay;
             lastHour = DaggerfallDateTime.Hour;
             lastDay = DaggerfallDateTime.Day;
             lastMonth = DaggerfallDateTime.Month;
@@ -83,13 +85,13 @@ namespace DaggerfallWorkshop
         void RaiseEvents()
         {
             // Dawn event
-            if (lastHour != DaggerfallDateTime.DawnHour && DaggerfallDateTime.Hour == DaggerfallDateTime.DawnHour)
+            if (lastDailyMinute != DaggerfallDateTime.DawnHour && DaggerfallDateTime.Minute == DaggerfallDateTime.DawnHour)
             {
                 RaiseOnDawnEvent();
             }
 
             // Dusk event
-            if (lastHour != DaggerfallDateTime.DuskHour && DaggerfallDateTime.Hour == DaggerfallDateTime.DuskHour)
+            if (lastDailyMinute != DaggerfallDateTime.DuskHour && DaggerfallDateTime.Minute == DaggerfallDateTime.DuskHour)
             {
                 RaiseOnDuskEvent();
             }
@@ -107,13 +109,13 @@ namespace DaggerfallWorkshop
             }
 
             // City lights on event
-            if (lastHour != DaggerfallDateTime.LightsOnHour && DaggerfallDateTime.Hour == DaggerfallDateTime.LightsOnHour)
+            if (lastDailyMinute != DaggerfallDateTime.LightsOnHour && DaggerfallDateTime.MinuteOfDay == DaggerfallDateTime.LightsOnHour)
             {
                 RaiseOnCityLightsOnEvent();
             }
 
             // City lights off event
-            if (lastHour != DaggerfallDateTime.LightsOffHour && DaggerfallDateTime.Hour == DaggerfallDateTime.LightsOffHour)
+            if (lastDailyMinute != DaggerfallDateTime.LightsOffHour && DaggerfallDateTime.MinuteOfDay == DaggerfallDateTime.LightsOffHour)
             {
                 RaiseOnCityLightsOffEvent();
             }

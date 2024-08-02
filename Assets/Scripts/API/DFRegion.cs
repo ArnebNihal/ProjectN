@@ -45,7 +45,7 @@ namespace DaggerfallConnect
         public RegionMapTable[] MapTable;
 
         /// <summary>
-        /// Dictionary to find map index from MapID.
+        /// Dictionary to find map index from ID.
         /// </summary>
         public Dictionary<ulong, int> MapIdLookup;
 

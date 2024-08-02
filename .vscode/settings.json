@@ -99,5 +99,6 @@
             ],
             "url": "/Assets/Editor/.Schemas/SpellIcons.schema.json"
         }
-    ]
+    ],
+    "dotnet.server.useOmnisharp": true
 }
