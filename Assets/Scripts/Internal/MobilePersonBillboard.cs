@@ -313,6 +313,7 @@ namespace DaggerfallWorkshop
             {
                 textures = GetTextureNumber(race, climate, season, gender);
                 personVariant = UnityEngine.Random.Range(0, textures.Length);
+                Debug.Log("textures[personVariant]: " + textures[personVariant]);
             }
 
             // Setup person rendering
@@ -517,9 +518,8 @@ namespace DaggerfallWorkshop
             else if (File.Exists(Path.Combine(WorldMaps.mapPath, "Textures", TextureFile.IndexToFileName(textureArchive))))
                 path = Path.Combine(WorldMaps.mapPath, "Textures", TextureFile.IndexToFileName(textureArchive));
             else path = Path.Combine(WorldMaps.mapPath, "Textures", TextureFile.IndexToFileName(textureArchive).Substring(0, 13) + "00");
-            Debug.Log("path: " + path);
+
             TextureFile textureFile = new TextureFile(path, FileUsage.UseMemory, true);
-            Debug.Log("textureFile.RecordCount: " + textureFile.RecordCount);
 
             // Cache size and scale for each record
             recordSizes = new Vector2[textureFile.RecordCount];
@@ -670,7 +670,6 @@ namespace DaggerfallWorkshop
                     meshRenderer = GetComponent<MeshRenderer>();
 
                 // Assign imported texture
-                Debug.Log("record: " + record);
                 meshRenderer.sharedMaterial.mainTexture = importedTextures.Albedo[record][currentFrame];
                 if (importedTextures.IsEmissive)
                     meshRenderer.material.SetTexture(Uniforms.EmissionMap, importedTextures.EmissionMaps[record][currentFrame]);
@@ -696,7 +695,6 @@ namespace DaggerfallWorkshop
             else
             {
                 // Daggerfall Atlas: Update UVs on mesh
-                Debug.Log("atlasRects.Length: " + atlasRects.Length + ", atlasIndices.Length: " + atlasIndices.Length + "record: " + record);
                 Rect rect = atlasRects[atlasIndices[record].startIndex + currentFrame];
                 Vector2[] uvs = new Vector2[4];
                 if (flip)
@@ -740,7 +738,6 @@ namespace DaggerfallWorkshop
             }
 
             // Assign number number of frames per anim
-            Debug.Log("anims.Length: " + anims.Length + ", recordFrames.Length: " + recordFrames.Length);
             for (int i = 0; i < anims.Length; i++)
                 anims[i].NumFrames = recordFrames[anims[i].Record];
 

@@ -481,6 +481,16 @@ namespace DaggerfallWorkshop.Utility
                     return TextManager.Instance.GetLocalizedText("archery");
                 case DFCareer.Skills.CriticalStrike:
                     return TextManager.Instance.GetLocalizedText("criticalStrike");
+                case DFCareer.Skills.LightArmour:
+                    return TextManager.Instance.GetLocalizedText("lightArm");
+                case DFCareer.Skills.MediumArmour:
+                    return TextManager.Instance.GetLocalizedText("mediumArm");
+                case DFCareer.Skills.HeavyArmour:
+                    return TextManager.Instance.GetLocalizedText("heavyArm");
+                case DFCareer.Skills.Block:
+                    return TextManager.Instance.GetLocalizedText("block");
+                case DFCareer.Skills.Disguise:
+                    return TextManager.Instance.GetLocalizedText("disguise");
                 default:
                     return string.Empty;
             }

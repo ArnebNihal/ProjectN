@@ -170,7 +170,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             // Roll bonus pool for player to distribute
             // Using maxBonusPool + 1 for inclusive range as above
-            int bonusPool = UnityEngine.Random.Range(minBonusPool, maxBonusPool + 1);
+            int bonusPool = 0;
+            // int bonusPool = UnityEngine.Random.Range(minBonusPool, maxBonusPool + 1);
 
             // Apply stats to control
             SetStats(rolledStats, rolledStats, bonusPool);

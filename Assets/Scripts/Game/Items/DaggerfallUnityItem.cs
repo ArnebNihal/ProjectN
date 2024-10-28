@@ -1063,6 +1063,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// <summary>
         /// Get body parts protected by a shield.
         /// </summary>
+        // TODO: maybe differentiate between round and kite body parts?
         public virtual BodyParts[] GetShieldProtectedBodyParts()
         {
             switch (TemplateIndex)

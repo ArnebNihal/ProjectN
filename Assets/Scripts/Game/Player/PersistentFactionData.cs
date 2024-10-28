@@ -809,9 +809,9 @@ namespace DaggerfallWorkshop.Game.Player
         {
             if (faction1.region != -1 && faction2.region != -1)
             {
-                for (int i = 0; i < 11; ++i)
+                for (int i = 0; i < 20; ++i)
                 {
-                    if (WorldData.WorldSetting.regionBorders[(11 * faction1.region) + i] == faction2.region)
+                    if (WorldData.WorldSetting.regionBorders[(20 * faction1.region) + i] == faction2.region)
                         return true;
                 }
             }

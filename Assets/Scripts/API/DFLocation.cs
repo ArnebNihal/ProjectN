@@ -76,6 +76,16 @@ namespace DaggerfallConnect
         public int RegionIndex;
 
         /// <summary>
+        /// Relative tile index
+        /// </summary>
+        public int RelTileIndex;
+
+        /// <summary>
+        /// Absolute tile index
+        /// </summary>
+        public int AbsTileIndex;
+
+        /// <summary>
         /// Location index.
         /// </summary>
         public int LocationIndex;

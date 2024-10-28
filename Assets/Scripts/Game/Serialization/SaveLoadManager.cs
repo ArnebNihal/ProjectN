@@ -24,6 +24,7 @@ using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallWorkshop.Game.Player;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using DaggerfallConnect.Arena2;
 
 namespace DaggerfallWorkshop.Game.Serialization
 {
@@ -885,17 +886,21 @@ namespace DaggerfallWorkshop.Game.Serialization
             };
         }
 
-        HouseData_v1[] GetHousesData()
+        List<HouseData_v1>[] GetHousesData()
         {
-            List<HouseData_v1> records = new List<HouseData_v1>();
-            foreach (var record in DaggerfallBankManager.Houses)
+            List<HouseData_v1>[] records = new List<HouseData_v1>[WorldData.WorldSetting.RegionNames.Length];
+            for (int i = 0; i < WorldData.WorldSetting.RegionNames.Length; i++)
             {
-                if (record == null)
-                    continue;
-                else if (record.mapID == 0 && record.buildingKey == 0)
-                    continue;
-                else
-                    records.Add(record);
+                records[i] = new List<HouseData_v1>();
+                foreach (var record in DaggerfallBankManager.Houses[i])
+                {
+                    if (record == null)
+                        continue;
+                    else if (record.mapID == 0 && record.buildingKey == 0)
+                        continue;
+                    else
+                        records[i].Add(record);
+                }
             }
             return records.ToArray();
         }
@@ -996,7 +1001,7 @@ namespace DaggerfallWorkshop.Game.Serialization
                 RestoreHousesData(deedData.houses);
         }
 
-        void RestoreHousesData(HouseData_v1[] housesData)
+        void RestoreHousesData(List<HouseData_v1>[] housesData)
         {
             DaggerfallBankManager.SetupHouses();
 
@@ -1005,10 +1010,13 @@ namespace DaggerfallWorkshop.Game.Serialization
 
             for (int i = 0; i < housesData.Length; i++)
             {
-                if (housesData[i].regionIndex < 0 || housesData[i].regionIndex >= DaggerfallBankManager.Houses.Length)
-                    continue;
+                foreach (HouseData_v1 house in housesData[i])
+                {
+                    if (house.regionIndex < 0 || house.regionIndex >= DaggerfallBankManager.Houses.Length)
+                        continue;
 
-                DaggerfallBankManager.Houses[housesData[i].regionIndex] = housesData[i];
+                    DaggerfallBankManager.Houses[i].Add(house);
+                }
             }
         }
 

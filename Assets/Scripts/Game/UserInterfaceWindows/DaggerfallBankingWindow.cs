@@ -439,6 +439,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         void SellHouseButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
         {
+            // TODO: implement multiple house choice screen as in IBRE, for now I'll put a placeholder to not generate an error
             DaggerfallUI.Instance.PlayOneShot(SoundClips.ButtonClick);
             if (DaggerfallBankManager.OwnsHouse)
             {
@@ -446,7 +447,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 if (buildingDirectory)
                 {
                     BuildingSummary house;
-                    if (buildingDirectory.GetBuildingSummary(DaggerfallBankManager.OwnedHouseKey, out house))
+                    // if (buildingDirectory.GetBuildingSummary(DaggerfallBankManager.OwnedHouseKey, out house))
+                    //     GeneratePopup(TransactionResult.SELL_HOUSE_OFFER, DaggerfallBankManager.GetHouseSellPrice(house));
+
+                    if (buildingDirectory.GetBuildingSummary(0, out house))
                         GeneratePopup(TransactionResult.SELL_HOUSE_OFFER, DaggerfallBankManager.GetHouseSellPrice(house));
                 }
             }

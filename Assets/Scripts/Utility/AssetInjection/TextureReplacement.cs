@@ -541,10 +541,8 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             if (!DaggerfallUnity.Settings.AssetInjection)
                 return null;
 
-            Debug.Log("Pre archive: " + archive);
             if (archive >= 50000)
                 archive = archive / 100 * 100;
-            Debug.Log("Post archive: " + archive);
 
             Texture2D tex, emission;
             if (importedTextures.HasImportedTextures = LoadFromCacheOrImport(archive, 0, 0, true, true, out tex, out emission))

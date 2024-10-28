@@ -12,6 +12,7 @@
 using UnityEngine;
 using System;
 using System.IO;
+using System.Collections.Generic;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Utility;
 using DaggerfallConnect.Save;
@@ -119,23 +120,29 @@ namespace DaggerfallWorkshop.Game.Banking
 
         #region Houses:
 
-        private static HouseData_v1[] houses;
+        private static List<HouseData_v1>[] houses;
 
-        public static bool OwnsHouse { get { return Houses[GameManager.Instance.PlayerGPS.CurrentLocation.RegionIndex].buildingKey > 0; } }
+        public static bool OwnsHouse { get { return Houses[GameManager.Instance.PlayerGPS.CurrentLocation.RegionIndex].Count > 0; } }
 
-        public static int OwnedHouseKey { get { return Houses[GameManager.Instance.PlayerGPS.CurrentLocation.RegionIndex].buildingKey; } }
+        public static List<int> OwnedHouseKey { get { return GetHouseKeyList(Houses[GameManager.Instance.PlayerGPS.CurrentLocation.RegionIndex]); } }
 
         public static bool IsHouseOwned(int buildingKey)
         {
             if (buildingKey > 0)
             {
                 DFLocation location = GameManager.Instance.PlayerGPS.CurrentLocation;
-                return Houses[location.RegionIndex].buildingKey == buildingKey;
+                Debug.Log("location.RegionName: " + location.RegionName + ", location.RegionIndex: " + location.RegionIndex + ", buildingKey: " + buildingKey);
+                foreach (HouseData_v1 house in Houses[location.RegionIndex])
+                {
+                    Debug.Log("house.buildingKey: " + house.buildingKey + ", buildingKey: " + buildingKey);
+                    if (house.buildingKey == buildingKey)
+                        return true;
+                }
             }
             return false;
         }
 
-        public static HouseData_v1[] Houses
+        public static List<HouseData_v1>[] Houses
         {
             get {
                 if (houses == null)
@@ -162,11 +169,12 @@ namespace DaggerfallWorkshop.Game.Banking
 
         public static void SetupHouses()
         {
-            houses = new HouseData_v1[MapsFile.TempRegionCount];
+            Debug.Log("Houses are being setup");
+
+            houses = new List<HouseData_v1>[WorldData.WorldSetting.RegionNames.Length];
             for (int i = 0; i < houses.Length; i++)
             {
-                var house = new HouseData_v1();
-                house.regionIndex = i;
+                List<HouseData_v1> house = new List<HouseData_v1>();
                 houses[i] = house;
             }
         }
@@ -175,7 +183,7 @@ namespace DaggerfallWorkshop.Game.Banking
 
         #region Loans and accounts:
 
-        public static int loanMaxPerLevel = 50000;
+        public static int loanMaxPerLevel = 5000;
 
         private static double locCommission = 1.01;
 
@@ -278,7 +286,7 @@ namespace DaggerfallWorkshop.Game.Banking
 
         #region Bank transaction methods
 
-        public static void MakeTransaction(TransactionType type, int amount, int regionIndex)
+        public static void MakeTransaction(TransactionType type, int amount, int regionIndex, int buildingKey = -1)
         {
             if (regionIndex < 0 || regionIndex >= BankAccounts.Length)
                 throw new ArgumentOutOfRangeException();
@@ -312,7 +320,7 @@ namespace DaggerfallWorkshop.Game.Banking
                     result = BorrowLoan(amount, regionIndex);
                     break;
                 case TransactionType.Sell_house:
-                    result = SellHouse(regionIndex);
+                    result = SellHouse(regionIndex, buildingKey);
                     break;
                 case TransactionType.Sell_ship:
                     result = SellShip(regionIndex);
@@ -416,12 +424,14 @@ namespace DaggerfallWorkshop.Game.Banking
 
         public static void AllocateHouseToPlayer(BuildingSummary house, int regionIndex)
         {
-            // Set player owned house for this region
+            // Set player owned house
+            HouseData_v1 houseData = new HouseData_v1();
             DFLocation location = GameManager.Instance.PlayerGPS.CurrentLocation;
             ulong mapID = location.MapTableData.MapId;
-            houses[regionIndex].location = location.Name;
-            houses[regionIndex].mapID = mapID;
-            houses[regionIndex].buildingKey = house.buildingKey;
+            houseData.location = location.Name;
+            houseData.mapID = mapID;
+            houseData.buildingKey = house.buildingKey;
+            houses[regionIndex].Add(houseData);
 
             // Ensure building is discovered
             PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
@@ -435,18 +445,51 @@ namespace DaggerfallWorkshop.Game.Banking
                 TextManager.Instance.GetLocalizedText("houseDeed").Replace("%town", location.Name).Replace("%region", TextManager.Instance.GetLocalizedRegionName(regionIndex)));
         }
 
-        public static TransactionResult SellHouse(int regionIndex)
+        public static void AllocateRemoteHouseToPlayer(DFPosition position, int buildingKey, int buildingIndex, int locationIndex, int regionIndex)
         {
-            BuildingSummary house ;
+            // Set player owned house
+            // Debugging
+            // Debug.Log("regionIndex: " + regionIndex);
+            // if (houses == null)
+            // {
+            //     Debug.Log("Initializing houses");
+            //     SetupHouses();
+            // }
+
+            HouseData_v1 houseData = new HouseData_v1();
+            DFLocation location = WorldMaps.GetLocation(WorldMaps.GetAbsoluteTile(position).ToString("00000"), locationIndex);
+            ulong mapID = location.MapTableData.MapId;
+            houseData.location = location.Name;
+            houseData.mapID = mapID;
+            houseData.buildingKey = buildingKey;
+            houseData.regionIndex = regionIndex;
+            houses[regionIndex].Add(houseData);
+
+            // GameManager.Instance.PlayerGPS.DiscoverRemoteBuilding(position, buildingKey, houseName);
+            SaveLoadManager.StateManager.AddPermanentScene(DaggerfallInterior.GetSceneName(mapID, buildingKey));
+        }
+
+        public static TransactionResult SellHouse(int regionIndex, int buildingKey)
+        {
+            BuildingSummary house;
             BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
+            int buildingIndex = 0;
             if (buildingDirectory)
             {
-                if (buildingDirectory.GetBuildingSummary(DaggerfallBankManager.OwnedHouseKey, out house))
+                foreach (int key in DaggerfallBankManager.OwnedHouseKey)
                 {
-                    BankAccounts[regionIndex].accountGold += GetHouseSellPrice(house);
-                    SaveLoadManager.StateManager.RemovePermanentScene(DaggerfallInterior.GetSceneName(houses[regionIndex].mapID, house.buildingKey));
-                    GameManager.Instance.PlayerGPS.UndiscoverBuilding(house.buildingKey);
-                    houses[regionIndex] = new HouseData_v1() { regionIndex = regionIndex };
+                    if (key == buildingKey)
+                    {
+                        if (buildingDirectory.GetBuildingSummary(buildingKey, out house))
+                        {
+                            BankAccounts[regionIndex].accountGold += GetHouseSellPrice(house);
+                            SaveLoadManager.StateManager.RemovePermanentScene(DaggerfallInterior.GetSceneName(houses[regionIndex][buildingIndex].mapID, house.buildingKey));
+                            GameManager.Instance.PlayerGPS.UndiscoverBuilding(house.buildingKey);
+                            houses[regionIndex].RemoveAt(buildingIndex);
+                            return TransactionResult.NONE;
+                        }
+                    }
+                    buildingIndex++;
                 }
             }
             return TransactionResult.NONE;
@@ -542,6 +585,16 @@ namespace DaggerfallWorkshop.Game.Banking
                 bankAccounts[regionIndex].loanDueDate = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime() + loanRepayMinutes;
             }
             return result;
+        }
+
+        private static List<int> GetHouseKeyList(List<HouseData_v1> houseData)
+        {
+            List<int> keyList = new List<int>();
+            foreach (HouseData_v1 house in houseData)
+            {
+                keyList.Add(house.buildingKey);
+            }
+            return keyList;
         }
 
         #endregion

@@ -300,9 +300,9 @@ namespace MapEditor
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.BeginHorizontal();
 
-            if (GUILayout.Button("Create Large Climatemap", GUILayout.MaxWidth(dataFieldSmall)))
+            if (GUILayout.Button("Create MapDict", GUILayout.MaxWidth(dataFieldSmall)))
             {
-                CreateLargeClimatemap();
+                CreateMapDict();
             }
 
             if (GUILayout.Button("Create NameGen", GUILayout.MaxWidth(dataFieldSmall)))
@@ -1513,6 +1513,40 @@ namespace MapEditor
                 var json = JsonConvert.SerializeObject(splittedLocations[l], new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
                 File.WriteAllText(fileDataPath, json);
             }
+        }
+
+        protected void CreateMapDict()
+        {
+            string fileDataPath = Path.Combine(Worldmaps.tilesPath, "mapDict.json");
+            Dictionary<int, List<int>> regionTiles = new Dictionary<int, List<int>>();
+            int tileIndex;
+            int previousTileIndex = -1;
+            int[,] jsonTile = new int[MapsFile.TileDim, MapsFile.TileDim];
+            List<int>[] tempLists = new List<int>[WorldData.WorldSetting.RegionNames.Length];
+            for (int x = 0; x < MapsFile.MaxMapPixelX; x++)
+            {
+                for (int y = 0; y < MapsFile.MaxMapPixelY; y++)
+                {
+                    int tileX = x / MapsFile.TileDim;
+                    int tileY = y / MapsFile.TileDim;
+                    tileIndex = (tileX) + ((tileY) * MapsFile.TileX);
+                    int regionInd = PoliticInfo.ConvertMapPixelToRegionIndex(x, y);
+
+                    if (tempLists[regionInd] == null)
+                        tempLists[regionInd] = new List<int>();
+
+                    if (!tempLists[regionInd].Contains(tileIndex))
+                        tempLists[regionInd].Add(tileIndex);
+                }
+                Debug.Log("X done: " + x);
+            }
+            for (int region = 0; region < WorldInfo.WorldSetting.RegionNames.Length; region++)
+            {
+                regionTiles.Add(region, tempLists[region]);
+                Debug.Log("Region " + region + " added.");
+            }
+            var json = JsonConvert.SerializeObject(regionTiles, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+            File.WriteAllText(fileDataPath, json);
         }
 
         protected void CreateLargeHeightmap()

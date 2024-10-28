@@ -19,6 +19,7 @@ using DaggerfallWorkshop;
 using DaggerfallWorkshop.Game;
 using DaggerfallWorkshop.Game.Questing;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using Newtonsoft.Json;
 #endregion
 
 namespace DaggerfallConnect.Arena2
@@ -54,7 +55,7 @@ namespace DaggerfallConnect.Arena2
         public const int MinMapPixelY = 0;
         public const int MaxMapPixelX = 7680;
         public const int MaxMapPixelY = 6144;
-        public static int TempRegionCount = WorldData.WorldSetting.Regions;
+        public static int TempRegionCount = WorldData.WorldSetting.RegionNames.Length;
         public const int TileDim = 64; // This is the one to change when modifying MY tiles size
         public const int TileX = MaxMapPixelX / TileDim;
         public const int TileY = MaxMapPixelY / TileDim;
@@ -337,7 +338,7 @@ namespace DaggerfallConnect.Arena2
         
         public static DFPosition ConvertToRelative(int x, int y)
         {
-            DFPosition centralPosition = WorldMaps.LocalPlayerGPS.CurrentMapPixel;
+            DFPosition centralPosition = GameManager.Instance.PlayerGPS.CurrentMapPixel;
             DFPosition resultingCoordinates = new DFPosition();
 
             int relativeX = x / TileDim - centralPosition.X / TileDim + 1;
@@ -377,6 +378,14 @@ namespace DaggerfallConnect.Arena2
             pos.Y = (WorldHeight - mapPixelY) * WorldMapTileDim;
 
             return pos;
+        }
+
+        /// <summary>
+        /// Converts DFPosition to absolute tile.
+        /// </summary>
+        public static int MapPixelToTile(DFPosition position)
+        {
+            return (position.X / MapsFile.TileDim) + (position.Y / MapsFile.TileDim) * MapsFile.TileX;
         }
 
         /// <summary>
@@ -450,7 +459,7 @@ namespace DaggerfallConnect.Arena2
         /// Converts world coord to tile.
         /// </summary>
         /// <param name="worldX">World X position in native Daggerfall units.</param>
-        /// <param name="worldZ">World Z position in native Daggerfall units.</param>
+        /// <param name="worldY">World Y position in native Daggerfall units.</param>
         /// <returns>Tile tuple identifier.</returns>
         public static (int, int) WorldCoordToTile(int worldX, int worldY)
         {
@@ -814,7 +823,7 @@ namespace DaggerfallConnect.Arena2
                 return new DFLocation();
 
             // Store indices
-            dfLocation.RegionIndex = region;
+            dfLocation.RelTileIndex = region;
             dfLocation.LocationIndex = location;
 
             // Generate smaller dungeon when possible
@@ -822,6 +831,133 @@ namespace DaggerfallConnect.Arena2
                 GenerateSmallerDungeon(ref dfLocation);
 
             return dfLocation;
+        }
+
+        /// <summary>
+        /// At the moment, it's just used to discover starting locations;
+        /// in a near future, it could be used for other stuff (maps? quest rewards? something else?)
+        /// </summary>
+        public static void DiscoverCloseLocations(DFPosition center, int radius, AgeRanges startingAgeRange, AgeRanges finalAgeRange, bool discoverAll = false, int minimumFound = 0)
+        {
+            WorldMap tileMap = new WorldMap();
+            int xDir, yDir;
+            (int, int, int, int)[] modifiers = { (0, -1, 1, 1), (1, 0, -1, 1), (0, 1, 1, -1), (-1, 0, 1, 1) };
+            MapSummary locationFound;
+            int tile = -1;
+            int previousTile = 0;
+
+            // Discover location in current map pixel, if there's any and it's not discovered.
+            if (WorldMaps.HasLocation(center.X, center.Y, out locationFound) && !locationFound.Discovered)
+            {
+                tile = MapPixelToTile(center);
+                tileMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(WorldMaps.locationPath, "map" + tile.ToString("00000") + ".json")));
+                GameManager.Instance.PlayerGPS.DiscoverLocation(tile.ToString("00000"), tileMap.MapNames[locationFound.MapIndex]);
+                previousTile = tile;
+            }
+
+            for (int i = 0; i < radius * 4; i++)
+            {
+                int quadrant = i / radius;
+                int sector = i % radius;
+
+                xDir = modifiers[quadrant].Item1 * radius + sector * modifiers[quadrant].Item3;
+                yDir = modifiers[quadrant].Item2 * radius + sector * modifiers[quadrant].Item4;
+                DFPosition positionToCheck = new DFPosition(center.X + xDir, center.Y + yDir);
+                tile = MapPixelToTile(positionToCheck);
+
+                if (tile != previousTile)
+                    tileMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(WorldMaps.locationPath, "map" + tile.ToString("00000") + ".json")));
+
+
+                if (WorldMaps.HasLocation(xDir, yDir, out locationFound))
+                {
+                    if (discoverAll || CheckLocationAdequacy(startingAgeRange, finalAgeRange, locationFound.LocationType, locationFound.DungeonType))
+                    GameManager.Instance.PlayerGPS.DiscoverLocation(tile.ToString("00000"), tileMap.MapNames[locationFound.MapIndex]);
+                }
+                previousTile = tile;
+            }
+        }
+
+        public static bool CheckLocationAdequacy(AgeRanges startingAgeRange, AgeRanges finalAgeRange, DFRegion.LocationTypes locationType, DFRegion.DungeonTypes dungeonType = DFRegion.DungeonTypes.NoDungeon)
+        {
+            switch (locationType)
+            {
+                case DFRegion.LocationTypes.TownCity:
+                case DFRegion.LocationTypes.TownHamlet:
+                case DFRegion.LocationTypes.TownVillage:
+                case DFRegion.LocationTypes.ReligionTemple:
+                case DFRegion.LocationTypes.Graveyard:
+                    return true;
+
+                case DFRegion.LocationTypes.HomeFarms:
+                    if ((int)startingAgeRange <= (int)AgeRanges.Adolescent)
+                        return true;
+                    else return false;
+
+                case DFRegion.LocationTypes.Tavern:
+                    if((int)finalAgeRange >= (int)AgeRanges.YoungAdult)
+                        return true;
+                    else return false;
+
+                case DFRegion.LocationTypes.HomeWealthy:
+                    if((int)finalAgeRange >= (int)AgeRanges.Adolescent)
+                        return true;
+                    else return false;
+
+                case DFRegion.LocationTypes.ReligionCult:
+                case DFRegion.LocationTypes.HomePoor:
+                    if ((int)startingAgeRange <= (int)AgeRanges.Child)
+                        return true;
+                    else return false;
+
+                case DFRegion.LocationTypes.DungeonLabyrinth:
+                case DFRegion.LocationTypes.DungeonKeep:
+                case DFRegion.LocationTypes.DungeonRuin:
+                    switch (dungeonType)
+                    {
+                        case DFRegion.DungeonTypes.HumanStronghold:
+                        case DFRegion.DungeonTypes.NaturalCave:
+                        case DFRegion.DungeonTypes.RuinedCastle:
+                        case DFRegion.DungeonTypes.Cemetery:
+                            if ((int)finalAgeRange >= (int)AgeRanges.Child)
+                                return true;
+                            else return false;
+
+                        case DFRegion.DungeonTypes.Prison:
+                        case DFRegion.DungeonTypes.Mine:
+                        case DFRegion.DungeonTypes.HarpyNest:
+                        case DFRegion.DungeonTypes.SpiderNest:
+                        case DFRegion.DungeonTypes.DragonsDen:
+                        case DFRegion.DungeonTypes.BarbarianStronghold:
+                        case DFRegion.DungeonTypes.ScorpionNest:
+                            if ((int)finalAgeRange >= (int)AgeRanges.Adolescent)
+                                return true;
+                            else return false;
+
+                        case DFRegion.DungeonTypes.Crypt:
+                        case DFRegion.DungeonTypes.OrcStronghold:
+                        case DFRegion.DungeonTypes.Laboratory:
+                        case DFRegion.DungeonTypes.GiantStronghold:
+                        case DFRegion.DungeonTypes.VolcanicCaves:
+                            if ((int)finalAgeRange >= (int)AgeRanges.YoungAdult)
+                                return true;
+                            else return false;
+
+                        case DFRegion.DungeonTypes.DesecratedTemple:
+                        case DFRegion.DungeonTypes.VampireHaunt:
+                        case DFRegion.DungeonTypes.Coven:
+                            if ((int)finalAgeRange >= (int)AgeRanges.Adult)
+                                return true;
+                            else return false;
+
+                        default:
+                            return false;
+                    }
+                
+                case DFRegion.LocationTypes.Coven:
+                default:
+                    return false;
+            }
         }
 
         private bool UseSmallerDungeon(in DFLocation dfLocation)

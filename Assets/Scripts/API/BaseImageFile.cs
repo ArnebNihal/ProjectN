@@ -280,7 +280,6 @@ namespace DaggerfallConnect.Arena2
             // int colorIndex;
 
             Color32[] colors = texture.GetPixels32();
-            Debug.Log("srcBitmap.Data.Length: " + srcBitmap.Data.Length + "; colors.Length: " + colors.Length);
 
             // for (int i = 0; i < srcBitmap.Data.Length; i++)
             // {
@@ -306,7 +305,6 @@ namespace DaggerfallConnect.Arena2
 
 
             sizeOut = new DFSize(dstWidth, dstHeight);
-            Debug.Log("sizeOut Height: " + sizeOut.Height + ", Width: " + sizeOut.Width);
 
             return colors;
         }

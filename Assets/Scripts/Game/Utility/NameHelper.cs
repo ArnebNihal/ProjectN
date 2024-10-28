@@ -157,7 +157,7 @@ namespace DaggerfallWorkshop.Game.Utility
 
             // Generate name by type
             NameBank nameBank = bankDict[type];
-            Debug.Log("BankTypes: " + type.ToString());
+            
             string lastName = string.Empty;
             switch (type)
             {

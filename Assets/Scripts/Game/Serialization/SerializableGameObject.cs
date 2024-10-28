@@ -476,7 +476,7 @@ namespace DaggerfallWorkshop.Game.Serialization
     public class BankDeedData_v1
     {
         public int shipType;
-        public HouseData_v1[] houses;
+        public List<HouseData_v1>[] houses;
     }
 
     [fsObject("v1")]

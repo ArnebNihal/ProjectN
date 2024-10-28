@@ -25,7 +25,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
     /// </summary>
     public class SkillsRollout : Panel
     {
-        const int bonusPoolPerSkillGroup = 6;
+        const int bonusPoolPerSkillGroup = 0;
 
         const int minPrimarySkill = 28;
         const int minMajorSkill = 18;

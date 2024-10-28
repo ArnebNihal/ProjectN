@@ -510,7 +510,10 @@ namespace DaggerfallWorkshop
         public BuildingDirectory GetCurrentBuildingDirectory()
         {
             if (!currentPlayerLocationObject)
+            {
+                Debug.Log("currentPlayerLocationObject: null");
                 return null;
+            }
 
             // buildingDirectory MapID must match PlayerGPS.CurrentLocation MapID or building data might be out of sync with location until world finishes loading
             BuildingDirectory buildingDirectory = currentPlayerLocationObject.GetComponent<BuildingDirectory>();
@@ -632,6 +635,7 @@ namespace DaggerfallWorkshop
             WoodsData.Woods = WoodsData.GetTextureMatrix("woods");
             WoodsLargeData.WoodsLarge = WoodsLargeData.GetTextureMatrix();
             WorldMaps.WorldMap = WorldMaps.LoadWorldMap();
+            Debug.Log("Enumerating maps");
             WorldMaps.mapDict = WorldMaps.EnumerateMaps();
             BasicRoadsTexturing pathsData = new BasicRoadsTexturing(false, false, "", false);
         }

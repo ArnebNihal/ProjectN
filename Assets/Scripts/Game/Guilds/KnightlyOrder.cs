@@ -68,7 +68,7 @@ namespace DaggerfallWorkshop.Game.Guilds
                 "Aspirant", "Squire", "Gallant", "Chevalier", "Keeper", "Knight Brother", "Commander", "Marshall", "Seneschal", "Paladin"
         };
 
-        static List<DFCareer.Skills> guildSkills = new List<DFCareer.Skills>() {
+        public static List<DFCareer.Skills> guildSkills = new List<DFCareer.Skills>() {
                 DFCareer.Skills.Archery,
                 DFCareer.Skills.CriticalStrike,
                 DFCareer.Skills.Dragonish,

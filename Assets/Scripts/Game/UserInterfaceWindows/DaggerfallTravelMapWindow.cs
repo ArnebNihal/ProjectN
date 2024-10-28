@@ -748,7 +748,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             {
                 int index = currentDFRegion[relTile].MapIdLookup[id];
                 locationSummary.ID = currentDFRegion[relTile].MapTable[index].MapId;
-                locationSummary.MapID = currentDFRegion[relTile].MapTable[index].LocationId;
+                locationSummary.MapID = currentDFRegion[relTile].MapTable[index].MapId;
                 locationSummary.RegionIndex = GetPoliticValue(mapPixelX, mapPixelY, true);
                 locationSummary.TileIndex = tile.Item1 + tile.Item2 * MapsFile.TileX;
                 locationSummary.MapIndex = index;

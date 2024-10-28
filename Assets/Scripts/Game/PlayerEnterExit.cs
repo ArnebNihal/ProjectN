@@ -22,6 +22,8 @@ using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.MagicAndEffects;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using System.Linq;
+using Unity.Mathematics.Editor;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -565,6 +567,122 @@ namespace DaggerfallWorkshop.Game
             RaiseOnRespawnerCompleteEvent();
         }
 
+        public void TeleportToBuilding(int x, int y, (int, int, DFBlock) buildingData)
+        {
+            // Wait for end of frame so existing world data can be removed
+            // yield return new WaitForEndOfFrame();
+
+            // Reset inside state
+            // isPlayerInside = false;
+            // isPlayerInsideDungeon = false;
+            // isPlayerInsideDungeonCastle = false;
+            // blockWaterLevel = 10000;
+
+            // Set player GPS coordinates
+            // playerGPS.WorldX = (MapsFile.MapPixelToWorldCoord(x, y)).X + MapsFile.WorldMapTerrainDim / 2;
+            // playerGPS.WorldZ = (MapsFile.MapPixelToWorldCoord(x, y)).Y + MapsFile.WorldMapTerrainDim / 2;
+
+            // Set streaming world coordinates
+            DFPosition pos = new DFPosition(x, y);
+            // world.MapPixelX = pos.X;
+            // world.MapPixelY = pos.Y;
+
+            // Get location at this position
+            MapSummary summary;
+            bool hasLocation = WorldMaps.HasLocation(pos.X, pos.Y, out summary);
+
+            // Start in building
+            DFLocation location;
+            // world.TeleportToCoordinates(pos.X, pos.Y, StreamingWorld.RepositionMethods.RandomStartMarker);
+            if (!WorldMaps.GetLocation(WorldMaps.GetRelativeTile(pos), summary.MapIndex, out location))
+                Debug.Log("No location found!");
+            world.suppressWorld = false;
+
+            // int blockInd = Array.FindIndex(location.Exterior.ExteriorData.BlockNames, x => x == buildingData.Item3.Name);
+            
+            BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
+            BuildingSummary buildingSummary;
+            RaiseOnPreTransitionEvent(TransitionType.ToBuildingInterior);
+            Debug.Log("buildingData: " + buildingData);
+            // Debug.Log("buildingDirectory.MapID: " + buildingDirectory.MapID);
+            if (!buildingDirectory.GetBuildingSummary(buildingData.Item1, out buildingSummary))
+                Debug.Log("GetBuildingSummary: false");
+
+            Debug.Log("buildingSummary.buildingKey: " + buildingSummary.buildingKey);
+            DFBlock[] blocks = RMBLayout.GetLocationBuildingData(location);
+            // blocks[0].RmbBlock.SubRecords[0].Exterior.BlockDoorRecords[0].XPos
+            
+            Transform doorOwner;
+            // StaticDoor statDoor = MakeStaticDoor(buildingData, buildingSummary, (location.Exterior.ExteriorData.Width, location.Exterior.ExteriorData.Height), blockInd, out doorOwner);
+            StaticDoor statDoor = MakeStaticDoor(x, y, buildingData);
+            StartBuildingInterior(location, statDoor);
+        }
+
+        // public StaticDoor MakeStaticDoor((int, int, DFBlock) buildingData, BuildingSummary buildingSummary, (int, int) locSize, int blockInd, out Transform doorOwner) 
+        public StaticDoor MakeStaticDoor(int x, int y, (int, int, DFBlock) buildingData) 
+        {
+            // doorOwner = null;
+            // int centralIndex = locSize.Item1 * locSize.Item2 / 2;
+            // bool noCentral = locSize.Item1 * locSize.Item2 % 2 == 0;
+            // Vector3 blockOffset = 
+            // Vector3 bldPos = new Vector3((float)(MapsFile.WorldMapRMBDim * locSize.Item1 / 2) * MeshReader.GlobalScale, 0.0f, (float)(MapsFile.WorldMapRMBDim * locSize.Item2 / 2) * MeshReader.GlobalScale);
+            DFPosition pos = new DFPosition(x, y);
+            MapSummary summary;
+            bool hasLocation = WorldMaps.HasLocation(pos.X, pos.Y, out summary);
+            DFLocation location;
+            // world.TeleportToCoordinates(pos.X, pos.Y, StreamingWorld.RepositionMethods.RandomStartMarker);
+            if (!WorldMaps.GetLocation(WorldMaps.GetRelativeTile(pos), summary.MapIndex, out location))
+                Debug.Log("No location found!");
+                BuildingDirectory buildingDirectory = GameManager.Instance.StreamingWorld.GetCurrentBuildingDirectory();
+            BuildingSummary buildingSummary;
+            if (!buildingDirectory.GetBuildingSummary(buildingData.Item1, out buildingSummary))
+                Debug.Log("GetBuildingSummary: false");
+            StaticDoor resultingDoor = new StaticDoor();
+            resultingDoor.buildingKey = buildingData.Item1;
+            resultingDoor.ownerPosition = buildingSummary.Position;
+            Debug.Log("buildingSummary.Position: " + buildingSummary.Position + ", resultingDoor.ownerPosition: " + resultingDoor.ownerPosition + ", DFBlock: " + buildingData.Item3.RmbBlock.SubRecords[buildingData.Item2].XPos + ", 0, " + buildingData.Item3.RmbBlock.SubRecords[buildingData.Item2].ZPos);
+            resultingDoor.ownerRotation = new Quaternion();
+            resultingDoor.buildingMatrix = buildingSummary.Matrix;
+            resultingDoor.doorType = DoorTypes.Building;
+            resultingDoor.blockIndex = buildingData.Item3.Index;
+            resultingDoor.recordIndex = buildingData.Item2;
+            resultingDoor.doorIndex = 0;
+            // resultingDoor.centre = blocks[0].RmbBlock.FldHeader.BlockPositions
+
+            return resultingDoor;
+        }
+
+        // public Vector3 GetBlockOffset(int width, int height, int blockInd, out int centralIndex, out bool noCentral)
+        // {
+        //     int tempX = blockInd % width;
+        //     int tempY = width * height - blockInd / width;
+        //     int invIndex = tempX + tempY * width;
+
+        //     noCentral = width * height % 2 == 0;
+        //     if (!noCentral)
+        //         centralIndex = width * height / 2;
+        //     else centralIndex = width * (height / 2 - 1) + width / 2 - 1;
+        //     float x, z;
+
+        //     if (!noCentral)
+        //     {
+        //         if (centralIndex == blockInd)
+        //             x = z = ((float)(MapsFile.WorldMapRMBDim / 2) * MeshReader.GlobalScale) * -1.0f;
+
+        //         else
+        //         {
+        //             x = (float)((tempX - centralIndex % width) * MapsFile.WorldMapRMBDim - MapsFile.WorldMapRMBDim / 2) * MeshReader.GlobalScale;
+        //             z = (float)((tempY - centralIndex / width) * MapsFile.WorldMapRMBDim - MapsFile.WorldMapRMBDim / 2) * MeshReader.GlobalScale;
+        //         }
+        //     }
+        //     else{
+        //         if (centralIndex == blockInd)
+        //             x = z = (float)(MapsFile.WorldMapRMBDim) * MeshReader.GlobalScale * -1.0f;
+        //     }
+
+        //     Vector3 blockOffset = new Vector3();
+        // }
+
         /// <summary>
         /// Shows UI message with text for current holiday, if any.
         /// </summary>
@@ -745,7 +863,10 @@ namespace DaggerfallWorkshop.Game
             Vector3 closestEnterMarkerPosition;
             Vector3 checkPosition = DaggerfallStaticDoors.GetDoorPosition(door);
             if (interior.FindClosestEnterMarker(checkPosition, out closestEnterMarkerPosition))
+            {
                 checkPosition = closestEnterMarkerPosition;
+                Debug.Log("closestEnterMarkerPosition: " + closestEnterMarkerPosition);
+            }
 
             // Position player in front of closest interior door
             Vector3 landingPosition = Vector3.zero;
@@ -753,6 +874,7 @@ namespace DaggerfallWorkshop.Game
             if (interior.FindClosestInteriorDoor(checkPosition, out landingPosition, out foundDoorNormal))
             {
                 landingPosition += foundDoorNormal * (GameManager.Instance.PlayerController.radius + 0.4f);
+                Debug.Log("landingPosition: " + landingPosition + ", foundDoorNormal: " + foundDoorNormal);
             }
             else
             {
@@ -774,6 +896,7 @@ namespace DaggerfallWorkshop.Game
             DaggerfallStaticDoors exteriorStaticDoors = interior.ExteriorDoors;
             if (exteriorStaticDoors && doorOwner)
             {
+                Debug.Log("exteriorStaticDoors && doorOwner");
                 List<StaticDoor> buildingDoors = new List<StaticDoor>();
                 for (int i = 0; i < exteriorStaticDoors.Doors.Length; i++)
                 {
@@ -1247,6 +1370,7 @@ namespace DaggerfallWorkshop.Game
 
         private void SetStanding()
         {
+            Debug.Log("SetStanding");
             // Snap player to ground
             RaycastHit hit;
             Ray ray = new Ray(transform.position, Vector3.down);
@@ -1258,6 +1382,7 @@ namespace DaggerfallWorkshop.Game
                 Vector3 pos = hit.point;
                 pos.y += controller.height / 2f + 0.25f;
                 transform.position = pos;
+                Debug.Log("SetStanding pos: " + pos);
             }
         }
 
@@ -1278,7 +1403,7 @@ namespace DaggerfallWorkshop.Game
         {
             exteriorDoors.Clear();
             if (doors != null && doors.Length > 0)
-                exteriorDoors.AddRange(doors);
+                exteriorDoors.AddRange(doors);   
         }
 
         private WorldContext GetWorldContext()

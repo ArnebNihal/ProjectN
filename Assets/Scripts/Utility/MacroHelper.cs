@@ -249,6 +249,16 @@ namespace DaggerfallWorkshop.Utility
             { "%cbd", CurrentBuilding }, // Name of the current building, if any
         // ProjectN - new macros:
             { "%lg", LocalGovernment }, // Local government type (fiefdom, barony, etc...)
+            { "%bhc", BiogHomeContinent },
+            { "%bhp", BiogHomeProvince },
+            { "%bhr", BiogHomeRegion },
+            { "%bht", BiogHomeTown },
+            { "%bmc", BiogMovedContinent },
+            { "%bmp", BiogMovedProvince },
+            { "%bmr", BiogMovedRegion },
+            { "%bmt", BiogMovedTown },
+            { "%fen", FamilyEnemy }, // The faction that forced pc's family to move away
+            { "%as", AbroadSchool} // The type of "school" where pc was sent to study
         };
 
         // Multi-line macro handlers, returns tokens.
@@ -1113,6 +1123,56 @@ namespace DaggerfallWorkshop.Utility
         private static string LocalGovernment(IMacroContextProvider mcp)
         {   // %lg
             return GameManager.Instance.PlayerGPS.CurrentLocalizedRegionGovernment;
+        }
+
+        private static string BiogHomeContinent(IMacroContextProvider mcp)
+        {   // %bhc
+            return CreateCharBiography.dataForBiog.HomecontinentName;
+        }
+
+        private static string BiogHomeProvince(IMacroContextProvider mcp)
+        {   // %bhp
+            return CreateCharBiography.dataForBiog.HomeprovinceName;
+        }
+
+        private static string BiogHomeRegion(IMacroContextProvider mcp)
+        {   // %bhr
+            return CreateCharBiography.dataForBiog.HomeregionName;
+        } 
+
+        private static string BiogHomeTown(IMacroContextProvider mcp)
+        {   // %bht
+            return CreateCharBiography.dataForBiog.HometownName;
+        }
+
+        private static string BiogMovedContinent(IMacroContextProvider mcp)
+        {   // %bmc
+            return CreateCharBiography.dataForBiog.MovedcontinentName;
+        }
+
+        private static string BiogMovedProvince(IMacroContextProvider mcp)
+        {   // %bmp
+            return CreateCharBiography.dataForBiog.MovedprovinceName;
+        }
+
+        private static string BiogMovedRegion(IMacroContextProvider mcp)
+        {   // %bmr
+            return CreateCharBiography.dataForBiog.MovedregionName;
+        }
+
+        private static string BiogMovedTown(IMacroContextProvider mcp)
+        {   // %bmt
+            return CreateCharBiography.dataForBiog.MovedtownName;
+        }
+
+        private static string FamilyEnemy(IMacroContextProvider mcp)
+        {   // %fen
+            return CreateCharBiography.dataForBiog.FamilyEnemy;
+        }
+
+        private static string AbroadSchool(IMacroContextProvider mcp)
+        {   // %as
+            return CreateCharBiography.dataForBiog.AbroadSchool;
         }
 
         #endregion

@@ -171,7 +171,7 @@ namespace Wenzil.Console
                         DFLocation location = playerGPS.CurrentLocation;
 
                         string locJson = SaveLoadManager.Serialize(location.GetType(), location);
-                        string fileName = WorldDataReplacement.GetDFLocationReplacementFilename(location.RegionIndex, location.LocationIndex);
+                        string fileName = WorldDataReplacement.GetDFLocationReplacementFilename(location.RelTileIndex, location.LocationIndex);
                         File.WriteAllText(Path.Combine(DaggerfallUnity.Settings.PersistentDataPath, fileName), locJson);
                         return "Location data json written to " + Path.Combine(DaggerfallUnity.Settings.PersistentDataPath, fileName);
                     }

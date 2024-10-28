@@ -43,7 +43,7 @@ namespace DaggerfallWorkshop.Game.Guilds
                 "Apprentice", "Journeyman", "Filcher", "Crook", "Robber", "Bandit", "Thief", "Ringleader", "Mastermind", "Master Thief"
         };
 
-        static List<DFCareer.Skills> guildSkills = new List<DFCareer.Skills>() {
+        public static List<DFCareer.Skills> guildSkills = new List<DFCareer.Skills>() {
                 DFCareer.Skills.Backstabbing,
                 DFCareer.Skills.Climbing,
                 DFCareer.Skills.Lockpicking,

@@ -72,13 +72,14 @@ namespace DaggerfallConnect.Arena2
         {
             WorldMap = LoadWorldMap();
             mapDict = EnumerateMaps();
-        }        
+        }
 
         #endregion
 
         #region Variables
 
         public static Dictionary<ulong, ulong> locationIdToMapIdDict;
+        public static Dictionary<int, List<int>> regionTiles;
 
         #endregion
 
@@ -105,8 +106,13 @@ namespace DaggerfallConnect.Arena2
             {
                 for (int y = 0; y < 3; y++)
                 {
-                    Debug.Log("Loading file " + "map" + ((xTile + x - 1) + (yTile + y - 1) * MapsFile.TileX).ToString("00000") + ".json");
-                    worldMap[index] = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(mapPath, "Locations", "map" + ((xTile + x - 1) + (yTile + y - 1) * MapsFile.TileX).ToString("00000") + ".json")));
+                    int xCor = 1, yCor = 1;
+                    if (xTile + x == 0) xCor = 0;
+                    if (yTile + y == 0) yCor = 0;
+                    if (xTile + x >= MapsFile.TileX) xCor = 2;
+                    if (yTile + y >= MapsFile.TileY) yCor = 2;
+                    Debug.Log("Loading file " + "map" + ((xTile + x - xCor) + (yTile + y - yCor) * MapsFile.TileX).ToString("00000") + ".json");
+                    worldMap[index] = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(mapPath, "Locations", "map" + ((xTile + x - xCor) + (yTile + y - yCor) * MapsFile.TileX).ToString("00000") + ".json")));
                     index++;
                 }
             }
@@ -129,22 +135,28 @@ namespace DaggerfallConnect.Arena2
             return locationId;
         }
 
-        public static DFRegion ConvertWorldMapsToDFRegion(int currentRelativeTile)
-        {
+        public static DFRegion ConvertWorldMapsToDFRegion(int currentRelativeTile, bool isAbsolute = false)
+        {            
             DFRegion dfRegion = new DFRegion();
-            // dfRegion.Name = string.Empty;
-            // dfRegion.LocationCount = 0;
-            // dfRegion.MapNames = new string[0];
-            // dfRegion.MapTable = new DFRegion.RegionMapTable[0];
-            // dfRegion.MapIdLookup = new Dictionary<ulong, int>();
-            // dfRegion.MapNameLookup = new Dictionary<string, int>();
 
-            dfRegion.Name = WorldMaps.WorldMap[currentRelativeTile].Name;
-            dfRegion.LocationCount = WorldMaps.WorldMap[currentRelativeTile].LocationCount;
-            dfRegion.MapNames = WorldMaps.WorldMap[currentRelativeTile].MapNames;
-            dfRegion.MapTable = WorldMaps.WorldMap[currentRelativeTile].MapTable;
-            dfRegion.MapIdLookup = WorldMaps.WorldMap[currentRelativeTile].MapIdLookup;
-            dfRegion.MapNameLookup = WorldMaps.WorldMap[currentRelativeTile].MapNameLookup;
+            if (!isAbsolute)
+            {
+                dfRegion.Name = WorldMaps.WorldMap[currentRelativeTile].Name;
+                dfRegion.LocationCount = WorldMaps.WorldMap[currentRelativeTile].LocationCount;
+                dfRegion.MapNames = WorldMaps.WorldMap[currentRelativeTile].MapNames;
+                dfRegion.MapTable = WorldMaps.WorldMap[currentRelativeTile].MapTable;
+                dfRegion.MapIdLookup = WorldMaps.WorldMap[currentRelativeTile].MapIdLookup;
+                dfRegion.MapNameLookup = WorldMaps.WorldMap[currentRelativeTile].MapNameLookup;
+            }
+            else{
+                WorldMap wMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(WorldMaps.locationPath, "map" + currentRelativeTile.ToString("00000") + ".json")));
+                dfRegion.Name = wMap.Name;
+                dfRegion.LocationCount = wMap.LocationCount;
+                dfRegion.MapNames = wMap.MapNames;
+                dfRegion.MapTable = wMap.MapTable;
+                dfRegion.MapIdLookup = wMap.MapIdLookup;
+                dfRegion.MapNameLookup = wMap.MapNameLookup;
+            }
 
             return dfRegion;
         }
@@ -236,7 +248,10 @@ namespace DaggerfallConnect.Arena2
             dfLocation = WorldMaps.WorldMap[relTile].Locations[location];
 
             // Store indices
-            dfLocation.RegionIndex = relTile;
+            dfLocation.RegionIndex = dfLocation.Politic - 128;
+            Debug.Log("dfLocation.RegionIndex: " + dfLocation.RegionIndex);
+            dfLocation.RelTileIndex = relTile;
+            dfLocation.AbsTileIndex = MapsFile.MapPixelToTile(MapsFile.GetPixelFromPixelID(dfLocation.Exterior.ExteriorData.MapId));
             dfLocation.LocationIndex = location;
 
             // Generate smaller dungeon when possible
@@ -285,9 +300,21 @@ namespace DaggerfallConnect.Arena2
                 return new DFLocation();
 
             // Get location index
-            int Location = Array.IndexOf(wMap.MapNames, locationName);
+            int location = Array.IndexOf(wMap.MapNames, locationName);
 
-            return wMap.Locations[Location];
+            return wMap.Locations[location];
+        }
+
+        public static DFLocation GetLocation(string tileName, int locationIndex)
+        {
+            WorldMap wMap = new WorldMap();
+            wMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(locationPath , "map" + tileName + ".json")));
+
+            // Check location exists
+            if (wMap.MapNames.Length <= locationIndex)
+                return new DFLocation();
+
+            return wMap.Locations[locationIndex];
         }
 
         /// <summary>
@@ -310,6 +337,24 @@ namespace DaggerfallConnect.Arena2
             }
 
             return true;
+        }
+
+        /// <summary>
+        /// Gets a location name from its DFPosition.
+        /// </summary>
+        /// <param name="locationPos">Location position.</param>
+        /// <returns>DFLocation.</returns>
+        public static string GetLocationName(DFPosition locationPos)
+        {
+            // Get ABSOLUTE tile and MapID
+            int tile = MapsFile.MapPixelToTile(locationPos);
+            ulong mapId = MapsFile.GetMapPixelID(locationPos.X, locationPos.Y);
+
+            // Load tile
+            WorldMap wMap = new WorldMap();
+            wMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(locationPath , "map" + tile.ToString("00000") + ".json")));
+
+            return wMap.MapNames[wMap.MapIdLookup[mapId]];
         }
 
         /// <summary>
@@ -431,6 +476,7 @@ namespace DaggerfallConnect.Arena2
 
             for (int region = 0; region < 9; region++)
             {
+                Debug.Log("Enumerating relTile n." + region);
                 DFRegion dfRegion = WorldMaps.ConvertWorldMapsToDFRegion(region);
                 for (int location = 0; location < dfRegion.LocationCount; location++)
                 {
@@ -438,7 +484,8 @@ namespace DaggerfallConnect.Arena2
                     // Get map summary
                     DFRegion.RegionMapTable mapTable = dfRegion.MapTable[location];
                     summary.ID = mapTable.MapId;
-                    summary.MapID = WorldMaps.WorldMap[region].Locations[location].Exterior.RecordElement.Header.LocationId;
+                    summary.MapID = mapTable.MapId;
+                    // summary.MapID = WorldMaps.WorldMap[region].Locations[location].Exterior.RecordElement.Header.LocationId;
                     summary.RegionIndex = Array.IndexOf(WorldData.WorldSetting.RegionNames, WorldMaps.WorldMap[region].Locations[location].RegionName);
                     summary.TileIndex = int.Parse(dfRegion.Name);
                     summary.MapIndex = location;
@@ -458,9 +505,52 @@ namespace DaggerfallConnect.Arena2
             }
 
             string fileDataPath = Path.Combine(mapPath, "mapDict.json");
-            var json = JsonConvert.SerializeObject(mapDictSwap, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-            File.WriteAllText(fileDataPath, json);
+            // if (regionTiles == null && File.Exists(fileDataPath))
+            // {
+                regionTiles = JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(File.ReadAllText(fileDataPath));
+            // }
+            // else
+            // {
+            //     int tileIndex;
+            //     int previousTileIndex = -1;
+            //     int[,] jsonTile = new int[MapsFile.TileDim, MapsFile.TileDim];
+            //     List<int>[] tempLists = new List<int>[WorldData.WorldSetting.RegionNames.Length];
+            //     for (int x = 0; x < MapsFile.MaxMapPixelX; x++)
+            //     {
+            //         for (int y = 0; y < MapsFile.MaxMapPixelY; y++)
+            //         {
+            //             int tileX = x / MapsFile.TileDim;
+            //             int tileY = y / MapsFile.TileDim;
+            //             tileIndex = (tileX) + ((tileY) * MapsFile.TileX);
+            //             if (tileIndex != previousTileIndex)
+            //             {
+            //                 Texture2D textureTiles = new Texture2D(MapsFile.TileDim, MapsFile.TileDim);
+            //                 if (File.Exists(Path.Combine(WorldMaps.tilesPath, "politic_" + tileX + "_" + tileY + ".png")))
+            //                 {
+            //                     if (!ImageConversion.LoadImage(textureTiles, File.ReadAllBytes(Path.Combine(WorldMaps.tilesPath, "politic_" + tileX + "_" + tileY + ".png"))))
+            //                         Debug.Log("Failed to load tile " + "politic_" + tileX + "_" + tileY + ".png");
+            //                     // else Debug.Log("Tile " + matrixType + "_" + posX + "_" + posY + ".png succesfully loaded");
 
+            //                     PoliticData.ConvertToMatrix(textureTiles, out jsonTile);
+            //                 }
+            //             }
+
+            //             if (tempLists[jsonTile[x % MapsFile.TileDim, y % MapsFile.TileDim]] == null)
+            //                 tempLists[jsonTile[x % MapsFile.TileDim, y % MapsFile.TileDim]] = new List<int>();
+                        
+            //             if (!tempLists[jsonTile[x % MapsFile.TileDim, y % MapsFile.TileDim]].Contains(tileIndex))
+            //                 tempLists[jsonTile[x % MapsFile.TileDim, y % MapsFile.TileDim]].Add(tileIndex);
+            //         }
+            //     }
+            //     for (int region = 0; region < WorldData.WorldSetting.RegionNames.Length; region++)
+            //     {
+            //         regionTiles.Add(region, tempLists[region]);
+            //     }
+            //     var json = JsonConvert.SerializeObject(regionTiles, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+            //     File.WriteAllText(fileDataPath, json);
+            // }
+
+            Debug.Log("Returning result");
             return mapDictSwap;
         }
 
@@ -680,6 +770,17 @@ namespace DaggerfallConnect.Arena2
                 regionIndex -= 128;
             }
             return regionIndex;
+        }
+
+        public static int GetAbsPoliticValue(int x, int y)
+        {
+            int tile = WorldMaps.GetAbsoluteTile(new DFPosition(x, y));
+            Texture2D textureTiles = new Texture2D(MapsFile.TileDim, MapsFile.TileDim);
+            ImageConversion.LoadImage(textureTiles, File.ReadAllBytes(Path.Combine(WorldMaps.tilesPath, "politic_" + (x / MapsFile.TileDim) + "_" + (y / MapsFile.TileDim) + ".png")));
+            int[,] politic = new int[MapsFile.TileDim, MapsFile.TileDim];
+            PoliticData.ConvertToMatrix(textureTiles, out politic);
+
+            return politic[x % MapsFile.TileDim, y % MapsFile.TileDim] - 128;
         }
 
         public static void ConvertToMatrix(Texture2D imageToTranslate, out int[,] matrix)
@@ -1002,7 +1103,7 @@ namespace DaggerfallConnect.Arena2
         // public int WorldHeight;
         public int[] regionRaces;
         public int[] regionTemples;
-        public byte[] regionBorders;
+        public int[] regionBorders;
         public int[][] regionInProvince;
 
         public WorldSettings()

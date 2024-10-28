@@ -48,6 +48,41 @@ namespace DaggerfallWorkshop.Game.Utility
         //events used to update state in state manager
         public static EventHandler OnStartMenu;
         public static EventHandler OnStartGame;
+        public struct StartingHouseData
+        {
+            public DFPosition shPosition;
+            public int shBldKey;
+            public int shBldIndex;
+            public int shLocIndex;
+            public DFBlock shBlock;
+            public int shRegion;
+            public StartingHouseNameTypes shNameType;
+        }
+
+        public enum StartingHouseNameTypes
+        {
+            None = 0,
+            Residence = 1,
+            Store = 2
+        }
+
+        public class StartLocation
+        {
+            public DFPosition primaryPosition = new DFPosition();
+            public DFPosition secondaryPosition = new DFPosition();
+            public (int, int) areaKnowledge = (0, 0);
+            public bool startsFromPrimary = false;
+            public bool startingHouse = false;
+            public DFCareer.Skills fatherSpec;
+            public int fatherJob;
+            public DFCareer.Skills motherSpec;
+            public int motherJob;
+            public (int, int, int, DFBlock) primaryBuildingIndex;
+            public (int, int, int, DFBlock) secondaryBuildingIndex;
+            public StartingHouseData startingHouseData;
+        }
+
+        public static StartLocation startingState = new StartLocation();
 
         // Private fields
         CharacterDocument characterDocument;
@@ -366,6 +401,16 @@ namespace DaggerfallWorkshop.Game.Utility
 
             // Get start parameters
             DFPosition mapPixel = new DFPosition(1746, 2330);
+            (int, int, int, DFBlock) startingBuilding = (-1, -1, -1, new DFBlock());
+            if (startingState.startsFromPrimary)
+            {
+                mapPixel = startingState.primaryPosition;
+                startingBuilding = startingState.primaryBuildingIndex;
+            }
+            else{
+                mapPixel = startingState.secondaryPosition;
+                startingBuilding = startingState.secondaryBuildingIndex;
+            }
             bool startInDungeon = DaggerfallUnity.Settings.StartInDungeon;
 
             // Read location if any
@@ -386,6 +431,7 @@ namespace DaggerfallWorkshop.Game.Utility
             {
                 // Start at specified location
                 StreamingWorld streamingWorld = FindStreamingWorld();
+                PlayerEnterExit playerEE = GameManager.Instance.PlayerEnterExit;
                 if (hasLocation && startInDungeon && location.HasDungeon)
                 {
                     if (streamingWorld)
@@ -402,10 +448,35 @@ namespace DaggerfallWorkshop.Game.Utility
                     if (streamingWorld)
                     {
                         streamingWorld.TeleportToCoordinates(mapPixel.X, mapPixel.Y);
-                        streamingWorld.SetAutoReposition(StreamingWorld.RepositionMethods.Origin, Vector3.zero);
+                        // streamingWorld.SetAutoReposition(StreamingWorld.RepositionMethods.Offset, new UnityEngine.Vector3((float)(MapsFile.WorldMapTerrainDim / 2) * MeshReader.GlobalScale, 0.0f, (float)(MapsFile.WorldMapTerrainDim / 2) * MeshReader.GlobalScale));
+                        streamingWorld.SetAutoReposition(StreamingWorld.RepositionMethods.RandomStartMarker, Vector3.zero);
                         streamingWorld.suppressWorld = false;
                     }
+                    // playerEnterExit.EnableInteriorParent();
+                    // location.GetComponent<StaticDoor[]>();
+                    // playerEnterExit.StartBuildingInterior(location, playerEnterExit.MakeStaticDoor(mapPixel.X, mapPixel.Y, startingBuilding));
                 }
+                // else
+                // {
+                //     Debug.Log("We passed by else");
+                //     DFPosition worldPos = MapsFile.MapPixelToWorldCoord(mapPixel.X, mapPixel.Y);
+                //     if (streamingWorld)
+                //     {
+                //         // Debug.Log("TeleportToBuilding, mapPixel.X: " + mapPixel.X + ", mapPixel.Y: " + mapPixel.Y + ", startingBuilding: " + startingBuilding);
+                //         // playerEE.TeleportToBuilding(mapPixel.X, mapPixel.Y, startingBuilding);
+                //         // Debug.Log("SetAutoReposition");
+                //         // streamingWorld.SetAutoReposition(StreamingWorld.RepositionMethods.Origin, Vector3.zero);
+                        
+                //         worldPos.X += MapsFile.WorldMapTerrainDim / 2;
+                //         worldPos.Y += MapsFile.WorldMapTerrainDim / 2;
+                //         streamingWorld.TeleportToWorldCoordinates(worldPos.X, worldPos.Y);
+                //         // streamingWorld.SetAutoReposition(StreamingWorld.RepositionMethods.Origin, Vector3.zero);
+                //         Debug.Log("suppressWorld = false");
+                //         streamingWorld.suppressWorld = false;
+                //     }
+                //     // playerEnterExit.EnableInteriorParent();
+                //     playerEnterExit.TeleportToBuilding(mapPixel.X, mapPixel.Y, startingBuilding);
+                // }
             }
 
             // Apply biography effects to player entity
@@ -424,6 +495,9 @@ namespace DaggerfallWorkshop.Game.Utility
             // Setup bank accounts and houses
             Banking.DaggerfallBankManager.SetupAccounts();
             Banking.DaggerfallBankManager.SetupHouses();
+
+            if (startingState.startingHouse)
+                Banking.DaggerfallBankManager.AllocateRemoteHouseToPlayer(startingState.startingHouseData.shPosition, startingState.startingHouseData.shBldKey, startingState.startingHouseData.shBldIndex, startingState.startingHouseData.shLocIndex, startingState.startingHouseData.shRegion);
 
             // Initialize region data
             playerEntity.InitializeRegionData();

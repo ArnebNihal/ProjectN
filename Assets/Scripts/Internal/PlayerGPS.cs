@@ -25,6 +25,7 @@ using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Game.Serialization;
 using DaggerfallWorkshop.Game.Banking;
 using DaggerfallWorkshop.Game.MagicAndEffects;
+using DaggerfallWorkshop.Game.Utility.ModSupport;
 
 namespace DaggerfallWorkshop
 {
@@ -77,6 +78,8 @@ namespace DaggerfallWorkshop
 
         Vector3 lastFramePosition;
         // string arena2Path = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2";
+
+        static bool startingGame = false;
 
         #endregion
 
@@ -339,7 +342,6 @@ namespace DaggerfallWorkshop
             if (pos.X != lastMapPixelX || pos.Y != lastMapPixelY)
             {
                 UpdateWorldInfo(pos.X, pos.Y);
-
                 RaiseOnMapPixelChangedEvent(pos);
 
                 // Clear non-permanent scenes from cache, unless going to/from owned ship
@@ -390,6 +392,7 @@ namespace DaggerfallWorkshop
         {
             // Reset state when loading a new game
             ResetState();
+            startingGame = true;
         }
 
         private void SaveLoadManager_OnStartLoad(SaveData_v1 saveData)
@@ -798,6 +801,9 @@ namespace DaggerfallWorkshop
                 // Player has entered location rect
                 isPlayerInLocationRect = check;
                 RaiseOnEnterLocationRectEvent(CurrentLocation);
+
+                if (startingGame)
+                    SetStartingStuff();
             }
             else if (!check && isPlayerInLocationRect)
             {
@@ -810,14 +816,72 @@ namespace DaggerfallWorkshop
         public bool ReadyCheck()
         {
             // Ensure we have a DaggerfallUnity reference
-            if (dfUnity == null)            
-                dfUnity = DaggerfallUnity.Instance;            
+            if (dfUnity == null)
+            {
+                dfUnity = DaggerfallUnity.Instance;
+            }
 
             // Do nothing until DaggerfallUnity is ready
-            if (!dfUnity.IsReady)            
-                return false;            
+            if (!dfUnity.IsReady)
+                return false;
+
+            // When running the game, wait for the mod manager to be initialized
+            // Updating the player location too early causes the region loading to read WorldData
+            // locations from disabled mods
+            if (ModManager.Instance != null && !ModManager.Instance.Initialized)
+                return false;
 
             return true;
+        }
+
+        public static void SetStartingStuff()
+        {
+            if (StartGameBehaviour.startingState.startingHouse)
+            {
+                GameManager.Instance.PlayerGPS.DiscoverBuilding(StartGameBehaviour.startingState.startingHouseData.shBldKey, GenerateHouseName(StartGameBehaviour.startingState.startingHouseData.shNameType));
+                StartGameBehaviour.startingState.startingHouse = false;
+            }
+
+            PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
+            DFPosition worldPos = MapsFile.MapPixelToWorldCoord(StartGameBehaviour.startingState.startingHouseData.shPosition.X, StartGameBehaviour.startingState.startingHouseData.shPosition.Y);
+            var staticDoors = GameManager.GetComponentFromObject<DaggerfallStaticDoors>(GameManager.GetGameObjectWithName("DaggerfallBlock [" + StartGameBehaviour.startingState.startingHouseData.shBlock.Name + "]"));
+            var doorTransform = GameManager.GetComponentFromObject<Transform>(GameManager.GetGameObjectWithName("DaggerfallBlock [" + StartGameBehaviour.startingState.startingHouseData.shBlock.Name + "]"));
+            List<StaticDoor> neededSD = new List<StaticDoor>();
+
+            for (int i = 0; i < staticDoors.Doors.Length; i++)
+            {
+                if (staticDoors.Doors[i].buildingKey == StartGameBehaviour.startingState.startingHouseData.shBldKey)
+                {
+                    staticDoors.Doors[i].ownerPosition += new Vector3(doorTransform.position.x, 0.0f, doorTransform.position.z);
+                    neededSD.Add(staticDoors.Doors[i]);                    
+                }
+            }
+            
+            playerEnterExit.RespawnPlayer(worldPos.X, worldPos.Y, false, true, neededSD.ToArray(), false, false, true);
+
+            startingGame = false;
+        }
+
+        public static string GenerateHouseName(StartGameBehaviour.StartingHouseNameTypes nameType)
+        {
+            string resultingName = string.Empty;
+            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
+
+            switch (nameType)
+            {
+                case StartGameBehaviour.StartingHouseNameTypes.Residence:
+                    resultingName = MacroHelper.GetLastname(playerEntity.Name) + " Family House";
+                    break;
+
+                case StartGameBehaviour.StartingHouseNameTypes.Store:
+                    resultingName = MacroHelper.GetLastname(playerEntity.Name) + " Family Store";
+                    break;
+
+                default:
+                    break;
+            }
+
+            return resultingName;
         }
 
         #endregion
@@ -1014,7 +1078,10 @@ namespace DaggerfallWorkshop
 
             // Must have a location loaded
             if (!CurrentLocation.Loaded)
+            {
+                Debug.Log("Returning without discovering");
                 return;
+            }
 
             // Do nothing if building already discovered, unless overriding name
             if (overrideName == null && HasDiscoveredBuilding(buildingKey))
@@ -1023,7 +1090,10 @@ namespace DaggerfallWorkshop
             // Get building information
             DiscoveredBuilding db;
             if (!GetBaseBuildingDiscoveryData(buildingKey, out db))
+            {
+                Debug.Log("Returning 'cos can't get base building discovery data");
                 return;
+            }
 
             // Get location discovery
             ulong mapPixelID = MapsFile.GetMapPixelIDFromLongitudeLatitude((int)CurrentLocation.MapTableData.Longitude, CurrentLocation.MapTableData.Latitude);
@@ -1109,6 +1179,44 @@ namespace DaggerfallWorkshop
                 return;
 
             dl.discoveredBuildings.Remove(db.buildingKey);
+        }
+
+        /// <summary>
+        /// Discover the specified building in remote location.
+        /// Right now it's used to name player's/parent's house at character creation.
+        /// </summary>
+        public void DiscoverRemoteBuilding(DFPosition position, int buildingKey, string overrideName = null)
+        {
+            DiscoverLocation(MapsFile.MapPixelToTile(position).ToString("00000"), WorldMaps.GetLocationName(position));
+
+            DiscoveredBuilding db = new DiscoveredBuilding();
+
+            // Get location discovery
+            ulong mapPixelID = MapsFile.GetMapPixelID(position.X, position.Y);
+            DiscoveredLocation dl = new DiscoveredLocation();
+            if (discoveredLocations.ContainsKey(mapPixelID))
+            {
+                dl = discoveredLocations[mapPixelID];
+            }
+
+             // Ensure the building dict is created
+            if (dl.discoveredBuildings == null)
+                dl.discoveredBuildings = new Dictionary<int, DiscoveredBuilding>();
+
+            // Add the building and store back to discovered location, overriding name if requested
+            if (overrideName != null)
+            {
+                if (!db.isOverrideName)
+                    db.oldDisplayName = db.displayName;
+                db.displayName = overrideName;
+                db.isOverrideName = true;
+            }
+
+            if (db.oldDisplayName == db.displayName)
+                db.isOverrideName = false;
+
+            dl.discoveredBuildings[db.buildingKey] = db;
+            discoveredLocations[mapPixelID] = dl;
         }
 
         /// <summary>

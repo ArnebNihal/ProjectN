@@ -141,7 +141,7 @@ namespace DaggerfallWorkshop.Game.Guilds
             { Divines.Zenithar, new RankData(4, 1, 1, 6,-1,-1,-1,-1,-1, 8, 5288, 5243, 4056, 705, TextManager.Instance.GetLocalizedText("zenDesc")) },
         };
 
-        static Dictionary<Divines, List<DFCareer.Skills>> guildSkills = new Dictionary<Divines, List<DFCareer.Skills>>()
+        public static Dictionary<Divines, List<DFCareer.Skills>> guildSkills = new Dictionary<Divines, List<DFCareer.Skills>>()
         {
             { Divines.Akatosh, new List<DFCareer.Skills>() {
                 DFCareer.Skills.Alteration,

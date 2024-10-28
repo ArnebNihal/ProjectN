@@ -442,6 +442,10 @@ namespace DaggerfallWorkshop.Game.Entity
                 // they are better than the value in the definition.
                 for (int i = 0; i < ArmorValues.Length; i++)
                 {
+                    // TOCHECK: isn't this formula doing the opposite of what was intended to?
+                    // How I read it, if the equipment has a better value than the standard monster value,
+                    // the former is reduced to the standard; how I see it, it should be that, if the equipment
+                    // has a lower value than the standard, it should be raised to the standard value.
                     if (ArmorValues[i] > (sbyte)(mobileEnemy.ArmorValue * 5))
                     {
                         ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue * 5);

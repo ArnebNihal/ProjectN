@@ -29,24 +29,24 @@ namespace DaggerfallConnect.Arena2
         #region Fields
 
         // readonly FileProxy factionFile = new FileProxy();
-        // readonly Dictionary<int, FactionData> factionDict = new Dictionary<int, FactionData>();
-        // readonly Dictionary<string, int> factionNameToIDDict = new Dictionary<string, int>();
+        public static Dictionary<int, FactionData> factionDict = new Dictionary<int, FactionData>();
+        public static Dictionary<string, int> factionNameToIDDict = new Dictionary<string, int>();
 
         #endregion
 
-        #region Properties
+        // #region Properties
 
-        public Dictionary<int, FactionData> FactionDict
-        {
-            get { return FactionsAtlas.FactionDictionary; }
-        }
+        // public Dictionary<int, FactionData> FactionDict
+        // {
+        //     get { return FactionsAtlas.FactionDictionary; }
+        // }
 
-        public Dictionary<string, int> FactionNameToIDDict
-        {
-            get { return FactionsAtlas.FactionToId; }
-        }
+        // public Dictionary<string, int> FactionNameToIDDict
+        // {
+        //     get { return FactionsAtlas.FactionToId; }
+        // }
 
-        #endregion
+        // #endregion
 
         #region Enums
 
@@ -720,8 +720,8 @@ namespace DaggerfallConnect.Arena2
 
         public FactionFile()
         {
-            // factionDict = FactionsAtlas.FactionDictionary;
-            // factionNameToIDDict = FactionsAtlas.FactionToId;
+            factionDict = FactionsAtlas.FactionDictionary;
+            factionNameToIDDict = FactionsAtlas.FactionToId;
         }
 
         // public FactionFile(string filePath, FileUsage usage, bool readOnly)

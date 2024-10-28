@@ -76,6 +76,18 @@ namespace DaggerfallWorkshop
         Empire = 7,
     }
 
+    public enum WorldAreaNames
+    {
+        Tamriel = 1,
+        Akavir,
+        Aldmeris,
+        Atmora,
+        Lyg,
+        Pyandonea,
+        Yokuda,
+        Isles
+    }
+
     /// <summary>
     /// Province names. These will get used in the near future, I guess.
     /// </summary>
@@ -102,6 +114,52 @@ namespace DaggerfallWorkshop
         Temperate,
         Swamp,
         Maquis
+    }
+
+    /// <summary>
+    /// Character age ranges. At the moment, these are used only
+    /// during character creation, but maybe later they will find other uses.
+    /// </summary>
+    public enum AgeRanges
+    {
+        Infant = 1,
+        Child,
+        Adolescent,
+        YoungAdult,
+        Adult,
+        OldEnough
+
+    }
+
+    /// <summary>
+    /// What each biog section in BiogText.json "OriginalBiogs" refers to.
+    /// Not sure if these will be used at all, at the moment they're there for, well, reference.
+    /// </summary>
+    public enum BiogReference
+    {
+        EarliestMemories = 0,
+        GrowingUp = 1,
+        TharnTalk = 2,
+        TwentiethYear = 3
+    }
+
+    public enum BiogQuestType
+    {
+        Generic = 0,
+        Magic = 1,
+        Combat = 2,
+        Thievery = 3,
+        Languages = 4
+    }
+
+    public enum BiogAnswerEffect
+    {
+        GoldPieces = 0,
+        Reputation = 1,
+        Item = 2,
+        Skill = 3,
+        Modifier = 4,
+        FriendsAndFoes = 5
     }
 
     /// <summary>

@@ -38,7 +38,7 @@ namespace DaggerfallWorkshop.Game.Guilds
                 "Apprentice", "Journeyman", "Evoker", "Conjurer", "Magician", "Enchanter", "Warlock", "Wizard", "Master Wizard", "Archmage"
         };
 
-        static List<DFCareer.Skills> guildSkills = new List<DFCareer.Skills>() {
+        public static List<DFCareer.Skills> guildSkills = new List<DFCareer.Skills>() {
                 DFCareer.Skills.Alteration,
                 DFCareer.Skills.Destruction,
                 DFCareer.Skills.Illusion,

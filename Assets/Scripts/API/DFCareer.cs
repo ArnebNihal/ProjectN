@@ -550,7 +550,11 @@ namespace DaggerfallConnect
             BluntWeapon = 32,
             Archery = 33,
             CriticalStrike = 34,
-            Count = 35, // Not a valid skill
+            LightArmour = 35,
+            MediumArmour = 36,
+            HeavyArmour = 37,
+            Block = 38,
+            Disguise = 39
         }
 
         /// <summary>
