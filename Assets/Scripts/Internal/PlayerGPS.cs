@@ -537,8 +537,33 @@ namespace DaggerfallWorkshop
 
                 return true;
             }
-
             return false;
+        }
+
+        /// <summary>
+        /// Return the current Province.
+        /// </summary>
+        public ProvinceNames GetProvinceFromRegion()
+        {
+            for (int i = 1; i < Enum.GetNames(typeof(ProvinceNames)).Length + 1; i++)
+            {
+                if (WorldData.WorldSetting.regionInProvince[i].Contains(currentPoliticIndex))
+                    return (ProvinceNames)i;
+            }
+            return (ProvinceNames)0;
+        }
+
+        /// <summary>
+        /// Given a region index, return the Province it belongs to.
+        /// </summary>
+        public ProvinceNames GetProvinceFromRegion(int regionIndex)
+        {
+            for (int i = 1; i < Enum.GetNames(typeof(ProvinceNames)).Length + 1; i++)
+            {
+                if (WorldData.WorldSetting.regionInProvince[i].Contains(regionIndex))
+                    return (ProvinceNames)i;
+            }
+            return (ProvinceNames)0;
         }
 
         /// <summary>
@@ -802,7 +827,7 @@ namespace DaggerfallWorkshop
                 isPlayerInLocationRect = check;
                 RaiseOnEnterLocationRectEvent(CurrentLocation);
 
-                if (startingGame)
+                if (StartGameBehaviour.startingState != null && startingGame)
                     SetStartingStuff();
             }
             else if (!check && isPlayerInLocationRect)

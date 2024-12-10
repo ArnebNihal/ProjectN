@@ -89,7 +89,7 @@ namespace DaggerfallWorkshop
     }
 
     /// <summary>
-    /// Province names. These will get used in the near future, I guess.
+    /// Province names. These will be used in the near future, I guess.
     /// </summary>
     public enum ProvinceNames
     {
@@ -102,6 +102,19 @@ namespace DaggerfallWorkshop
         Valenwood = 7,
         Elsweyr = 8,
         BlackMarsh = 9
+    }
+
+    /// <summary>
+    /// Levels of Encumbrance
+    /// </summary>
+    public enum EncumbranceLevels
+    {
+        Unencumbered = 0,
+        Lightly_Encumbered = 1,
+        Slightly_Burdened = 2,
+        Burdened = 3,
+        Stressed = 4,
+        Overburdened = 5
     }
 
     /// <summary>
@@ -440,16 +453,17 @@ namespace DaggerfallWorkshop
     /// </summary>
     public enum MetalTypes
     {
+        // ProjectN: moved Orcish to be on par with Mithril
         None,
         Iron,
         Steel,
         Silver,
         Elven,
         Dwarven,
+        Orcish,
         Mithril,
         Adamantium,
         Ebony,
-        Orcish,
         Daedric,
     }
 

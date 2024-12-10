@@ -649,10 +649,10 @@ namespace DaggerfallWorkshop.Game.Items
         }
 
         // Horses, carts, arrows and maps are not counted against encumbrance.
+        // ProjectN: making arrows and maps counted in encumbrance.
         public float EffectiveUnitWeightInKg()
         {
-            if (ItemGroup == ItemGroups.Transportation || TemplateIndex == (int)Weapons.Arrow ||
-                IsOfTemplate(ItemGroups.MiscItems, (int)MiscItems.Map))
+            if (ItemGroup == ItemGroups.Transportation)
                 return 0f;
             return weightInKg;
         }
@@ -825,6 +825,7 @@ namespace DaggerfallWorkshop.Game.Items
                     {
                         case (int)Weapons.Battle_Axe:
                         case (int)Weapons.War_Axe:
+                        case (int)Weapons.ArchersAxe:
                             return SoundClips.EquipAxe;
                         case (int)Weapons.Broadsword:
                         case (int)Weapons.Longsword:
@@ -840,6 +841,7 @@ namespace DaggerfallWorkshop.Game.Items
                         case (int)Weapons.Shortsword:
                             return SoundClips.EquipShortBlade;
                         case (int)Weapons.Flail:
+                        case (int)Weapons.LightFlail:
                             return SoundClips.EquipFlail;
                         case (int)Weapons.Mace:
                         case (int)Weapons.Warhammer:
@@ -877,10 +879,12 @@ namespace DaggerfallWorkshop.Game.Items
                 case (int)Weapons.War_Axe:
                 case (int)Weapons.Staff:
                 case (int)Weapons.Mace:
+                case (int)Weapons.LightFlail:
                     return SoundClips.SwingMediumPitch;
                 case (int)Weapons.Dagger:
                 case (int)Weapons.Tanto:
                 case (int)Weapons.Shortsword:
+                case (int)Weapons.ArchersAxe:
                     return SoundClips.SwingHighPitch;
                 case (int)Weapons.Short_Bow:
                 case (int)Weapons.Long_Bow:
@@ -909,6 +913,7 @@ namespace DaggerfallWorkshop.Game.Items
                     return (int)DaggerfallConnect.DFCareer.ProficiencyFlags.LongBlades;
                 case (int)Weapons.Battle_Axe:
                 case (int)Weapons.War_Axe:
+                case (int)Weapons.ArchersAxe:
                     return (int)DaggerfallConnect.DFCareer.ProficiencyFlags.Axes;
                 case (int)Weapons.Flail:
                 case (int)Weapons.Mace:
@@ -964,23 +969,23 @@ namespace DaggerfallWorkshop.Game.Items
         {
             switch (nativeMaterialValue)
             {
-                case (int)WeaponMaterialTypes.Iron:
+                case (int)MaterialTypes.Iron:
                     return -1;
-                case (int)WeaponMaterialTypes.Steel:
-                case (int)WeaponMaterialTypes.Silver:
+                case (int)MaterialTypes.Steel:
+                case (int)MaterialTypes.Silver:
                     return 0;
-                case (int)WeaponMaterialTypes.Elven:
+                case (int)MaterialTypes.Elven:
                     return 1;
-                case (int)WeaponMaterialTypes.Dwarven:
+                case (int)MaterialTypes.Dwarven:
                     return 2;
-                case (int)WeaponMaterialTypes.Mithril:
-                case (int)WeaponMaterialTypes.Adamantium:
+                case (int)MaterialTypes.Orcish:
+                case (int)MaterialTypes.Mithril:
                     return 3;
-                case (int)WeaponMaterialTypes.Ebony:
+                case (int)MaterialTypes.Adamantium:
                     return 4;
-                case (int)WeaponMaterialTypes.Orcish:
+                case (int)MaterialTypes.Ebony:
                     return 5;
-                case (int)WeaponMaterialTypes.Daedric:
+                case (int)MaterialTypes.Daedric:
                     return 6;
 
                 default:
@@ -988,6 +993,7 @@ namespace DaggerfallWorkshop.Game.Items
             }
         }
 
+        /// ProjectN: heavily modified and adjusted following R&R:I scripts
         public virtual int GetMaterialArmorValue()
         {
             int result = 0;
@@ -998,34 +1004,64 @@ namespace DaggerfallWorkshop.Game.Items
                     case (int)ArmorMaterialTypes.Leather:
                         result = 3;
                         break;
+                    case (int)ArmorMaterialTypes.Fur:
+                    case (int)ArmorMaterialTypes.LeatherIron:
                     case (int)ArmorMaterialTypes.Chain:
-                    case (int)ArmorMaterialTypes.Chain2:
+                        result = 5;
+                        break;
+                    case (int)ArmorMaterialTypes.ChainIron:
                         result = 6;
                         break;
-                    case (int)ArmorMaterialTypes.Iron:
+                    case (int)ArmorMaterialTypes.LeatherSteel:
+                    case (int)ArmorMaterialTypes.LeatherSilver:
+                    case (int)ArmorMaterialTypes.PlateIron:
                         result = 7;
                         break;
-                    case (int)ArmorMaterialTypes.Steel:
-                    case (int)ArmorMaterialTypes.Silver:
+                    case (int)ArmorMaterialTypes.LeatherElven:
+                    case (int)ArmorMaterialTypes.ChainSteel:
+                    case (int)ArmorMaterialTypes.ChainSilver:
+                        result = 8;
+                        break;
+                    case (int)ArmorMaterialTypes.LeatherDwarven:
+                    case (int)ArmorMaterialTypes.ChainElven:
+                    case (int)ArmorMaterialTypes.PlateSteel:
+                    case (int)ArmorMaterialTypes.PlateSilver:
                         result = 9;
                         break;
-                    case (int)ArmorMaterialTypes.Elven:
+                    case (int)ArmorMaterialTypes.LeatherOrcish:
+                    case (int)ArmorMaterialTypes.LeatherMithril:
+                    case (int)ArmorMaterialTypes.ChainDwarven:
+                    case (int)ArmorMaterialTypes.PlateElven:
                         result = 11;
                         break;
-                    case (int)ArmorMaterialTypes.Dwarven:
+                    case (int)ArmorMaterialTypes.LeatherAdamantium:
+                        result = 12;
+                        break;
+                    case (int)ArmorMaterialTypes.LeatherEbony:
+                    case (int)ArmorMaterialTypes.ChainOrcish:
+                    case (int)ArmorMaterialTypes.ChainMithril:
+                    case (int)ArmorMaterialTypes.PlateDwarven:
                         result = 13;
                         break;
-                    case (int)ArmorMaterialTypes.Mithril:
-                    case (int)ArmorMaterialTypes.Adamantium:
+                    case (int)ArmorMaterialTypes.LeatherDaedric:
+                        result = 14;
+                        break;
+                    case (int)ArmorMaterialTypes.ChainAdamantium:
+                    case (int)ArmorMaterialTypes.PlateOrcish:
+                    case (int)ArmorMaterialTypes.PlateMithril:
                         result = 15;
                         break;
-                    case (int)ArmorMaterialTypes.Ebony:
+                    case (int)ArmorMaterialTypes.ChainEbony:
+                    case (int)ArmorMaterialTypes.PlateAdamantium:
                         result = 17;
                         break;
-                    case (int)ArmorMaterialTypes.Orcish:
+                    case (int)ArmorMaterialTypes.ChainDaedric:
+                        result = 18;
+                        break;
+                    case (int)ArmorMaterialTypes.PlateEbony:
                         result = 19;
                         break;
-                    case (int)ArmorMaterialTypes.Daedric:
+                    case (int)ArmorMaterialTypes.PlateDaedric:
                         result = 21;
                         break;
                 }
@@ -1042,18 +1078,19 @@ namespace DaggerfallWorkshop.Game.Items
             return result;
         }
 
+        // ProjectN: shields don't add to armor value anymore.
         public virtual int GetShieldArmorValue()
         {
             switch (TemplateIndex)
             {
-                case (int)Armor.Buckler:
-                    return 1;
-                case (int)Armor.Round_Shield:
-                    return 2;
-                case (int)Armor.Kite_Shield:
-                    return 3;
-                case (int)Armor.Tower_Shield:
-                    return 4;
+                // case (int)Armor.Buckler:
+                //     return 1;
+                // case (int)Armor.Round_Shield:
+                //     return 2;
+                // case (int)Armor.Kite_Shield:
+                //     return 3;
+                // case (int)Armor.Tower_Shield:
+                //     return 4;
 
                 default:
                     return 0;
@@ -1071,10 +1108,11 @@ namespace DaggerfallWorkshop.Game.Items
                 case (int)Armor.Buckler:
                     return new BodyParts[] { BodyParts.LeftArm, BodyParts.Hands };
                 case (int)Armor.Round_Shield:
+                    return new BodyParts[] { BodyParts.LeftArm, BodyParts.Chest,  BodyParts.Hands };
                 case (int)Armor.Kite_Shield:
-                    return new BodyParts[] { BodyParts.LeftArm, BodyParts.Hands, BodyParts.Legs };
+                    return new BodyParts[] { BodyParts.LeftArm, BodyParts.Chest, BodyParts.Hands, BodyParts.Legs };
                 case (int)Armor.Tower_Shield:
-                    return new BodyParts[] { BodyParts.Head, BodyParts.LeftArm, BodyParts.Hands, BodyParts.Legs };
+                    return new BodyParts[] { BodyParts.Head, BodyParts.LeftArm, BodyParts.Chest, BodyParts.Hands, BodyParts.Legs };
 
                 default:
                     return new BodyParts[] { };

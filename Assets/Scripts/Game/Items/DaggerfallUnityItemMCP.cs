@@ -113,7 +113,7 @@ namespace DaggerfallWorkshop.Game.Items
                     case ItemGroups.Armor:
                         return DaggerfallUnity.Instance.TextProvider.GetArmorMaterialName((ArmorMaterialTypes)parent.nativeMaterialValue);
                     case ItemGroups.Weapons:
-                        return DaggerfallUnity.Instance.TextProvider.GetWeaponMaterialName((WeaponMaterialTypes)parent.nativeMaterialValue);
+                        return DaggerfallUnity.Instance.TextProvider.GetWeaponMaterialName((MaterialTypes)parent.nativeMaterialValue);
                     default:
                         return base.Material();
                 }

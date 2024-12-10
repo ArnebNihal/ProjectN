@@ -1226,7 +1226,7 @@ namespace DaggerfallWorkshop.Game
             positionPlayer = new Vector2(position.X, position.Y);
 
             int region = PoliticData.GetPoliticValue(position.X, position.Y);
-            if (region < 0 || region >= MapsFile.TempRegionCount)
+            if (region < 0 || region >= WorldData.WorldSetting.RegionNames.Length)
                 region = -1;
 
             DFRegion.RegionMapTable locationInfo = new DFRegion.RegionMapTable();
@@ -1306,7 +1306,7 @@ namespace DaggerfallWorkshop.Game
                     question = ExpandRandomTextRecord(7225 + toneIndex);
                     break;
                 case QuestionType.Thing:
-                    question = "Not implemented"; // Classic did not implement this either
+                    question = "Not implemented"; // Classic did not implement this either -> ProjectN: could this be used for random artifact quests?
                     break;
                 case QuestionType.Regional:
                     currentKeySubjectType = KeySubjectType.Building;

@@ -162,7 +162,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 int armorMod = playerEntity.DecreasedArmorValueModifier - playerEntity.IncreasedArmorValueModifier;
 
                 sbyte av = playerEntity.ArmorValues[bpIdx];
-                int bpAv = (100 - av) / 5 + armorMod;
+                int bpAv = av + armorMod;
                 armourLabels[bpIdx].Text = (!suppress) ? bpAv.ToString() : string.Empty;
 
                 if (armorMod < 0)

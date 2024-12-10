@@ -243,6 +243,7 @@ namespace DaggerfallWorkshop.Utility
         {
             // Check API ready
             DaggerfallUnity dfUnity = DaggerfallUnity.Instance;
+
             if (!dfUnity.IsReady)
                 return new ImageData();
 
@@ -251,6 +252,7 @@ namespace DaggerfallWorkshop.Utility
             try
             {
                 fileType = ParseFileType(filename);
+                
             }
             catch
             {
@@ -273,9 +275,23 @@ namespace DaggerfallWorkshop.Utility
             {
                 case ImageTypes.TEXTURE:
                     Debug.Log("Trying to load file " + filename);
-                    TextureFile textureFile = new TextureFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
-                    textureFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, textureFile.PaletteName));
-                    dfBitmap = textureFile.GetDFBitmap(record, frame);
+                    int textureNumber;
+                    int.TryParse(filename.Substring(8), out textureNumber);
+                    TextureFile textureFile;
+                    if (textureNumber < 10000)
+                    {
+                        textureFile = new TextureFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
+                        textureFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, textureFile.PaletteName));
+                        dfBitmap = textureFile.GetDFBitmap(record, frame);
+                    }
+                    else
+                    {
+                        Debug.Log("Now loading textureNumber: " + textureNumber);
+                        textureFile = new TextureFile(Path.Combine(WorldMaps.mapPath, "Textures", filename), FileUsage.UseMemory, true);
+                        textureFile.LoadPalette(Path.Combine(WorldMaps.mapPath, "Textures", textureFile.PaletteName));
+                        dfBitmap = textureFile.GetCustomDFBitmap(textureNumber, record, frame, TextureReader.MapsPath);
+                    }
+                    
                     int frameCount = textureFile.GetFrameCount(record);
                     if (createAllFrameTextures && frameCount > 1)
                     {
@@ -286,9 +302,11 @@ namespace DaggerfallWorkshop.Utility
                         }
                     }
                     imageData.offset = textureFile.GetOffset(record);
+                    Debug.Log("imageData.offset for " + textureNumber + "." + record +  ": " + imageData.offset);
                     imageData.scale = textureFile.GetScale(record);
+                    // Debug.Log("imageData.scale: " + imageData.scale);
                     imageData.size = textureFile.GetSize(record);
-                    Debug.Log("imageData.size: " + imageData.size.Width + ", " + imageData.size.Height);
+                    // Debug.Log("imageData.size: " + imageData.size.Width + ", " + imageData.size.Height);
 
                     // Texture pack support
                     int archive = AssetInjection.TextureReplacement.FileNameToArchive(filename);

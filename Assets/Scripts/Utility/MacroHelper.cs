@@ -258,7 +258,8 @@ namespace DaggerfallWorkshop.Utility
             { "%bmr", BiogMovedRegion },
             { "%bmt", BiogMovedTown },
             { "%fen", FamilyEnemy }, // The faction that forced pc's family to move away
-            { "%as", AbroadSchool} // The type of "school" where pc was sent to study
+            { "%as", AbroadSchool }, // The type of "school" where pc was sent to study
+            { "%enclvl", EncumbranceLevel} // Level of encumbrance
         };
 
         // Multi-line macro handlers, returns tokens.
@@ -765,6 +766,26 @@ namespace DaggerfallWorkshop.Utility
             return TextManager.Instance.GetLocalizedText("unknown");
         }
 
+        private static string GetEncLvlString(short encLvl)
+        {
+            switch (encLvl)
+            {
+                case 0:
+                default:
+                    return "unencumbered";
+                case 1:
+                    return "lightlyEncumbered";
+                case 2:
+                    return "slightlyBurdened";
+                case 3:
+                    return "burdened";
+                case 4:
+                    return "stressed";
+                case 5:
+                    return "overburdened";
+            }
+        }
+
         private static string Time(IMacroContextProvider mcp)
         {   // %tim
             return DaggerfallUnity.Instance.WorldTime.Now.MinTimeString();
@@ -1173,6 +1194,12 @@ namespace DaggerfallWorkshop.Utility
         private static string AbroadSchool(IMacroContextProvider mcp)
         {   // %as
             return CreateCharBiography.dataForBiog.AbroadSchool;
+        }
+
+        private static string EncumbranceLevel(IMacroContextProvider mcp)
+        {   // %enclvl
+            string encLvl = GetEncLvlString(GameManager.Instance.PlayerEntity.EncumbranceLevel);
+            return TextManager.Instance.GetLocalizedText(encLvl);
         }
 
         #endregion

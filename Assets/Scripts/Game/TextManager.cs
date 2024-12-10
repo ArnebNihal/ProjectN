@@ -59,7 +59,7 @@ namespace DaggerfallWorkshop.Game
         Dictionary<string, Table> textDatabases = new Dictionary<string, Table>();
         Dictionary<string, string[]> cachedLocalizedTextLists = new Dictionary<string, string[]>();
         Dictionary<string, DaggerfallFont> localizedFonts = new Dictionary<string, DaggerfallFont>();
-        List<string> additionalText = new List<string>{ "climateSurvival", "climateUncomfortable", "ocean", "desert", "desert2", "mountain", "rainforest", "swamp", "subtropical", "mountainWoods", "woodlands", "hauntedWoodlands", "maquis", "goodSoD", "perfectSoD", "artificialCave", "aviary", "building", "community", "naturalCave", "nest", "settlement", "temple", "lightArm", "mediumArm", "heavyArm", "block", "disguise" };
+        List<string> additionalText = new List<string>{  };
 
         #endregion
 

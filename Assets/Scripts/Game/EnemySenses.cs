@@ -582,6 +582,9 @@ namespace DaggerfallWorkshop.Game
             return prediction;
         }
 
+        /// <summary>
+        /// Return true if player has been detected, false if not.
+        /// </summary>
         public bool StealthCheck()
         {
             if (GameManager.Instance.PlayerEnterExit.IsPlayerInsideDungeonCastle && !motor.IsHostile)
@@ -611,7 +614,8 @@ namespace DaggerfallWorkshop.Game
                 PlayerEntity player = GameManager.Instance.PlayerEntity;
                 if (player.TimeOfLastStealthCheck != gameMinutes)
                 {
-                    player.TallySkill(DFCareer.Skills.Stealth, 1);
+                    if (playerMotor.IsMovingLessThanHalfSpeed)  // ProjectN: added this condition to make sure (?) Stealth is increased only when moving slowly
+                        player.TallySkill(DFCareer.Skills.Stealth, 1);
                     player.TimeOfLastStealthCheck = gameMinutes;
                 }
             }

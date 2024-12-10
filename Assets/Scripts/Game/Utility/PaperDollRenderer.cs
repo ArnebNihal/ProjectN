@@ -414,6 +414,7 @@ namespace DaggerfallWorkshop.Game.Utility
             // Blit item images
             foreach (var item in orderedItems)
             {
+                Debug.Log("Blitting " + item.LongName);
                 if (item.ItemGroup == ItemGroups.MensClothing || item.ItemGroup == ItemGroups.WomensClothing ||
                     item.ItemGroup == ItemGroups.Armor || item.ItemGroup == ItemGroups.Weapons || 
 					(item.ItemGroup == ItemGroups.Jewellery && IsEquippedToBody(item)))

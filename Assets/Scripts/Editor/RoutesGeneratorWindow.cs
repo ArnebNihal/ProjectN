@@ -10,6 +10,7 @@ using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop;
 using DaggerfallConnect.Utility;
+using Newtonsoft.Json;
 
 namespace MapEditor
 {
@@ -45,10 +46,10 @@ namespace MapEditor
 
             public RoutedLocation()
             {
-                this.position = new DFPosition(0, 0);
-                this.locDistance = new List<(ulong, float)>();
-                this.trailPreference = TrailTypes.None;
-                this.completionLevel = 0;
+                this.position = new DFPosition(0, 0);           // The coordinates of the location to route
+                this.locDistance = new List<(ulong, float)>();  // Item1 refers to a location to reach, Item2 to the distance to that location
+                this.trailPreference = TrailTypes.None;         // The type of trail this location will generate, if there aren't others
+                this.completionLevel = 0;                       // An indicator of how many locations have been reached starting from this position
             }
         }
 
@@ -97,16 +98,17 @@ namespace MapEditor
             //     routedLocations[h] = new List<RoutedLocation>();
             // }
             List<DFPosition> routedLocSurroundings = SetLocSurroundings(out routedLocations);
-            byte[] pathData = ClimateInfo.ConvertToArray(ClimateInfo.GetTextureMatrix(xTile, yTile, "trail"));
+            int[] pathData = ClimateInfo.ConvertToArray(ClimateInfo.GetTextureMatrix(xTile, yTile, "trail"));
             
             List<RoutedLocation> routedLocationsComplete = new List<RoutedLocation>();
-            (byte, byte)[,] trailMap = new (byte, byte)[MapsFile.MaxMapPixelX, MapsFile.MaxMapPixelY];
+            (byte, byte)[,] trailMap = new (byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
+            trailMap = LoadExistingTrails(pathData);
 
             // First we set values for routedLocations, to have a reference for which locations must be routed and in which way
 
             for (int j = 0; j < routedLocations.Length; j++)
             {
-                Debug.Log("routedLocations.Length: " + routedLocations.Length);
+                // Debug.Log("routedLocations.Length: " + routedLocations.Length);
                 if (j == (int)DFRegion.LocationTypes.Coven ||
                     j == (int)DFRegion.LocationTypes.HiddenLocation ||
                     j == (int)DFRegion.LocationTypes.HomeYourShips ||
@@ -123,14 +125,14 @@ namespace MapEditor
                     // RoutedLocation location = new RoutedLocation();
                     // location.position = MapsFile.GetPixelFromPixelID(Worldmaps.Worldmap[RegionManager.currentRegionIndex].Locations[j].MapTableData.MapId);
                     // int locationType = (int)Worldmaps.Worldmap[RegionManager.currentRegionIndex].Locations[j].MapTableData.LocationType;
-                    Debug.Log("routedLocations[" + (DFRegion.LocationTypes)j +  "].Count: " + routedLocations[j].Count);
+                    // Debug.Log("routedLocations[" + (DFRegion.LocationTypes)j +  "].Count: " + routedLocations[j].Count);
 
                     switch (j)
                     {
                         // Locations that will always have a road
                         case (int)DFRegion.LocationTypes.TownCity:
                         case (int)DFRegion.LocationTypes.TownHamlet:
-                        case (int)DFRegion.LocationTypes.TownVillage:
+                        case (int)DFRegion.LocationTypes.TownVillage:   // Villages and taverns could get a track in "lower importance" government types, when that variable is introduced
                         case (int)DFRegion.LocationTypes.Tavern:
                             routedLocations[j][k].trailPreference = TrailTypes.Road;
                             break;
@@ -216,7 +218,7 @@ namespace MapEditor
             // First, we make a list of potential connection to every location that has to be routed, and sort it by distance
             for (int r = 0; r < routeGenerationOrder.Length; r++)
             {
-                Debug.Log("routedLocations[" + routeGenerationOrder[r] + "].Count: " + routedLocations[routeGenerationOrder[r]].Count);
+                // Debug.Log("routedLocations[" + routeGenerationOrder[r] + "].Count: " + routedLocations[routeGenerationOrder[r]].Count);
                 List<RoutedLocation> swapList = new List<RoutedLocation>();
                 if (routedLocations[routeGenerationOrder[r]] == null)
                     continue;
@@ -234,32 +236,38 @@ namespace MapEditor
                     while ((swapLoc.completionLevel < routeCompletionLevelRequirement || distanceChecked < minimumWaveScan) && distanceChecked < maximumWaveScan);
 
                     swapLoc.locDistance.Sort((a, b) => a.Item2.CompareTo(b.Item2));
-                    Debug.Log("swapLoc.locDistance[0].Item1: " + swapLoc.locDistance[0].Item1);
+                    for (int sld = 0; sld < swapLoc.locDistance.Count; sld++)
+                        Debug.Log("swapLoc.locDistance[" + sld + "].Item1: " + swapLoc.locDistance[sld].Item1);
                     swapList.Add(swapLoc);
-                    Debug.Log("swapList[0].locDistance[0].Item1: " + swapList[0].locDistance[0].Item1);
+                    // Debug.Log("swapList[0].locDistance[0].Item1: " + swapList[0].locDistance[0].Item1);
                 }
 
                 // routedLocations[routeGenerationOrder[r]] = new List<RoutedLocation>();
                 // routedLocations[routeGenerationOrder[r]] = swapList;
                 routedLocationsComplete.AddRange(swapList);
-                Debug.Log("routedLocationsComplete[0].locDistance[0].Item1: " + routedLocationsComplete[0].locDistance[0].Item1);
+                // Debug.Log("routedLocationsComplete[0].locDistance[0].Item1: " + routedLocationsComplete[0].locDistance[0].Item1);
             }
 
             // Second, we compare different routed locations. Let's consider locations A, B and C: if A has to be connected with
             // both B and C, and B has to be connected to C too, and B is (significantly?) closer to C than A is,
             // we remove A connection to C.
             List<RoutedLocation> routedLocCompSwap = routedLocationsComplete;
-            Debug.Log("routedLocCompSwap[0].locDistance[0].Item1: " + routedLocCompSwap[0].locDistance[0].Item1);
+            // Debug.Log("routedLocCompSwap[0].locDistance[0].Item1: " + routedLocCompSwap[0].locDistance[0].Item1);
             RoutedLocation locToRoute0Swap = new RoutedLocation();
 
             foreach (RoutedLocation locToRoute0 in routedLocationsComplete)
             {
                 // int index = 0;
-                RoutedLocation locToRouteCompare = new RoutedLocation();
+                List<RoutedLocation> locListCompare = new List<RoutedLocation>();
                 List<(ulong, float)> locDistanceToCompare = new List<(ulong, float)>();
                 locToRoute0Swap = locToRoute0;
 
-                locToRoute0Swap = CompareLocDistance(locToRoute0, out locToRouteCompare, ref routedLocCompSwap);
+                locToRoute0Swap = CompareLocDistance(locToRoute0, out locListCompare, ref routedLocCompSwap);
+
+                foreach (RoutedLocation modLoc in locListCompare)
+                {
+                    routedLocCompSwap = MergeModifiedLocDist(routedLocCompSwap, modLoc);
+                }
 
                 // foreach((ulong, float) rLoc in locToRoute0.locDistance)
                 // {
@@ -298,13 +306,17 @@ namespace MapEditor
                 // }
 
                 routedLocCompSwap = MergeModifiedLocDist(routedLocCompSwap, locToRoute0Swap);
-                routedLocCompSwap = MergeModifiedLocDist(routedLocCompSwap, locToRouteCompare);
 
                 // Debug.Log("routedLocCompSwap.Count: " + routedLocCompSwap.Count);
                 // Debug.Log("routedLocationsComplete.Count: " + routedLocationsComplete.Count);
             }
 
             routedLocationsComplete = routedLocCompSwap;
+
+            
+            string trailDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "TrailData", "trailData_" + xTile + "_" + yTile + ".json");
+            var json = JsonConvert.SerializeObject(routedLocationsComplete, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+            File.WriteAllText(trailDataPath, json);
 
             // Third, we search for the best way to connect two locations, starting from the shortest route
             // and falling back to longer trails if adjacent pixels have a too steep rise/decline
@@ -314,7 +326,6 @@ namespace MapEditor
                 {
                     Debug.Log("locToRoute1.locDistance.Count: " + locToRoute1.locDistance.Count);
                     List<DFPosition> trail = new List<DFPosition>();
-                    trail = LoadExistingTrails(pathData);
                     List<DFPosition> movementChoice = new List<DFPosition>();
                     int xDirection, yDirection, xDiff, yDiff;
                     DFPosition currentPosition = locToRoute1.position;
@@ -360,7 +371,8 @@ namespace MapEditor
                             bool junctionPresent = false;
                             foreach (DFPosition checkJunction in movementChoice)
                             {
-                                if (trailMap[checkJunction.X, checkJunction.Y].Item1 > 0 || trailMap[checkJunction.X, checkJunction.Y].Item2 > 0)
+                                DFPosition checkJunctionConv = ConvertToRelative(checkJunction);
+                                if (trailMap[checkJunctionConv.X, checkJunctionConv.Y].Item1 > 0 || trailMap[checkJunctionConv.X, checkJunctionConv.Y].Item2 > 0)
                                 {
                                     Debug.Log("Junction present at " + checkJunction.X + ", " + checkJunction.Y);
                                     junctionPresent = true;
@@ -370,8 +382,9 @@ namespace MapEditor
                             {
                                 foreach (DFPosition removeNonJunction in movementChoice)
                                 {
-                                    if (trailMap[removeNonJunction.X, removeNonJunction.Y].Item1 == 0 && !(CheckDFPositionListContent(stepToRemove, removeNonJunction)) &&
-                                        trailMap[removeNonJunction.X, removeNonJunction.Y].Item2 == 0 && !(CheckDFPositionListContent(stepToRemove, removeNonJunction)))
+                                    DFPosition removeNonJunctionConv = ConvertToRelative(removeNonJunction);
+                                    if (trailMap[removeNonJunctionConv.X, removeNonJunctionConv.Y].Item1 == 0 && !(CheckDFPositionListContent(stepToRemove, removeNonJunction)) &&
+                                        trailMap[removeNonJunctionConv.X, removeNonJunctionConv.Y].Item2 == 0 && !(CheckDFPositionListContent(stepToRemove, removeNonJunction)))
                                     {
                                         Debug.Log("Removing movementChoice " + removeNonJunction.X + ", " + removeNonJunction.Y + " not being a junction");
                                         stepToRemove.Add(removeNonJunction);
@@ -470,12 +483,12 @@ namespace MapEditor
             string fileDataPath;
             byte[] trailsByteArray;
 
-            for (int ipsilon = -1; ipsilon < 2; ipsilon++)
+            for (int ipsilon = 0; ipsilon < 3; ipsilon++)
             {
-                for (int ics = -1; ics < 2; ics++)
+                for (int ics = 0; ics < 3; ics++)
                 {
-                    (byte, byte)[,] subTile = GetSubTile(trailMap, xTile + ics, yTile + ipsilon);
-                    fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trail_" + (xTile + ics) + "_" + (yTile + ipsilon) + ".png");
+                    (byte, byte)[,] subTile = GetSubTile(trailMap, ics, ipsilon);
+                    fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trail_" + (xTile + ics - 1) + "_" + (yTile + ipsilon - 1) + ".png");
                     trailsByteArray = MapEditor.ConvertToGrayscale(subTile, (int)TrailTypes.None);
                     File.WriteAllBytes(fileDataPath, trailsByteArray);
                 }
@@ -496,14 +509,14 @@ namespace MapEditor
             int[,] tile = new int[MapsFile.TileDim * 5, MapsFile.TileDim * 5];
             List<(int, int)> trailTilesList = new List<(int, int)>();
 
-            for (int x = 0; x < MapsFile.MaxMapPixelX; x++)
+            for (int x = 0; x < MapsFile.TileDim * 3; x++)
             {
-                for (int y = 0; y < MapsFile.MaxMapPixelY; y++)
+                for (int y = 0; y < MapsFile.TileDim * 3; y++)
                 {
                     if (trailMap[x, y].Item1 > 0 || trailMap[x, y].Item2 > 0)
                     {
-                        tileX = x / MapsFile.TileDim;
-                        tileY = y / MapsFile.TileDim;
+                        tileX = x / MapsFile.TileDim + (xTile - 1);
+                        tileY = y / MapsFile.TileDim + (yTile - 1);
 
                         if (!trailTilesList.Contains((tileX, tileY)))
                             trailTilesList.Add((tileX, tileY));
@@ -523,6 +536,12 @@ namespace MapEditor
             }
         }
 
+        protected DFPosition ConvertToRelative(DFPosition pos)
+        {
+            DFPosition resultingPos = new DFPosition(pos.X - (xTile - 1) * MapsFile.TileDim, pos.Y - (yTile - 1) * MapsFile.TileDim);
+            return resultingPos;
+        }
+
         protected (byte, byte)[,] GetSubTile((byte, byte)[,] trailMap, int tileX, int tileY)
         {
             (byte, byte)[,] subTile = new (byte, byte)[MapsFile.TileDim, MapsFile.TileDim];
@@ -532,8 +551,8 @@ namespace MapEditor
             {
                 for (int x = 0; x < MapsFile.TileDim; x++)
                 {
-                    X = tileX * MapsFile.TileDim + x;
-                    Y = tileY * MapsFile.TileDim + y;
+                    X = (MapsFile.TileDim * tileX) + x;
+                    Y = (MapsFile.TileDim * tileY) + y;
 
                     subTile[x, y] = trailMap[X, Y];
                 }
@@ -542,19 +561,19 @@ namespace MapEditor
             return subTile;
         }
 
-        protected List<DFPosition> LoadExistingTrails(byte[] pathData)
+        protected (byte, byte)[,] LoadExistingTrails(int[] pathData)
         {
-            List<DFPosition> existingTrails = new List<DFPosition>();
+            (byte, byte)[,] existingTrails = new (byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
             int xCorrection, yCorrection;
 
             for (int i = 0; i < pathData.Length; i++)
             {
                 if (pathData[i] != 0)
                 {
-                    xCorrection = (i % (MapsFile.TileDim * 3)) + ((xTile - 1) * MapsFile.TileDim);
-                    yCorrection = (i / (MapsFile.TileDim * 3)) + ((yTile - 1) * MapsFile.TileDim);
+                    xCorrection = (i % (MapsFile.TileDim * 3));
+                    yCorrection = (i / (MapsFile.TileDim * 3));
 
-                    existingTrails.Add(new DFPosition(xCorrection, yCorrection));
+                    existingTrails[xCorrection, yCorrection] = ((byte)(pathData[i] % (byte.MaxValue + 1)), (byte)(pathData[i] / (byte.MaxValue + 1)));
                 }
             }
 
@@ -656,15 +675,15 @@ namespace MapEditor
                     byte[,] buffer = GetLargeHeightmapPixel(heightmapTile, xRel, yRel);
                     int[,] tileBuffer = new int[5, 5];
 
-                    if (trailMap[xRel + (trailTile.Item1 * MapsFile.TileDim), yRel + (trailTile.Item2 * MapsFile.TileDim)].Item2 > 0)
+                    if (trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item2 > 0)
                     {
-                        tileBuffer = GetTileBuffer(trailMap[xRel + (trailTile.Item1 * MapsFile.TileDim), yRel + (trailTile.Item2 * MapsFile.TileDim)].Item2, (byte)TrailTypes.Track, buffer, tileBuffer, hasLocation);
+                        tileBuffer = GetTileBuffer(trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item2, (byte)TrailTypes.Track, buffer, tileBuffer, hasLocation);
                         loadedBuffer = true;
                     }
 
-                    if (trailMap[xRel + (trailTile.Item1 * MapsFile.TileDim), yRel + (trailTile.Item2 * MapsFile.TileDim)].Item1 > 0)
+                    if (trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item1 > 0)
                     {
-                        tileBuffer = GetTileBuffer(trailMap[xRel + (trailTile.Item1 * MapsFile.TileDim), yRel + (trailTile.Item2 * MapsFile.TileDim)].Item1, (byte)TrailTypes.Road, buffer, tileBuffer, hasLocation);
+                        tileBuffer = GetTileBuffer(trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item1, (byte)TrailTypes.Road, buffer, tileBuffer, hasLocation);
                         loadedBuffer = true;
                     }
 
@@ -1812,18 +1831,19 @@ namespace MapEditor
             byte trailToPlace1;
             byte trailToPlace2;
             byte resultingTrailToPlace;
-            byte[,] trailResult = new byte[MapsFile.MaxMapPixelX, MapsFile.MaxMapPixelY];
+            // byte[,] trailResult = new byte[MapsFile.MaxMapPixelX, MapsFile.MaxMapPixelY];
 
             foreach (DFPosition trailSection in trail)
             {
                 int xDir, yDir;
+                DFPosition trailSectionConv = ConvertToRelative(trailSection);
 
                 if (trailPreference == TrailTypes.Road)
                 {
-                    resultingTrailToPlace = trailMap[trailSection.X, trailSection.Y].Item1;
+                    resultingTrailToPlace = trailMap[trailSectionConv.X, trailSectionConv.Y].Item1;
                 }
                 else{
-                    resultingTrailToPlace = trailMap[trailSection.X, trailSection.Y].Item2;
+                    resultingTrailToPlace = trailMap[trailSectionConv.X, trailSectionConv.Y].Item2;
                 }
 
                 if (counter > 0)
@@ -1846,17 +1866,17 @@ namespace MapEditor
 
                 if (trailPreference == TrailTypes.Road)
                 {
-                    trailMap[trailSection.X, trailSection.Y].Item1 = resultingTrailToPlace;
-                    if (trailMap[trailSection.X, trailSection.Y].Item2 > 0)
+                    trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 = resultingTrailToPlace;
+                    if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 > 0)
                     {
-                        trailMap[trailSection.X, trailSection.Y] = MergeTrail(resultingTrailToPlace, trailMap[trailSection.X, trailSection.Y].Item2);
+                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(resultingTrailToPlace, trailMap[trailSectionConv.X, trailSectionConv.Y].Item2);
                     }
                 }                    
                 else{
-                    trailMap[trailSection.X, trailSection.Y].Item2 = resultingTrailToPlace;
-                    if (trailMap[trailSection.X, trailSection.Y].Item1 > 0)
+                    trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 = resultingTrailToPlace;
+                    if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 > 0)
                     {
-                        trailMap[trailSection.X, trailSection.Y] = MergeTrail(trailMap[trailSection.X, trailSection.Y].Item1, resultingTrailToPlace);
+                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(trailMap[trailSectionConv.X, trailSectionConv.Y].Item1, resultingTrailToPlace);
                     }
                 }
 
@@ -1951,47 +1971,70 @@ namespace MapEditor
             return false;
         }
 
-        protected RoutedLocation CompareLocDistance(RoutedLocation loc, out RoutedLocation locToCompare, ref List<RoutedLocation> locComp)
+        protected RoutedLocation CompareLocDistance(RoutedLocation loc, out List<RoutedLocation> locListToSwap, ref List<RoutedLocation> locComp)
         {
             List<(ulong, float)> locDistanceSwap = loc.locDistance;
-            int counter = 0;
-
-            locToCompare = new RoutedLocation();
+            List<ulong> locsToCheck = new List<ulong>();
+            RoutedLocation locToCompare = new RoutedLocation();
+            locListToSwap = new List<RoutedLocation>();
 
             foreach ((ulong, float) locDist in loc.locDistance)
             {
-                if (((int)locDist.Item1 % MapsFile.WorldWidth) / MapsFile.TileDim != xTile || ((int)locDist.Item1 / MapsFile.WorldWidth) / MapsFile.TileDim != yTile)
-                    continue;
+                // If the locDist object isn't in the same tile of the loc object, continue; why? Maybe this was outdated. Taking it out for the moment.
+                // if (((int)locDist.Item1 % MapsFile.WorldWidth) / MapsFile.TileDim != xTile || ((int)locDist.Item1 / MapsFile.WorldWidth) / MapsFile.TileDim != yTile)
+                //     continue;
 
-                locToCompare = locComp.Find(x => x.position.Equals(MapsFile.GetPixelFromPixelID(locDist.Item1)));
-                Debug.Log("locDist.Item1: " + locDist.Item1 + "; locDist.Item2: " + locDist.Item2);
-                // Debug.Log("locToCompare.locDistance: " + locToCompare.locDistance[counter].Item1 + ", " + locToCompare.locDistance[counter].Item2);
-
-                if (locToCompare.locDistance.Exists(x => x.Item1 == locDist.Item1))
+                int counter = 0;
+                if (locComp.Exists(z => z.position.Equals(MapsFile.GetPixelFromPixelID(locDist.Item1))))
                 {
-                    int index = -1;
-                    index = locToCompare.locDistance.FindIndex(y => y.Item1 == locDist.Item1);
+                    locsToCheck.Add(locDist.Item1);
+                }
+            }
 
-                    if (locToCompare.locDistance[index].Item2 < locDist.Item2)
+            if (locsToCheck.Count > 0)
+            {
+                foreach (ulong locToCheck in locsToCheck)
+                {
+                    locToCompare = locComp.Find(x => x.position.Equals(MapsFile.GetPixelFromPixelID(locToCheck)));
+                    List<ulong> locToDoubleCheck1 = new List<ulong>();
+                    List<ulong> locToDoubleCheck2 = new List<ulong>();
+                    
+                    foreach ((ulong, float) lTC2 in locToCompare.locDistance)
                     {
-                        locDistanceSwap.RemoveAt(counter);
+                        locToDoubleCheck2.Add(lTC2.Item1);
                     }
-                    else if (locToCompare.locDistance[index].Item2 > locDist.Item2)
+                    foreach ((ulong, float) lTC1 in loc.locDistance)
                     {
-                        locToCompare.locDistance.RemoveAt(index);
+                        locToDoubleCheck1.Add(lTC1.Item1);
                     }
-                    else if (UnityEngine.Random.Range(0, 1) == 0)
+                    List<ulong> lTCIntersect = locToDoubleCheck1.Intersect(locToDoubleCheck2).ToList();
+
+                    foreach (ulong lTC in lTCIntersect)
                     {
-                        locDistanceSwap.RemoveAt(counter);
-                    }
-                    else{
-                        locToCompare.locDistance.RemoveAt(index);
+                        int index1 = loc.locDistance.FindIndex(x1 => x1.Item1 == lTC);
+                        int index2 = locToCompare.locDistance.FindIndex(x2 => x2.Item1 == lTC);
+
+                        if (locToCompare.locDistance[index2].Item2 < loc.locDistance[index1].Item2)
+                        {
+                            loc.locDistance.RemoveAt(index1);
+                        }
+                        else if (locToCompare.locDistance[index2].Item2 > loc.locDistance[index1].Item2)
+                        {
+                            locToCompare.locDistance.RemoveAt(index2);
+                            locListToSwap.Add(locToCompare);
+                        }
+                        else if (UnityEngine.Random.Range(0, 1) == 0)
+                        {
+                            loc.locDistance.RemoveAt(index1);
+                        }
+                        else
+                        {
+                            locToCompare.locDistance.RemoveAt(index2);
+                            locListToSwap.Add(locToCompare);
+                        }
                     }
                 }
-                counter++;
             }
-            loc.locDistance = locDistanceSwap;
-
             return loc;
         }
 
@@ -2007,10 +2050,10 @@ namespace MapEditor
                 // {
                 //     if 
                 // }
-                List<(ulong, float)> intersect = compList[index].locDistance.Intersect(loc.locDistance).ToList();
-                compList[index].locDistance = intersect;
+                // List<(ulong, float)> intersect = compList[index].locDistance.Intersect(loc.locDistance).ToList();
+                compList[index].locDistance = loc.locDistance;
             }
-            else compList.Add(loc);
+            // else compList.Add(loc);
 
             return compList;
         }
@@ -2276,8 +2319,7 @@ namespace MapEditor
                     // }
                 }
             }
-
-            Debug.Log("location.locDistance.Count: " + location.locDistance.Count);
+            // Debug.Log("location.locDistance.Count: " + location.locDistance.Count);
 
             return location;
         }

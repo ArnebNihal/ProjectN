@@ -229,6 +229,12 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             return TryImportTexture(texturesPath, GetName(archive, record, frame, textureMap, dye), false, null, out tex);
         }
 
+        public static bool TryImportCustomTexture(int archive, int record, int frame, DyeColors dye, TextureMap textureMap, out Texture2D tex)
+        {
+            string fileName = (archive.ToString("0000000") + "_" + record.ToString() + "-" + frame.ToString() + ".png");
+            return TryImportTexture(Path.Combine(WorldMaps.mapPath, "Textures"), fileName, false, textureMap, out tex);
+        }
+
         /// <summary>
         /// Seek texture from modding locations.
         /// </summary>

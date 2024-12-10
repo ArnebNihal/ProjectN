@@ -249,6 +249,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             // Update arrow count if player holding an unsheathed bow
             // TODO: Find a spot for arrow counter when large HUD enabled (remembering player could be in 320x200 retro mode)
+            // ProjectN: Arrows are now readied from the Inventory with the "Equip" or "Use" button.
             arrowCountTextLabel.Enabled = false;
             if (!largeHUDEnabled && ShowArrowCount && !GameManager.Instance.WeaponManager.Sheathed)
             {
@@ -263,7 +264,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     arrowLabelPos.x -= compass.Size.x + arrowCountTextLabel.TextWidth + 8;
                     arrowLabelPos.y -= compass.Size.y / 2 + arrowCountTextLabel.TextHeight / 2;
 
-                    DaggerfallUnityItem arrows = GameManager.Instance.PlayerEntity.Items.GetItem(ItemGroups.Weapons, (int)Weapons.Arrow, allowQuestItem: false, priorityToConjured: true);
+                    DaggerfallUnityItem arrows = GameManager.Instance.PlayerEntity.Quiver;
                     arrowCountTextLabel.Text = (arrows != null) ? arrows.stackCount.ToString() : "0";
                     arrowCountTextLabel.TextColor = (arrows != null && arrows.IsSummoned) ? conjuredArrowsColor : realArrowsColor;
                     arrowCountTextLabel.TextScale = NativePanel.LocalScale.x;

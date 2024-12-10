@@ -21,6 +21,8 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Formulas;
+using DaggerfallConnect;
+using DaggerfallConnect.Utility;
 
 namespace DaggerfallWorkshop.Game.Items
 {
@@ -42,13 +44,15 @@ namespace DaggerfallWorkshop.Game.Items
         public static readonly byte[] materialsByModifier = { 64, 128, 10, 21, 13, 8, 5, 3, 2, 5 };
 
         // Weight multipliers by material type. Iron through Daedric. Weight is baseWeight * value / 4.
-        static readonly short[] weightMultipliersByMaterial = { 4, 5, 4, 4, 3, 4, 4, 2, 4, 5 };
+        // ProjectN: modified every value - still to playtest intensively.
+        static readonly short[] weightMultipliersByMaterial = { 0, 5, 4, 4, 2, 3, 7, 3, 6, 2, 12 };
 
         // Value multipliers by material type. Iron through Daedric. Value is baseValue * ( 3 * value).
-        static readonly short[] valueMultipliersByMaterial = { 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 };
+        static readonly short[] valueMultipliersByMaterial = { 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 };
 
         // Condition multipliers by material type. Iron through Daedric. MaxCondition is baseMaxCondition * value / 4.
-        static readonly short[] conditionMultipliersByMaterial = { 4, 6, 6, 8, 12, 16, 20, 24, 28, 32 };
+        // ProjectN: modifiied every value - still to playtest intensively.
+        static readonly short[] conditionMultipliersByMaterial = { 0, 4, 6, 4, 6, 12, 16, 7, 20, 12, 16 };
 
         // Enchantment point/gold value data for item powers
         static readonly int[] extraSpellPtsEnchantPts = { 0x1F4, 0x1F4, 0x1F4, 0x1F4, 0xC8, 0xC8, 0xC8, 0x2BC, 0x320, 0x384, 0x3E8 };
@@ -62,6 +66,8 @@ namespace DaggerfallWorkshop.Game.Items
                                                                     vampiricEffectEnchantPts, increasedWeightAllowanceEnchantPts, null, null, null, null, null,
                                                                     improvesTalentsEnchantPts, goodRepWithEnchantPts};
         static readonly ushort[] enchantmentPointCostsForNonParamTypes = { 0, 0x0F448, 0x0F63C, 0x0FF9C, 0x0FD44, 0, 0, 0, 0x384, 0x5DC, 0x384, 0x64, 0x2BC };
+
+        public static int newArmorArchive = 0;
 
         public enum BodyMorphology
         {
@@ -120,6 +126,37 @@ namespace DaggerfallWorkshop.Game.Items
                 return null;
             }
             DaggerfallUnityItem newItem = new DaggerfallUnityItem(itemGroup, groupIndex);
+
+            return newItem;
+        }
+
+        /// <summary>
+        /// Super generic item creator: the less is passed, the more random the generation gets.
+        /// I added some bool to limit the creation to functional items (e.g.: no fornitures, horses, etc.)
+        /// </summary>
+        public static DaggerfallUnityItem CreateRandomItem(ItemGroups itemGroup = ItemGroups.None, int minTempIndex = -1, int maxTempIndex = -1, bool filterCrazyStuff = true)
+        {
+            if (itemGroup == ItemGroups.None)
+            {
+                do{
+                    itemGroup = (ItemGroups)UnityEngine.Random.Range(0, Enum.GetNames(typeof(ItemGroups)).Length);
+                }
+                while (filterCrazyStuff && (itemGroup == ItemGroups.Artifacts ||
+                                            itemGroup == ItemGroups.Currency ||
+                                            itemGroup == ItemGroups.Deeds ||
+                                            itemGroup == ItemGroups.Furniture ||
+                                            itemGroup == ItemGroups.MagicItems ||
+                                            itemGroup == ItemGroups.MiscItems ||
+                                            itemGroup == ItemGroups.QuestItems ||
+                                            itemGroup == ItemGroups.Transportation ||
+                                            itemGroup == ItemGroups.UselessItems1));    // This could be removed from here when some use is given to these items
+            }
+
+            int[] enumArray = (int[])DaggerfallUnity.Instance.ItemHelper.GetEnumArray(itemGroup);            
+            if (minTempIndex < enumArray[0]) minTempIndex = enumArray[0];
+            if (maxTempIndex >= enumArray.Length || maxTempIndex == -1) maxTempIndex = enumArray.Length - 1;
+
+            DaggerfallUnityItem newItem = new DaggerfallUnityItem(itemGroup, UnityEngine.Random.Range(minTempIndex, (maxTempIndex + 1)));
 
             return newItem;
         }
@@ -350,22 +387,21 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="weapon"></param>
         /// <param name="material">Ignored for arrows</param>
         /// <returns></returns>
-        public static DaggerfallUnityItem CreateWeapon(Weapons weapon, WeaponMaterialTypes material)
+        public static DaggerfallUnityItem CreateWeapon(Weapons weapon, MaterialTypes material)
         {
             // Create item
             int groupIndex = DaggerfallUnity.Instance.ItemHelper.GetGroupIndex(ItemGroups.Weapons, (int)weapon);
+            Debug.Log("Creating weapon with group index " + groupIndex);
             DaggerfallUnityItem newItem = new DaggerfallUnityItem(ItemGroups.Weapons, groupIndex);
 
             if (weapon == Weapons.Arrow)
             {   // Handle arrows
                 newItem.stackCount = UnityEngine.Random.Range(1, 20 + 1);
                 newItem.currentCondition = 0; // not sure if this is necessary, but classic does it
-                newItem.nativeMaterialValue = 0;
             }
-            else
-            {
-                ApplyWeaponMaterial(newItem, material);
-            }
+
+            ApplyWeaponMaterial(newItem, material);
+            
             return newItem;
         }
 
@@ -389,26 +425,24 @@ namespace DaggerfallWorkshop.Game.Items
                 newItem = CreateItem(ItemGroups.Weapons, customItemTemplates[groupIndex - enumArray.Length]);
  
             // Random weapon material
-            WeaponMaterialTypes material = FormulaHelper.RandomMaterial(playerLevel);
+            MaterialTypes material = FormulaHelper.RandomMaterial(playerLevel);
 
             if (groupIndex == 18)
             {   // Handle arrows
                 newItem.stackCount = UnityEngine.Random.Range(1, 20 + 1);
                 newItem.currentCondition = 0; // not sure if this is necessary, but classic does it
-                newItem.nativeMaterialValue = 0; // Arrows don't have a material
             }
-            else
-            {
-                ApplyWeaponMaterial(newItem, material);
-            }
+            
+            ApplyWeaponMaterial(newItem, material);
+            
             return newItem;
         }
 
         /// <summary>Set material and adjust weapon stats accordingly</summary>
-        public static void ApplyWeaponMaterial(DaggerfallUnityItem weapon, WeaponMaterialTypes material)
+        public static void ApplyWeaponMaterial(DaggerfallUnityItem weapon, MaterialTypes material)
         {
             weapon.nativeMaterialValue = (int)material;
-            weapon = SetItemPropertiesByMaterial(weapon, material);
+            weapon = SetItemPropertiesByMaterial(weapon, (ArmorMaterialTypes)((int)material));
             weapon.dyeColor = DaggerfallUnity.Instance.ItemHelper.GetWeaponDyeColor(material);
 
             // Female characters use archive - 1 (i.e. 233 rather than 234) for weapons
@@ -422,6 +456,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="gender">Gender armor is created for.</param>
         /// <param name="race">Race armor is created for.</param>
         /// <param name="armor">Type of armor item to create.</param>
+        /// <param name="armorType"> Base type of armour.</param>
         /// <param name="material">Material of armor.</param>
         /// <param name="variant">Visual variant of armor. If -1, a random variant is chosen.</param>
         /// <returns>DaggerfallUnityItem</returns>
@@ -429,6 +464,7 @@ namespace DaggerfallWorkshop.Game.Items
         {
             // Create item
             int groupIndex = DaggerfallUnity.Instance.ItemHelper.GetGroupIndex(ItemGroups.Armor, (int)armor);
+            Debug.Log("Creating armour with group index " + groupIndex);
             DaggerfallUnityItem newItem = new DaggerfallUnityItem(ItemGroups.Armor, groupIndex);
 
             ApplyArmorSettings(newItem, gender, race, material, variant);
@@ -451,13 +487,14 @@ namespace DaggerfallWorkshop.Game.Items
             int[] customItemTemplates = itemHelper.GetCustomItemsForGroup(ItemGroups.Armor);
 
             int groupIndex = UnityEngine.Random.Range(0, enumArray.Length + customItemTemplates.Length);
+            Debug.Log("enumArray.Length: " + enumArray.Length + ", customItemTemplates.Length: " + customItemTemplates.Length + ", groupIndex: " + groupIndex);
             DaggerfallUnityItem newItem;
             if (groupIndex < enumArray.Length)
                 newItem = new DaggerfallUnityItem(ItemGroups.Armor, groupIndex);
             else
                 newItem = CreateItem(ItemGroups.Armor, customItemTemplates[groupIndex - enumArray.Length]);
 
-            ApplyArmorSettings(newItem, gender, race, FormulaHelper.RandomArmorMaterial(playerLevel));
+            ApplyArmorSettings(newItem, gender, race, FormulaHelper.RandomArmorMaterial(playerLevel, (Armor)enumArray.GetValue(groupIndex)));
 
             return newItem;
         }
@@ -465,6 +502,10 @@ namespace DaggerfallWorkshop.Game.Items
         /// <summary>Set gender, body morphology and material of armor</summary>
         public static void ApplyArmorSettings(DaggerfallUnityItem armor, Genders gender, Races race, ArmorMaterialTypes material, int variant = 0)
         {
+            // Keep original archive in case a new type armor will be generated.
+            Debug.Log("armor.PlayerTextureArchive: " + armor.PlayerTextureArchive);
+            newArmorArchive = armor.PlayerTextureArchive;
+
             // Adjust for gender
             if (gender == Genders.Female)
                 armor.PlayerTextureArchive = firstFemaleArchive;
@@ -476,6 +517,22 @@ namespace DaggerfallWorkshop.Game.Items
 
             // Adjust material
             ApplyArmorMaterial(armor, material);
+
+            if (IsNewArmor(armor))
+            {
+                armor.PlayerTextureArchive = newArmorArchive;
+
+                if (gender == Genders.Male)
+                    armor.PlayerTextureArchive += 4;
+
+                if (armor.IsOfTemplate(ItemGroups.Armor, (int)Armor.Helmet))
+                {
+                    if ((gender == Genders.Male && (race == Races.Khajiit || race == Races.DarkElf || race == Races.HighElf || race == Races.WoodElf)) ||
+                        gender == Genders.Female && race == Races.Argonian)
+                        armor.PlayerTextureArchive--;
+                }
+                Debug.Log("Second passage - armor.PlayerTextureArchive: " + armor.PlayerTextureArchive);
+            }
 
             // Adjust for variant
             if (variant >= 0)
@@ -489,21 +546,40 @@ namespace DaggerfallWorkshop.Game.Items
         {
             armor.nativeMaterialValue = (int)material;
 
-            if (armor.nativeMaterialValue == (int)ArmorMaterialTypes.Leather)
+            if (armor.nativeMaterialValue == (int)ArmorMaterialTypes.Leather) // Managing standard leather
             {
                 armor.weightInKg /= 2;
             }
-            else if (armor.nativeMaterialValue == (int)ArmorMaterialTypes.Chain)
+            else if (armor.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+            {
+                armor.weightInKg -= 2;
+            }
+            else if (armor.nativeMaterialValue >= (int)ArmorMaterialTypes.Chain)    // Managing standard chain
             {
                 armor.value *= 2;
             }
-            else if (armor.nativeMaterialValue >= (int)ArmorMaterialTypes.Iron)
+            
+            if (GetArmorMaterialType((int)material) >= MaterialTypes.Iron)
             {
-                int plateMaterial = armor.nativeMaterialValue - 0x0200;
-                armor = SetItemPropertiesByMaterial(armor, (WeaponMaterialTypes)plateMaterial);
+                Debug.Log("Armor material type:  + " + GetArmorMaterialType((int)material));
+                armor = SetItemPropertiesByMaterial(armor, material);
             }
 
+            Debug.Log("armor.PlayerTextureArchive: " + armor.PlayerTextureArchive);
+
             armor.dyeColor = DaggerfallUnity.Instance.ItemHelper.GetArmorDyeColor(material);
+        }
+
+        public static bool IsNewArmor(DaggerfallUnityItem armor)
+        {
+            // ArmorMaterialTypes armorType = GetArmorMaterialType(armor.nativeMaterialValue);
+
+            if ((armor.nativeMaterialValue >= (int)ArmorMaterialTypes.LeatherIron && armor.nativeMaterialValue <= (int)ArmorMaterialTypes.LeatherDaedric) ||
+                 armor.nativeMaterialValue == (int)ArmorMaterialTypes.Fur ||
+                 newArmorArchive >= 10000)
+                return true;
+            
+            return false;
         }
 
         /// <summary>
@@ -640,19 +716,39 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="item">Item to have its properties modified.</param>
         /// <param name="material">Material to use to apply properties.</param>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem SetItemPropertiesByMaterial(DaggerfallUnityItem item, WeaponMaterialTypes material)
+        public static DaggerfallUnityItem SetItemPropertiesByMaterial(DaggerfallUnityItem item, ArmorMaterialTypes material)
         {
-            item.value *= 3 * valueMultipliersByMaterial[(int)material];
-            item.weightInKg = CalculateWeightForMaterial(item, material);
-            item.maxCondition = item.maxCondition * conditionMultipliersByMaterial[(int)material] / 4;
+            int multiplier = 1;
+
+            ArmorTypes armor = GetArmorType((int)material);
+            switch (armor)
+            {
+                case ArmorTypes.Leather:    // or a weapon
+                    multiplier = 1;
+                    break;
+                case ArmorTypes.Chain:
+                    multiplier = 2;
+                    break;
+                case ArmorTypes.Plate:
+                    multiplier = 3;
+                    break;
+                default:
+                    break;
+            }
+
+            Debug.Log("(int)GetArmorMaterialType(item.nativeMaterialValue): " + (int)GetArmorMaterialType((int)material));
+            item.value *= multiplier * valueMultipliersByMaterial[(int)GetArmorMaterialType((int)material)];
+            item.weightInKg += (CalculateWeightForMaterial(item, GetArmorMaterialType((int)material)) - item.weightInKg) * multiplier / 3;
+            item.maxCondition = item.maxCondition * conditionMultipliersByMaterial[(int)GetArmorMaterialType((int)material)] / 4;
             item.currentCondition = item.maxCondition;
 
             return item;
         }
 
-        static float CalculateWeightForMaterial(DaggerfallUnityItem item, WeaponMaterialTypes material)
+        static float CalculateWeightForMaterial(DaggerfallUnityItem item, MaterialTypes material)
         {
             int quarterKgs = (int)(item.weightInKg * 4);
+            Debug.Log("(int)material: " + (int)material);
             float matQuarterKgs = (float)(quarterKgs * weightMultipliersByMaterial[(int)material]) / 4;
             return Mathf.Round(matQuarterKgs) / 4;
         }
@@ -805,23 +901,44 @@ namespace DaggerfallWorkshop.Game.Items
 
             // We only need to pick randomly where there is more than one possible variant. Otherwise we can just pass in 0 to SetVariant and
             // the correct variant will still be chosen.
-            if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Cuirass) && (item.nativeMaterialValue >= (int)ArmorMaterialTypes.Iron))
+            if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Cuirass))
             {
                 variant = UnityEngine.Random.Range(1, 4);
             }
+            // else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Jerkin))
+            // {
+            //     if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+            //         variant = 11;
+            //     else
+            //         variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
+            // }
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Greaves))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Leather)
                     variant = UnityEngine.Random.Range(0, 2);
-                else if (item.nativeMaterialValue >= (int)ArmorMaterialTypes.Iron)
+                else if (item.nativeMaterialValue >= (int)ArmorMaterialTypes.PlateIron)
                     variant = UnityEngine.Random.Range(2, 6);
             }
+            // else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Cuisse))
+            // {
+            //     if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+            //         variant = 11;
+            //     else
+            //         variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
+            // }
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Left_Pauldron) || item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Right_Pauldron))
             {
-                if (item.nativeMaterialValue >= (int)ArmorMaterialTypes.Iron)
+                if (item.nativeMaterialValue >= (int)ArmorMaterialTypes.PlateIron)
                     variant = UnityEngine.Random.Range(1, 4);
             }
-            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Boots) && (item.nativeMaterialValue >= (int)ArmorMaterialTypes.Iron))
+            // else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Left_Vambrace) || item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Right_Vambrace))
+            // {
+            //     if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+            //         variant = 11;
+            //     else
+            //         variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
+            // }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Boots) && (item.nativeMaterialValue >= (int)ArmorMaterialTypes.PlateIron))
             {
                 variant = UnityEngine.Random.Range(1, 3);
             }
@@ -829,7 +946,209 @@ namespace DaggerfallWorkshop.Game.Items
             {
                 variant = UnityEngine.Random.Range(0, item.ItemTemplate.variants);
             }
+            // else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Light_Boots))
+            // {
+            //     variant = UnityEngine.Random.Range(0, 2);
+            // }
+            // else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Gloves))
+            // {
+            //     variant = UnityEngine.Random.Range(0, 2);
+            // }
             SetVariant(item, variant);
+        }
+
+        /// <summary>
+        /// If no location is passed, a map from a random settlement location is generated.
+        /// Take into account that, although maps closer to the player current position are
+        /// going to be generated much more frequently, the randomisation can get some pretty
+        /// crazy results.
+        /// </summary>
+        /// <param name="location">Location to generate a town map of.</param>
+        /// <param name="exoticism">Value to roll to get a map from "far away".</param>
+        /// <param name="anyRegion">If a random map can be created of locations in other regions in this province.</param>
+        /// <param name="anyProvince">If a random map can be created of locations in other provinces in this continent.</param>
+        /// <param name="anyContinent">If a random map can be created of locations in other continents (on this planet).</param>
+        public static DaggerfallUnityItem CreateTownMap(DFLocation location = new DFLocation(), int exoticism = 100, bool anyRegion = false, bool anyProvince = false, bool anyContinent = false)
+        {
+            DaggerfallUnityItem townMap = new DaggerfallUnityItem(ItemGroups.Maps, (int)Maps.TownMap);
+            int diceRoll = Dice100.Roll();
+
+            if (location.Exterior.ExteriorData.BlockNames == null && diceRoll < exoticism)
+            {
+                PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+                ProvinceNames pickedProvince = playerGPS.GetProvinceFromRegion();
+                int pickedRegion = playerGPS.CurrentPoliticIndex;
+                (int, int) currentTile = playerGPS.CurrentTile;
+                List<(int, int)> locIdxs = new List<(int, int)>();
+
+                if (anyRegion)
+                {
+                    diceRoll = Dice100.Roll();
+                    if (diceRoll >= exoticism && anyProvince)
+                    {
+                        diceRoll = Dice100.Roll();
+                        if (diceRoll >= exoticism && anyContinent)
+                        {
+                            // TODO: expand this
+                        }
+                        else{
+                            pickedProvince = (ProvinceNames)UnityEngine.Random.Range(1, Enum.GetNames(typeof(ProvinceNames)).Length + 1);
+                            townMap.value *= 10;
+                        }
+                    }
+                    pickedRegion = WorldData.WorldSetting.regionInProvince[(int)pickedProvince][UnityEngine.Random.Range(0, WorldData.WorldSetting.regionInProvince[(int)pickedProvince].Length)];
+                    townMap.value *= 5;
+                }
+
+                if (diceRoll > 50) // town map from the same region OR exotic map
+                {
+                    Debug.Log("Trying to create town map from " + WorldData.WorldSetting.RegionNames[pickedRegion]);
+                    for (int t = 0; t < WorldMaps.regionTiles[pickedRegion].Count; t++)
+                    {
+                        DFRegion tile = WorldMaps.ConvertWorldMapsToDFRegion(WorldMaps.regionTiles[pickedRegion][t], true);
+                        for (int r = 0; r < tile.LocationCount; r++)
+                        {
+                            if (tile.MapTable[r].LocationType == DFRegion.LocationTypes.TownCity ||
+                                tile.MapTable[r].LocationType == DFRegion.LocationTypes.TownHamlet ||
+                                tile.MapTable[r].LocationType == DFRegion.LocationTypes.TownVillage)
+                                locIdxs.Add((MapsFile.MapPixelToTile(MapsFile.GetPixelFromPixelID(tile.MapTable[r].MapId)), r));                            
+                        }
+                    }
+                }
+                else{   // town map from the same geographical area (9x9 tiles)
+                    Debug.Log("Trying to create local town map.");
+                    for (int gX = 0; gX < 3; gX++)
+                    {
+                        for (int gY = 0; gY < 3; gY++)
+                        {
+                            DFRegion localTile = WorldMaps.ConvertWorldMapsToDFRegion(gY * 3 + gX);
+                            for (int gr = 0; gr < localTile.LocationCount; gr++)
+                            {
+                                if (localTile.MapTable[gr].LocationType == DFRegion.LocationTypes.TownCity ||
+                                    localTile.MapTable[gr].LocationType == DFRegion.LocationTypes.TownHamlet ||
+                                    localTile.MapTable[gr].LocationType == DFRegion.LocationTypes.TownVillage)
+                                    locIdxs.Add((MapsFile.MapPixelToTile(MapsFile.GetPixelFromPixelID(localTile.MapTable[gr].MapId)), gr));
+                            }
+                        }
+                    }
+                }
+
+                int locIndex = UnityEngine.Random.Range(0, locIdxs.Count);
+                MapSummary locSummary;
+                DFRegion finalTile = WorldMaps.ConvertWorldMapsToDFRegion(locIdxs[locIndex].Item1, true);
+                DFPosition pos = MapsFile.GetPixelFromPixelID(finalTile.MapTable[locIdxs[locIndex].Item2].MapId);
+                townMap.message = locIdxs[locIndex].Item1 * 10000 + locIdxs[locIndex].Item2;
+                townMap.shortName = townMap.shortName + " " + finalTile.MapNames[locIdxs[locIndex].Item2] + " (" + WorldData.WorldSetting.RegionNames[PoliticData.GetAbsPoliticValue(pos.X, pos.Y)] + ")";
+            }
+            else{
+                townMap.message = location.AbsTileIndex * 10000 + location.LocationIndex;
+                townMap.shortName = townMap.shortName + " " + location.Name + " (" + location.RegionName + ")";
+            }
+            return townMap;
+        }
+
+        public static DaggerfallUnityItem CreateLocationMap(DFLocation location = new DFLocation(), DFRegion.LocationTypes locType = DFRegion.LocationTypes.None, int exoticism = 100, bool anyRegion = false, bool anyProvince = false, bool anyContinent = false)
+        {
+            DaggerfallUnityItem locationMap = new DaggerfallUnityItem(ItemGroups.Maps, (int)Maps.Map);
+
+            if (location.Exterior.ExteriorData.BlockNames.Length < 1)
+            {
+                int diceRoll;
+                PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+                ProvinceNames pickedProvince = playerGPS.GetProvinceFromRegion();
+                int pickedRegion = playerGPS.CurrentPoliticIndex;
+                (int, int) currentTile = playerGPS.CurrentTile;
+                List<(int, int)> locIdxs = new List<(int, int)>();
+
+                if (locType == DFRegion.LocationTypes.None)
+                {
+                    diceRoll = Dice100.Roll();
+
+                    if (diceRoll <= 30)
+                        locType = DFRegion.LocationTypes.TownCity;
+                    else if (diceRoll <= 40)
+                        locType = DFRegion.LocationTypes.TownHamlet;
+                    else if (diceRoll <= 45)
+                        locType = DFRegion.LocationTypes.DungeonLabyrinth;
+                    else if (diceRoll <= 55)
+                        locType = DFRegion.LocationTypes.DungeonKeep;
+                    else if (diceRoll <= 70)
+                        locType = DFRegion.LocationTypes.DungeonRuin;
+                    else if (diceRoll <= 80)
+                        locType = DFRegion.LocationTypes.ReligionTemple;
+                    else if (diceRoll <= 98)
+                        locType = DFRegion.LocationTypes.ReligionCult;
+                    else if (diceRoll <= 100)
+                        locType = DFRegion.LocationTypes.Coven;
+                }
+
+                diceRoll = Dice100.Roll();
+
+                if (diceRoll >= exoticism && anyRegion)
+                {
+                    diceRoll = Dice100.Roll();
+                    if (diceRoll >= exoticism && anyProvince)
+                    {
+                        diceRoll = Dice100.Roll();
+                        if (diceRoll >= exoticism && anyContinent)
+                        {
+                            // TODO: expand this
+                        }
+                        else{
+                            pickedProvince = (ProvinceNames)UnityEngine.Random.Range(1, Enum.GetNames(typeof(ProvinceNames)).Length + 1);
+                            locationMap.value *= 10;
+                        }
+                    }
+                    pickedRegion = WorldData.WorldSetting.regionInProvince[(int)pickedProvince][UnityEngine.Random.Range(0, WorldData.WorldSetting.regionInProvince[(int)pickedProvince].Length)];
+                    locationMap.value *= 5;
+                }
+
+                if (diceRoll > 50) // map from the same region OR exotic map
+                {
+                    for (int t = 0; t < WorldMaps.regionTiles[pickedRegion].Count; t++)
+                    {
+                        DFRegion tile = WorldMaps.ConvertWorldMapsToDFRegion(WorldMaps.regionTiles[pickedRegion][t], true);
+                        for (int r = 0; r < tile.LocationCount; r++)
+                        {
+                            if (tile.MapTable[r].LocationType == locType)
+                                locIdxs.Add((MapsFile.MapPixelToTile(MapsFile.GetPixelFromPixelID(tile.MapTable[r].MapId)), r));                            
+                        }
+                    }
+                }
+                else{   // map from the same geographical area (9x9 tiles)
+                    for (int gX = 0; gX < 3; gX++)
+                    {
+                        for (int gY = 0; gY < 3; gY++)
+                        {
+                            DFRegion localTile = WorldMaps.ConvertWorldMapsToDFRegion(gY * 3 + gX);
+                            for (int gr = 0; gr < localTile.LocationCount; gr++)
+                            {
+                                if (localTile.MapTable[gr].LocationType == locType)
+                                    locIdxs.Add((MapsFile.MapPixelToTile(MapsFile.GetPixelFromPixelID(localTile.MapTable[gr].MapId)), gr));
+                            }
+                        }
+                    }
+                }
+
+                if (locIdxs.Count == 0)
+                {
+                    Debug.Log("No suitable location found.");
+                    return new DaggerfallUnityItem();
+                }
+
+                int locIndex = UnityEngine.Random.Range(0, locIdxs.Count);
+                MapSummary locSummary;
+                DFRegion finalTile = WorldMaps.ConvertWorldMapsToDFRegion(locIdxs[locIndex].Item1, true);
+                DFPosition pos = MapsFile.GetPixelFromPixelID(finalTile.MapTable[locIdxs[locIndex].Item2].MapId);
+                locationMap.message = locIdxs[locIndex].Item1 * 10000 + locIdxs[locIndex].Item2;
+                locationMap.shortName = locationMap.shortName + " " + finalTile.MapNames[locIdxs[locIndex].Item2] + " (" + WorldData.WorldSetting.RegionNames[PoliticData.GetAbsPoliticValue(pos.X, pos.Y)] + ")";
+            }
+            else
+            {
+                locationMap.message = location.AbsTileIndex * 10000 + location.LocationIndex;
+                locationMap.shortName = locationMap.shortName + " of " + location.Name + " (" + location.RegionName + ")";
+            }
+            return locationMap;            
         }
 
         #endregion
@@ -849,33 +1168,68 @@ namespace DaggerfallWorkshop.Game.Items
             if (variant < 0 || variant >= totalVariants)
                 return;
 
+            Debug.Log("Setting variant, item.LongName: " + item.LongName);
+
             // Clamp to appropriate variant based on material family
             if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Cuirass))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Leather)
                     variant = 0;
-                else if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain || item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain2)
+                else if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain)
                     variant = 4;
                 else
                     variant = Mathf.Clamp(variant, 1, 3);
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Hauberk))
+            {
+                variant = 0;
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Jerkin))
+            {
+                if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+                    variant = 11;
+                else
+                    variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Greaves))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Leather)
                     variant = Mathf.Clamp(variant, 0, 1);
-                else if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain || item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain2)
+                else if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain)
                     variant = 6;
                 else
                     variant = Mathf.Clamp(variant, 2, 5);
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Chausses))
+            {
+                variant = 0;
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Cuisse))
+            {
+                if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+                    variant = 11;
+                else
+                    variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Left_Pauldron) || item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Right_Pauldron))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Leather)
                     variant = 0;
-                else if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain || item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain2)
+                else if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Chain)
                     variant = 4;
                 else
                     variant = Mathf.Clamp(variant, 1, 3);
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Left_Spaulder) || item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Right_Spaulder))
+            {
+                variant = 0;
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Left_Vambrace) || item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Right_Vambrace))
+            {
+                if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+                    variant = 11;
+                else
+                    variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Gauntlets))
             {
@@ -884,6 +1238,13 @@ namespace DaggerfallWorkshop.Game.Items
                 else
                     variant = 1;
             }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Gloves))
+            {
+               if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+                    variant = 11;
+                else
+                    variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
+            }
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Boots))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Leather)
@@ -891,8 +1252,26 @@ namespace DaggerfallWorkshop.Game.Items
                 else
                     variant = Mathf.Clamp(variant, 1, 2);
             }
-
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Sollerets))
+            {
+                variant = 0;
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Light_Boots))
+            {
+                if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+                    variant = 11;
+                else
+                    variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
+            }
+            else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Helmet))
+            {
+                if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
+                    variant = 11;
+                else
+                    variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
+            }
             // Store variant
+            Debug.Log("variant selected: " + variant);
             item.CurrentVariant = variant;
         }
 
@@ -919,6 +1298,17 @@ namespace DaggerfallWorkshop.Game.Items
                 default:
                     throw new Exception("GetBodyMorphology() encountered unsupported race value.");
             }
+        }
+
+        public static ArmorTypes GetArmorType(int nativeMaterialValue)
+        {
+            Debug.Log("nativeMaterialValue: " + nativeMaterialValue + ", Armor Type: " + (ArmorTypes)(nativeMaterialValue / 0x0100 * 0x0100));
+            return (ArmorTypes)(nativeMaterialValue / 0x0100 * 0x0100);
+        }
+
+        public static MaterialTypes GetArmorMaterialType(int nativeMaterialValue)
+        {
+            return (MaterialTypes)(nativeMaterialValue % 0x0010);
         }
 
         #endregion

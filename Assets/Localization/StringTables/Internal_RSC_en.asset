@@ -36,6 +36,9 @@ MonoBehaviour:
 
       [/pos:x=20,y=0]%enc
       [/pos:x=40,y=0]kilograms is your maximum encumbrance.[/left]
+      
+      Right now you are %enclvl.
+
 
       [/end]'
     m_Metadata:

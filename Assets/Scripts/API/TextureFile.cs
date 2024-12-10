@@ -447,7 +447,7 @@ namespace DaggerfallConnect.Arena2
             // byte[] data = new byte[records[record].Width * records[record].Height];
             DFBitmap result = new DFBitmap();
             int fakeArchive = archive;
-            if (archive >= 1000) fakeArchive = archive / 100 * 100;
+            if (archive >= 100000) fakeArchive = archive / 100 * 100;
             string recordName = archive.ToString("0000000") + "_" + record.ToString() + "-" + frame.ToString() + ".png";
             if (!File.Exists(Path.Combine(path, "Textures", recordName)))
             {
@@ -483,8 +483,8 @@ namespace DaggerfallConnect.Arena2
                 return string.Format("TEXTURE.{0:000}", archiveIndex);
             else if (archiveIndex < 10000)
                 return string.Format("TEXTURE.{0:0000}", archiveIndex);
-            else if (archiveIndex < 100000)
-                return string.Format("TEXTURE.{0:00000}", archiveIndex);
+            // else if (archiveIndex < 100000)
+            //     return string.Format("TEXTURE.{0:00000}", archiveIndex);
             else return string.Format("TEXTURE.{0:0000000}", archiveIndex);
         }
 

@@ -61,6 +61,7 @@ namespace DaggerfallWorkshop.Game.Entity
         protected ItemCollection wagonItems = new ItemCollection();
         protected ItemCollection otherItems = new ItemCollection();
         protected DaggerfallUnityItem lightSource;
+        protected DaggerfallUnityItem quiver;
         protected int goldPieces = 0;
         protected PersistentFactionData factionData = new PersistentFactionData();
         protected PersistentGlobalVars globalVars = new PersistentGlobalVars();
@@ -155,6 +156,7 @@ namespace DaggerfallWorkshop.Game.Entity
         public ItemCollection WagonItems { get { return wagonItems; } set { wagonItems.ReplaceAll(value); } }
         public ItemCollection OtherItems { get { return otherItems; } set { otherItems.ReplaceAll(value); } }
         public DaggerfallUnityItem LightSource { get { return lightSource; } set { lightSource = value; } }
+        public DaggerfallUnityItem Quiver { get { return quiver; } set { quiver = value; } }
         public int GoldPieces { get { return goldPieces; } set { goldPieces = value; } }
         public PersistentFactionData FactionData { get { return factionData; } }
         public PersistentGlobalVars GlobalVars { get { return globalVars; } }
@@ -851,7 +853,7 @@ namespace DaggerfallWorkshop.Game.Entity
             this.skillsRecentlyRaised[0] = character.skillsRaisedThisLevel1;
             this.skillsRecentlyRaised[1] = character.skillsRaisedThisLevel2;
             this.startingLevelUpSkillSum = character.startingLevelUpSkillSum;
-            this.minMetalToHit = (WeaponMaterialTypes)character.minMetalToHit;
+            this.minMetalToHit = (MaterialTypes)character.minMetalToHit;
             this.armorValues = character.armorValues;
             this.timeToBecomeVampireOrWerebeast = character.timeToBecomeVampireOrWerebeast;
             this.lastTimePlayerAteOrDrankAtTavern = character.lastTimePlayerAteOrDrankAtTavern;
@@ -1183,7 +1185,7 @@ namespace DaggerfallWorkshop.Game.Entity
                 FillVitalSigns();
                 for (int i = 0; i < ArmorValues.Length; i++)
                 {
-                    ArmorValues[i] = 100;
+                    ArmorValues[i] = 0;
                 }
             }
         }
@@ -1369,7 +1371,8 @@ namespace DaggerfallWorkshop.Game.Entity
             {
                 int skillAdvancementMultiplier = DaggerfallSkills.GetAdvancementMultiplier((DFCareer.Skills)i);
                 float careerAdvancementMultiplier = Career.AdvancementMultiplier;
-                int usesNeededForAdvancement = FormulaHelper.CalculateSkillUsesForAdvancement(skills.GetPermanentSkillValue(i), skillAdvancementMultiplier, careerAdvancementMultiplier, level);
+                float governingAttributeMultiplier = FormulaHelper.CalculateGoverningAttributeMultiplier(skills.GetPermanentSkillValue(i), stats.GetPermanentStatValue((int)DaggerfallSkills.GetPrimaryStat((DFCareer.Skills)i)));
+                int usesNeededForAdvancement = FormulaHelper.CalculateSkillUsesForAdvancement(skills.GetPermanentSkillValue(i), skillAdvancementMultiplier, careerAdvancementMultiplier, level, governingAttributeMultiplier);
                 int reflexesMod = 0x10000 - (((int)reflexes - 2) << 13);
                 int calculatedSkillUses = (skillUses[i] * reflexesMod) >> 16;
 

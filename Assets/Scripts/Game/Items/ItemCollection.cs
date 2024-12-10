@@ -14,6 +14,8 @@ using System.Collections.Generic;
 using System.Collections.Specialized;
 using DaggerfallWorkshop.Game.Serialization;
 using DaggerfallWorkshop.Game.Questing;
+using DaggerfallWorkshop.Game.Entity;
+using DaggerfallWorkshop.Game.Formulas;
 
 namespace DaggerfallWorkshop.Game.Items
 {
@@ -91,6 +93,8 @@ namespace DaggerfallWorkshop.Game.Items
         /// Gets the combined weight of all the items in this collection. (ignoring arrows like classic)
         /// </summary>
         /// <returns>Weight in kg</returns>
+        // ProjectN: giving back arrows their weight.
+        // ProjectN: reducing weight of equipped medium and heavy armor based on relative skill level.
         public float GetWeight()
         {
             float weight = 0;
@@ -98,6 +102,23 @@ namespace DaggerfallWorkshop.Game.Items
             {
                 weight += item.stackCount * item.EffectiveUnitWeightInKg();
             }
+
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+
+            for (int i = 0; i < Enum.GetNames(typeof(BodyParts)).Length; i++)
+            {
+                DaggerfallUnityItem equippedArmor = player.ItemEquipTable.GetItem(FormulaHelper.BodyPartsToEquipSlots((BodyParts)i, true));
+                if (equippedArmor != null)
+                {
+                    float weightReduction = 0.0f;
+                    ArmorTypes armorType = ItemBuilder.GetArmorType(equippedArmor.NativeMaterialValue);
+                    if (armorType == ArmorTypes.Chain) weightReduction = equippedArmor.weightInKg * (player.Skills.GetLiveSkillValue(DaggerfallConnect.DFCareer.Skills.MediumArmour) / 3) / 100;
+                    else if (armorType == ArmorTypes.Plate) weightReduction = equippedArmor.weightInKg * (player.Skills.GetLiveSkillValue(DaggerfallConnect.DFCareer.Skills.MediumArmour) / 2) / 100;
+
+                    weight -= weightReduction;
+                }
+            }
+
             return weight;
         }
 
@@ -397,6 +418,27 @@ namespace DaggerfallWorkshop.Game.Items
                 }
                 return selectedItem;
             }
+        }
+
+        public DaggerfallUnityItem GetItem(ItemGroups itemGroup, int itemIndex, int nativeMaterialValue, bool isSummoned = false)
+        {
+            int groupIndex = DaggerfallUnity.Instance.ItemHelper.GetGroupIndex(itemGroup, itemIndex);
+
+            foreach (DaggerfallUnityItem item in items.Values)
+            {
+                if (item.ItemGroup == itemGroup && item.GroupIndex == groupIndex && item.NativeMaterialValue == nativeMaterialValue)
+                {
+                    if (item.IsSummoned && isSummoned)
+                    {
+                        return item;
+                    }
+                    else if (!item.IsSummoned && !isSummoned)
+                    {
+                        return item;
+                    }
+                }
+            }
+            return null;
         }
 
         /// <summary>
@@ -707,6 +749,7 @@ namespace DaggerfallWorkshop.Game.Items
                     checkItem.message == item.message &&
                     checkItem.PotionRecipeKey == item.PotionRecipeKey &&
                     checkItem.TimeForItemToDisappear == item.TimeForItemToDisappear &&
+                    checkItem.NativeMaterialValue == item.NativeMaterialValue &&
                     checkItem.IsStackable())
                     return checkItem;
             }

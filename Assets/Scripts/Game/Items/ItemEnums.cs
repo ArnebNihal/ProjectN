@@ -61,19 +61,33 @@ namespace DaggerfallWorkshop.Game.Items
     /// <summary>
     /// Weapon material values.
     /// </summary>
-    public enum WeaponMaterialTypes
+    public enum MaterialTypes
+    {
+        // ProjectN: moved Orcish, changed enum name to make it cover both weapons and armours
+        None        = -1,
+        Base        = 0x0000,       // Used for those armours that don't scale with higher materials
+        Iron        = 0x0001,
+        Steel       = 0x0002,
+        Silver      = 0x0003,
+        Elven       = 0x0004,
+        Dwarven     = 0x0005,
+        Orcish      = 0x0006,
+        Mithril     = 0x0007,
+        Adamantium  = 0x0008,
+        Ebony       = 0x0009,
+        Daedric     = 0x000A,
+    }
+
+    /// <summary>
+    /// Armour types.
+    /// </summary>
+    public enum ArmorTypes
     {
         None        = -1,
-        Iron        = 0x0000,
-        Steel       = 0x0001,
-        Silver      = 0x0002,
-        Elven       = 0x0003,
-        Dwarven     = 0x0004,
-        Mithril     = 0x0005,
-        Adamantium  = 0x0006,
-        Ebony       = 0x0007,
-        Orcish      = 0x0008,
-        Daedric     = 0x0009,
+        Leather     = 0x0000,
+        Fur         = 0xF010,
+        Chain       = 0x0100,
+        Plate       = 0x0200
     }
 
     /// <summary>
@@ -81,20 +95,41 @@ namespace DaggerfallWorkshop.Game.Items
     /// </summary>
     public enum ArmorMaterialTypes
     {
-        None        = -1,
-        Leather     = 0x0000,
-        Chain       = 0x0100,
-        Chain2      = 0x0103,
-        Iron        = 0x0200,
-        Steel       = 0x0201,
-        Silver      = 0x0202,
-        Elven       = 0x0203,
-        Dwarven     = 0x0204,
-        Mithril     = 0x0205,
-        Adamantium  = 0x0206,
-        Ebony       = 0x0207,
-        Orcish      = 0x0208,
-        Daedric     = 0x0209,
+        // ProjectN: moved Orcish to be on par with Mithril; added new armour/material combinations (really required?)
+        None                = -1,
+        Leather             = 0x0000,
+        Fur                 = 0x0010,
+        LeatherIron         = 0x0001,
+        LeatherSteel        = 0x0002,
+        LeatherSilver       = 0x0003,
+        LeatherElven        = 0x0004,
+        LeatherDwarven      = 0x0005,
+        LeatherOrcish       = 0x0006,
+        LeatherMithril      = 0x0007,
+        LeatherAdamantium   = 0x0008,
+        LeatherEbony        = 0x0009,
+        LeatherDaedric      = 0x000A,
+        Chain               = 0x0100,
+        ChainIron           = 0x0101,
+        ChainSteel          = 0x0102,
+        ChainSilver         = 0x0103,
+        ChainElven          = 0x0104,
+        ChainDwarven        = 0x0105,
+        ChainOrcish         = 0x0106,
+        ChainMithril        = 0x0107,
+        ChainAdamantium     = 0x0108,
+        ChainEbony          = 0x0109,
+        ChainDaedric        = 0x010A,
+        PlateIron           = 0x0201,
+        PlateSteel          = 0x0202,
+        PlateSilver         = 0x0203,
+        PlateElven          = 0x0204,
+        PlateDwarven        = 0x0205,
+        PlateOrcish         = 0x0206,
+        PlateMithril        = 0x0207,
+        PlateAdamantium     = 0x0208,
+        PlateEbony          = 0x0209,
+        PlateDaedric        = 0x020A,
     }
 
     /// <summary>
@@ -205,6 +240,18 @@ namespace DaggerfallWorkshop.Game.Items
         Round_Shield = 110,
         Kite_Shield = 111,
         Tower_Shield = 112,
+        Hauberk = 290,
+        Chausses = 291,
+        Left_Spaulder = 292,
+        Right_Spaulder = 293,
+        Sollerets = 294,
+        Jerkin = 295,
+        Cuisse = 296,
+        Helmet = 297,
+        Light_Boots = 298,
+        Gloves = 299,
+        Left_Vambrace = 300,
+        Right_Vambrace = 301
     }
 
     public enum Weapons  //checked
@@ -228,6 +275,8 @@ namespace DaggerfallWorkshop.Game.Items
         Short_Bow = 129,
         Long_Bow = 130,
         Arrow = 131,
+        ArchersAxe = 288,
+        LightFlail = 289
     }
 
     public enum MagicItemSubTypes                   // Not mapped to a specific item template index
@@ -378,6 +427,10 @@ namespace DaggerfallWorkshop.Game.Items
     public enum Maps //checked
     {
         Map = 287,
+        TownMap = 302,
+        // LocationMap = 571,
+        // ReligiousMap = 572,
+        // DungeonMap = 573
     }
 
     public enum WomensClothing  //checked

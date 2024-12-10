@@ -124,7 +124,7 @@ namespace DaggerfallWorkshop.Utility
         /// </summary>
         /// <param name="material">Material type of weapon.</param>
         /// <returns>String for weapon material name.</returns>
-        public virtual string GetWeaponMaterialName(WeaponMaterialTypes material)
+        public virtual string GetWeaponMaterialName(MaterialTypes material)
         {
             return fallback.GetWeaponMaterialName(material);
         }

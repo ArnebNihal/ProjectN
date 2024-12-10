@@ -201,7 +201,7 @@ namespace DaggerfallWorkshop.Game.Guilds
             else
             {   // Give a random armor piece, allowing player to choose one out of 3-6
                 ItemCollection rewardArmor = new ItemCollection();
-                ArmorMaterialTypes material = ArmorMaterialTypes.Iron + rank;
+                ArmorMaterialTypes material = ArmorMaterialTypes.PlateIron + rank;
                 for (int i = UnityEngine.Random.Range(3, 7); i >= 0; i--)
                 {
                     Armor armor = (Armor)UnityEngine.Random.Range(102, 108 + 1);

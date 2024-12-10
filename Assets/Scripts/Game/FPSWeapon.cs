@@ -318,10 +318,23 @@ namespace DaggerfallWorkshop.Game
             }
 
             // Handle bow with no arrows
-            if (!GameManager.Instance.WeaponManager.Sheathed && WeaponType == WeaponTypes.Bow && GameManager.Instance.PlayerEntity.Items.GetItem(Items.ItemGroups.Weapons, (int)Items.Weapons.Arrow, allowQuestItem: false) == null)
+            if (!GameManager.Instance.WeaponManager.Sheathed && WeaponType == WeaponTypes.Bow)
             {
-                GameManager.Instance.WeaponManager.SheathWeapons();
-                DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youHaveNoArrows"));
+                if (GameManager.Instance.PlayerEntity.Items.GetItem(Items.ItemGroups.Weapons, (int)Items.Weapons.Arrow, allowQuestItem: false) == null)
+                {
+                    GameManager.Instance.WeaponManager.SheathWeapons();
+                    DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youHaveNoArrows"));
+                }
+                else if (GameManager.Instance.PlayerEntity.Quiver == null)
+                {
+                    GameManager.Instance.WeaponManager.SheathWeapons();
+                    DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("noArrowsReady"));
+                }
+                else if (GameManager.Instance.PlayerEntity.Quiver.stackCount == 0)
+                {
+                    GameManager.Instance.PlayerEntity.Quiver = null;
+                    DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("noArrowsReady"));
+                }
             }
 
             // Store rect and anim

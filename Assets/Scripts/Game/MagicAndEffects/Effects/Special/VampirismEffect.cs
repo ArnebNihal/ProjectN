@@ -121,7 +121,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
             // Assign constant state changes for vampires
             entityBehaviour.Entity.IsImmuneToDisease = true;
             entityBehaviour.Entity.IsImmuneToParalysis = true;
-            entityBehaviour.Entity.MinMetalToHit = WeaponMaterialTypes.Silver;
+            entityBehaviour.Entity.MinMetalToHit = MaterialTypes.Silver;
         }
 
         public override void MagicRound()
@@ -268,7 +268,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
                 return;
 
             // Remove player metal immunity
-            entityBehaviour.Entity.MinMetalToHit = WeaponMaterialTypes.Iron;
+            entityBehaviour.Entity.MinMetalToHit = MaterialTypes.Iron;
 
             // Refresh head texture after effect ends
             DaggerfallUI.RefreshLargeHUDHeadTexture();

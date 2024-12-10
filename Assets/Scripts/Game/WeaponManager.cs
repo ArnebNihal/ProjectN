@@ -35,7 +35,7 @@ namespace DaggerfallWorkshop.Game
         public const float defaultWeaponReach = 2.25f;
 
         // Equip delay times for weapons
-        public static ushort[] EquipDelayTimes = { 500, 700, 1200, 900, 900, 1800, 1600, 1700, 1700, 3000, 3400, 2000, 2200, 2000, 2200, 2000, 4000, 5000 };
+        public static ushort[] EquipDelayTimes = { 500, 700, 1200, 900, 900, 1800, 1600, 1700, 1700, 3000, 3400, 2000, 2200, 2000, 2200, 2000, 4000, 5000, 0, 1600, 900 };
 
         // Max time-length of a trail of mouse positions for attack gestures
         private const float MaxGestureSeconds = 1.0f;
@@ -398,7 +398,7 @@ namespace DaggerfallWorkshop.Game
                     {
                         // Remove arrow
                         ItemCollection playerItems = playerEntity.Items;
-                        DaggerfallUnityItem arrow = playerItems.GetItem(ItemGroups.Weapons, (int)Weapons.Arrow, allowQuestItem: false, priorityToConjured: true);
+                        DaggerfallUnityItem arrow = playerItems.GetItem(ItemGroups.Weapons, (int)Weapons.Arrow, playerEntity.Quiver.NativeMaterialValue, playerEntity.Quiver.IsSummoned);
                         bool isArrowSummoned = arrow.IsSummoned;
                         playerItems.RemoveOne(arrow);
 
@@ -540,7 +540,10 @@ namespace DaggerfallWorkshop.Game
                     bool isEnemyFacingAwayFromPlayer = entityMobileUnit.IsBackFacing &&
                         entityMobileUnit.EnemyState != MobileStates.SeducerTransform1 &&
                         entityMobileUnit.EnemyState != MobileStates.SeducerTransform2;
-                    int damage = FormulaHelper.CalculateAttackDamage(playerEntity, enemyEntity, isEnemyFacingAwayFromPlayer, animTime, strikingWeapon);
+                    int damage = 0;
+                    if (strikingWeapon.GetWeaponSkillID() != DFCareer.Skills.Archery)
+                        FormulaHelper.CalculateAttackDamage(playerEntity, enemyEntity, isEnemyFacingAwayFromPlayer, animTime, strikingWeapon);
+                    else FormulaHelper.CalculateAttackDamage(playerEntity, enemyEntity, isEnemyFacingAwayFromPlayer, animTime, strikingWeapon, playerEntity.Quiver);
 
                     // Break any "normal power" concealment effects on player
                     if (playerEntity.IsMagicallyConcealedNormalPower && damage > 0)
@@ -549,7 +552,7 @@ namespace DaggerfallWorkshop.Game
                     // Add arrow to target's inventory
                     if (arrowHit && !arrowSummoned)
                     {
-                        DaggerfallUnityItem arrow = ItemBuilder.CreateWeapon(Weapons.Arrow, WeaponMaterialTypes.None);
+                        DaggerfallUnityItem arrow = ItemBuilder.CreateWeapon(Weapons.Arrow, (MaterialTypes)playerEntity.Quiver.NativeMaterialValue);
                         arrow.stackCount = 1;
                         enemyEntity.Items.AddItem(arrow);
                     }

@@ -1918,12 +1918,12 @@ namespace Wenzil.Console
         {
             public static readonly string name = "add_weapon";
             public static readonly string description = "Adds a weapon to inventory.";
-            public static readonly string usage = "add_weapon {Weapons} {WeaponMaterialTypes}";
+            public static readonly string usage = "add_weapon {Weapons} {MaterialTypes}";
 
             public static string Execute(params string[] args)
             {
                 return args.Length == 2 ?
-                    AddItemHelper.Execute(args, x => ItemBuilder.CreateWeapon(x.Parse<Weapons>(), x.Parse<WeaponMaterialTypes>())) :
+                    AddItemHelper.Execute(args, x => ItemBuilder.CreateWeapon(x.Parse<Weapons>(), x.Parse<MaterialTypes>())) :
                     usage;
             }
         }
@@ -1966,17 +1966,20 @@ namespace Wenzil.Console
             public static readonly string description = "Adds all equippable item types to inventory for the current characters gender & race. (for testing paperdoll images)";
             public static readonly string usage = "add_all_equip (clothing|clothingAllDyes|armor|weapons|magicWeapons)";
 
-            public static ArmorMaterialTypes[] armorMaterials = {
-                ArmorMaterialTypes.Leather, ArmorMaterialTypes.Chain, ArmorMaterialTypes.Iron, ArmorMaterialTypes.Steel,
-                ArmorMaterialTypes.Silver, ArmorMaterialTypes.Elven, ArmorMaterialTypes.Dwarven, ArmorMaterialTypes.Mithril,
-                ArmorMaterialTypes.Adamantium, ArmorMaterialTypes.Ebony, ArmorMaterialTypes.Orcish, ArmorMaterialTypes.Daedric
-            };
-            public static WeaponMaterialTypes[] weaponMaterials = {
-                WeaponMaterialTypes.Iron, WeaponMaterialTypes.Steel, WeaponMaterialTypes.Silver, WeaponMaterialTypes.Elven,
-                WeaponMaterialTypes.Dwarven, WeaponMaterialTypes.Mithril, WeaponMaterialTypes.Adamantium, WeaponMaterialTypes.Ebony,
-                WeaponMaterialTypes.Orcish, WeaponMaterialTypes.Daedric
+            public static ArmorTypes[] armorTypes = {
+                ArmorTypes.Leather, ArmorTypes.Fur, ArmorTypes.Chain, ArmorTypes.Plate
             };
 
+            public static MaterialTypes[] armorMaterials = {
+                MaterialTypes.Iron, MaterialTypes.Steel,
+                MaterialTypes.Silver, MaterialTypes.Elven, MaterialTypes.Dwarven, MaterialTypes.Mithril,
+                MaterialTypes.Adamantium, MaterialTypes.Ebony, MaterialTypes.Orcish, MaterialTypes.Daedric
+            };
+            public static MaterialTypes[] weaponMaterials = {
+                MaterialTypes.Iron, MaterialTypes.Steel, MaterialTypes.Silver, MaterialTypes.Elven,
+                MaterialTypes.Dwarven, MaterialTypes.Mithril, MaterialTypes.Adamantium, MaterialTypes.Ebony,
+                MaterialTypes.Orcish, MaterialTypes.Daedric
+            };
             public static List<MensClothing> mensUsableClothing = new List<MensClothing>() {
                 MensClothing.Casual_cloak, MensClothing.Formal_cloak, MensClothing.Reversible_tunic, MensClothing.Plain_robes,
                 MensClothing.Short_shirt, MensClothing.Short_shirt_with_belt, MensClothing.Long_shirt, MensClothing.Long_shirt_with_belt,
@@ -2027,7 +2030,7 @@ namespace Wenzil.Console
                         return string.Format("Added all clothing types for a {0} {1}", playerEntity.Gender, playerEntity.Race);
 
                     case "armor":
-                        foreach (ArmorMaterialTypes material in armorMaterials)
+                        foreach (ArmorMaterialTypes material in armorTypes)
                         {
                             Array enumArray = itemHelper.GetEnumArray(ItemGroups.Armor);
                             for (int i = 0; i < enumArray.Length; i++)
@@ -2041,7 +2044,7 @@ namespace Wenzil.Console
                                     {
                                         vs = 4;
                                     }
-                                    else if (material >= ArmorMaterialTypes.Iron)
+                                    else if (ItemBuilder.GetArmorType((int)material) == ArmorTypes.Plate)
                                     {
                                         vs = 1;
                                         vf = 4;
@@ -2058,7 +2061,7 @@ namespace Wenzil.Console
                                     {
                                         vs = 6;
                                     }
-                                    else if (material >= ArmorMaterialTypes.Iron)
+                                    else if (ItemBuilder.GetArmorType((int)material) == ArmorTypes.Plate)
                                     {
                                         vs = 2;
                                         vf = 6;
@@ -2089,19 +2092,19 @@ namespace Wenzil.Console
                                     playerEntity.Items.AddItem(newItem);
                                 }
                             }
-                            int[] customItemTemplates = itemHelper.GetCustomItemsForGroup(ItemGroups.Armor);
-                            for (int i = 0; i < customItemTemplates.Length; i++)
-                            {
-                                newItem = ItemBuilder.CreateItem(ItemGroups.Armor, customItemTemplates[i]);
-                                ItemBuilder.ApplyArmorSettings(newItem, playerEntity.Gender, playerEntity.Race, material);
-                                playerEntity.Items.AddItem(newItem);
-                            }
+                            // int[] customItemTemplates = itemHelper.GetCustomItemsForGroup(ItemGroups.Armor);
+                            // for (int i = 0; i < customItemTemplates.Length; i++)
+                            // {
+                            //     newItem = ItemBuilder.CreateItem(ItemGroups.Armor, customItemTemplates[i]);
+                            //     ItemBuilder.ApplyArmorSettings(newItem, playerEntity.Gender, playerEntity.Race, material);
+                            //     playerEntity.Items.AddItem(newItem);
+                            // }
                         }
                         return string.Format("Added all armor types for a {0} {1}", playerEntity.Gender, playerEntity.Race);
 
                     case "weapons":
                     case "magicWeapons":
-                        foreach (WeaponMaterialTypes material in weaponMaterials)
+                        foreach (MaterialTypes material in weaponMaterials)
                         {
                             Array enumArray = itemHelper.GetEnumArray(ItemGroups.Weapons);
                             for (int i = 0; i < enumArray.Length - 1; i++)

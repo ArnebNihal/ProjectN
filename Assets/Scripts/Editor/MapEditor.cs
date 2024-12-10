@@ -3705,18 +3705,18 @@ namespace MapEditor
 
         #endregion
 
-        public static byte[] ConvertToArray(int[,] matrix)
+        public static int[] ConvertToArray(int[,] matrix)
         {
             // int[,] matrix = new int[imageToTranslate.Width * imageToTranslate.Height];
             // ConvertToMatrix(imageToTranslate, out matrix);
 
-            byte[] resultingArray = new byte[matrix.GetLength(0) * matrix.GetLength(1)];
+            int[] resultingArray = new int[matrix.GetLength(0) * matrix.GetLength(1)];
 
             for (int x = 0; x < matrix.GetLength(0); x++)
             {
                 for (int y = 0; y < matrix.GetLength(1); y++)
                 {
-                    resultingArray[(y * matrix.GetLength(0)) + x] = (byte)matrix[x, y];
+                    resultingArray[(y * matrix.GetLength(0)) + x] = matrix[x, y];
                 }
             }
 
@@ -3760,6 +3760,7 @@ namespace MapEditor
                 }
                 else
                 {
+                    Debug.Log("tile " + matrixType + "_" + posX + "_" + posY + ".png not present.");
                     textureArray[i] = new int[MapsFile.TileDim * sizeModifier, MapsFile.TileDim * sizeModifier];
                 }
             }

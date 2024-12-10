@@ -446,6 +446,7 @@ namespace DaggerfallWorkshop.Utility
 
             // Swap indices start through start + 15 with colour table
             int rowPos;
+            Debug.Log("Data.Length: " + srcBitmap.Data.Length + ", srcBitmap.Width: " + srcBitmap.Width + ", srcBitmap.Height: " + srcBitmap.Height);
             for (int y = 0; y < srcBitmap.Height; y++)
             {
                 rowPos = y * srcBitmap.Width;
@@ -540,14 +541,14 @@ namespace DaggerfallWorkshop.Utility
                         return GetMetalColorTable(MetalTypes.Elven);
                     case DyeColors.Dwarven:
                         return GetMetalColorTable(MetalTypes.Dwarven);
+                    case DyeColors.Orcish:
+                        return GetMetalColorTable(MetalTypes.Orcish);
                     case DyeColors.Mithril:
                         return GetMetalColorTable(MetalTypes.Mithril);
                     case DyeColors.Adamantium:
                         return GetMetalColorTable(MetalTypes.Adamantium);
                     case DyeColors.Ebony:
                         return GetMetalColorTable(MetalTypes.Ebony);
-                    case DyeColors.Orcish:
-                        return GetMetalColorTable(MetalTypes.Orcish);
                     case DyeColors.Daedric:
                         return GetMetalColorTable(MetalTypes.Daedric);
                     default:
@@ -581,6 +582,9 @@ namespace DaggerfallWorkshop.Utility
                 case MetalTypes.Dwarven:
                     indices = new byte[] { 0x90, 0x91, 0x92, 0x93, 0x94, 0x95, 0x96, 0x97, 0x98, 0x99, 0x9A, 0x9B, 0x9C, 0x9D, 0x9E, 0x9F };
                     break;
+                case MetalTypes.Orcish:
+                    indices = new byte[] { 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD };
+                    break;
                 case MetalTypes.Mithril:
                     indices = new byte[] { 0x67, 0x68, 0x69, 0x6A, 0x6B, 0x6C, 0x6D, 0x6E, 0x6F, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE };
                     break;
@@ -589,9 +593,6 @@ namespace DaggerfallWorkshop.Utility
                     break;
                 case MetalTypes.Ebony:
                     indices = new byte[] { 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE };
-                    break;
-                case MetalTypes.Orcish:
-                    indices = new byte[] { 0xC6, 0xC7, 0xC8, 0xC9, 0xCA, 0xCB, 0xCC, 0xCD, 0xCE, 0xCF, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD };
                     break;
                 case MetalTypes.Daedric:
                     indices = new byte[] { 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE };
@@ -621,14 +622,14 @@ namespace DaggerfallWorkshop.Utility
                     return DyeColors.Elven;
                 case MetalTypes.Dwarven:
                     return DyeColors.Dwarven;
+                case MetalTypes.Orcish:
+                    return DyeColors.Orcish;
                 case MetalTypes.Mithril:
                     return DyeColors.Mithril;
                 case MetalTypes.Adamantium:
                     return DyeColors.Adamantium;
                 case MetalTypes.Ebony:
                     return DyeColors.Ebony;
-                case MetalTypes.Orcish:
-                    return DyeColors.Orcish;
                 case MetalTypes.Daedric:
                     return DyeColors.Daedric;
                 default:

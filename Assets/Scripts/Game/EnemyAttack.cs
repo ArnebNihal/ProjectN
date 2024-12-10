@@ -137,12 +137,13 @@ namespace DaggerfallWorkshop.Game
                 return;
 
             EnemyEntity entity = entityBehaviour.Entity as EnemyEntity;
+            Items.DaggerfallUnityItem arrow = Items.ItemBuilder.CreateWeapon(Items.Weapons.Arrow, FormulaHelper.RandomMaterial(entity.Level));
+
             if (senses.Target == GameManager.Instance.PlayerEntityBehaviour)
-                damage = ApplyDamageToPlayer(entity.ItemEquipTable.GetItem(Items.EquipSlots.RightHand));
+                damage = ApplyDamageToPlayer(entity.ItemEquipTable.GetItem(Items.EquipSlots.RightHand), arrow);
             else
                 damage = ApplyDamageToNonPlayer(entity.ItemEquipTable.GetItem(Items.EquipSlots.RightHand), direction, true);
 
-            Items.DaggerfallUnityItem arrow = Items.ItemBuilder.CreateWeapon(Items.Weapons.Arrow, Items.WeaponMaterialTypes.None);
             arrow.stackCount = 1;
             senses.Target.Entity.Items.AddItem(arrow);
         }
@@ -190,7 +191,7 @@ namespace DaggerfallWorkshop.Game
 
                 // Switch to hand-to-hand if enemy is immune to weapon
                 Items.DaggerfallUnityItem weapon = entity.ItemEquipTable.GetItem(Items.EquipSlots.RightHand);
-                if (weapon != null && targetEntity != null && targetEntity.MobileEnemy.MinMetalToHit > (Items.WeaponMaterialTypes)weapon.NativeMaterialValue)
+                if (weapon != null && targetEntity != null && targetEntity.MobileEnemy.MinMetalToHit > (Items.MaterialTypes)weapon.NativeMaterialValue)
                     weapon = null;
 
                 damage = 0;
@@ -242,7 +243,7 @@ namespace DaggerfallWorkshop.Game
             }
         }
 
-        private int ApplyDamageToPlayer(Items.DaggerfallUnityItem weapon)
+        private int ApplyDamageToPlayer(Items.DaggerfallUnityItem weapon, Items.DaggerfallUnityItem arrow = null)
         {
             const int doYouSurrenderToGuardsTextID = 15;
 
@@ -250,7 +251,10 @@ namespace DaggerfallWorkshop.Game
             PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
 
             // Calculate damage
-            damage = FormulaHelper.CalculateAttackDamage(entity, playerEntity, false, 0, weapon);
+            // ProjectN: adding variables for arrow material
+            if (weapon.GetWeaponSkillID() != DFCareer.Skills.Archery)
+                damage = FormulaHelper.CalculateAttackDamage(entity, playerEntity, false, 0, weapon);
+            else damage = FormulaHelper.CalculateAttackDamage(entity, playerEntity, false, 0, weapon, arrow);
 
             // Break any "normal power" concealment effects on enemy
             if (entity.IsMagicallyConcealedNormalPower && damage > 0)

@@ -27,6 +27,7 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Formulas;
+using DaggerfallConnect.Utility;
 
 namespace DaggerfallWorkshop.Game.Items
 {
@@ -51,7 +52,7 @@ namespace DaggerfallWorkshop.Game.Items
         const int artifactFemaleTextureArchive = 433;
 
         // Last template index for vanilla DF items, any higher index is a custom item
-        public const int LastDFTemplate = 287;
+        public const int LastDFTemplate = 573;  // Map of <dungeon>
 
         public static int WagonKgLimit = 750;
 
@@ -246,6 +247,7 @@ namespace DaggerfallWorkshop.Game.Items
             for (int i = 0; i < values.Length; i++)
             {
                 int checkTemplateIndex = Convert.ToInt32(values.GetValue(i));
+                Debug.Log("templateIndex: " + templateIndex + ", checkTemplateIndex: " + checkTemplateIndex);
                 if (checkTemplateIndex == templateIndex)
                     return i;
             }
@@ -273,6 +275,10 @@ namespace DaggerfallWorkshop.Game.Items
             if (item.ItemGroup == ItemGroups.Books)
                 return DaggerfallUnity.Instance.ItemHelper.GetBookTitle(item.message, item.shortName);
 
+            // Handling of town maps and location maps
+            if (item.ItemGroup == ItemGroups.Maps && (item.TemplateIndex >= 570 && item.TemplateIndex <= 573))
+                return DaggerfallUnity.Instance.ItemHelper.GetMapName(item);
+
             // Start with base name
             string result = item.shortName;
 
@@ -280,7 +286,7 @@ namespace DaggerfallWorkshop.Game.Items
             if (!string.IsNullOrEmpty(template.name))
                 result = result.Replace("%it", template.name);
             else
-                Debug.LogErrorFormat("Item template index {0} has a null template.name", template.index);
+                Debug.LogErrorFormat("Item template index {0} short name {1} has a null template.name", template.index, item.shortName);
 
             return result;
         }
@@ -306,9 +312,10 @@ namespace DaggerfallWorkshop.Game.Items
             }
 
             // Resolve weapon material
-            if (item.ItemGroup == ItemGroups.Weapons && item.TemplateIndex != (int)Weapons.Arrow)
+            // ProjectN: Arrows will be named based on material, too.
+            if (item.ItemGroup == ItemGroups.Weapons)   //  && item.TemplateIndex != (int)Weapons.Arrow
             {
-                WeaponMaterialTypes weaponMaterial = (WeaponMaterialTypes)item.nativeMaterialValue;
+                MaterialTypes weaponMaterial = (MaterialTypes)item.nativeMaterialValue;
                 string materialName = DaggerfallUnity.Instance.TextProvider.GetWeaponMaterialName(weaponMaterial);
                 result = string.Format("{0} {1}", materialName, result);
             }
@@ -391,6 +398,15 @@ namespace DaggerfallWorkshop.Game.Items
             }
         }
 
+        public bool IsNewWeapon(DaggerfallUnityItem weapon)
+        {
+            if (weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.ArchersAxe) ||
+                weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.LightFlail))
+                return true;
+
+            return false;
+        }
+
         /// <summary>
         /// Gets inventory/equip image for specified item.
         /// Image will be cached based on material and hand for faster subsequent fetches.
@@ -410,9 +426,16 @@ namespace DaggerfallWorkshop.Game.Items
             int archive = item.InventoryTextureArchive;
             int record = item.InventoryTextureRecord;
 
+            if (IsNewWeapon(item))
+            {
+                MaterialTypes matType = ItemBuilder.GetArmorMaterialType(item.nativeMaterialValue);
+                record = ((int)matType - 1) * 2;
+            }
+
             // Paper doll handling
             if (forPaperDoll)
             {
+                Debug.Log("Trying to draw paperdoll item...");
                 // 1H Weapons in right hand need record + 1
                 if (item.ItemGroup == ItemGroups.Weapons && item.EquipSlot == EquipSlots.RightHand &&
                     ItemEquipTable.GetItemHands(item) == ItemHands.Either)
@@ -435,6 +458,7 @@ namespace DaggerfallWorkshop.Game.Items
 
             // Get unique key
             int key = MakeImageKey(color, archive, record, removeMask);
+            Debug.Log("item.LongName: " + item.LongName + ", color: " + color + ", archive: " + archive + ", record: " + record + ", removeMask: " + removeMask + ", key: " + key);
 
             // Get existing icon if in cache
             if (itemImages.ContainsKey(key))
@@ -455,16 +479,30 @@ namespace DaggerfallWorkshop.Game.Items
 
             // Get mask texture where alpha 0 is umasked areas of image and alpha 1 are masked areas of image
             Texture2D maskTexture;
-            if (TextureReplacement.TryImportTexture(archive, record, 0, item.dyeColor, TextureMap.Mask, out maskTexture))
-                data.maskTexture = maskTexture;
-            else
+            // if (archive > 10000)
+            // {
+
+            // }
+            // else 
+            if (!TextureReplacement.TryImportCustomTexture(archive, record, 0, item.dyeColor, TextureMap.Mask, out maskTexture))
                 ImageReader.UpdateMaskTexture(ref data);
+            // else
+            //     data.maskTexture = maskTexture;                
 
             Texture2D tex;
-            if (TextureReplacement.TryImportTexture(archive, record, 0, item.dyeColor, TextureMap.Albedo, out tex))
+            if (TextureReplacement.TryImportCustomTexture(archive, record, 0, item.dyeColor, TextureMap.Albedo, out tex))
             {
                 // Assign imported texture
                 data.texture = tex;
+                // ItemGroups group = item.ItemGroup;
+                // DyeColors dye = (DyeColors)color;
+                // Debug.Log("item: " + item.LongName);
+                // if (group == ItemGroups.Weapons || group == ItemGroups.Armor)
+                //     data = ChangeDye(data, dye, DyeTargets.WeaponsAndArmor);
+                // else if (item.ItemGroup == ItemGroups.MensClothing || item.ItemGroup == ItemGroups.WomensClothing)
+                //     data = ChangeDye(data, dye, DyeTargets.Clothing);
+                // else
+                //     ImageReader.UpdateTexture(ref data);
             }
             else
             {
@@ -475,6 +513,7 @@ namespace DaggerfallWorkshop.Game.Items
                 // Change dye or just update texture
                 ItemGroups group = item.ItemGroup;
                 DyeColors dye = (DyeColors)color;
+                Debug.Log("item: " + item.LongName);
                 if (group == ItemGroups.Weapons || group == ItemGroups.Armor)
                     data = ChangeDye(data, dye, DyeTargets.WeaponsAndArmor);
                 else if (item.ItemGroup == ItemGroups.MensClothing || item.ItemGroup == ItemGroups.WomensClothing)
@@ -609,6 +648,25 @@ namespace DaggerfallWorkshop.Game.Items
             }
 
             return keys.First(x => !BookReplacement.BookMappingEntries.ContainsKey(x));
+        }
+
+        public string GetMapName(DaggerfallUnityItem map)
+        {
+            int tile = map.message / 10000;
+            int location = map.message % 10000;
+
+            DFRegion region = WorldMaps.ConvertWorldMapsToDFRegion(tile, true);
+            DFPosition locPos = MapsFile.GetPixelFromPixelID(region.MapTable[location].MapId);
+
+            switch(map.TemplateIndex)
+            {
+                case 570:
+                case 571:
+                case 572:
+                case 573:
+                default:
+                    return (map.shortName + " " + region.MapNames[location] + " (" + WorldData.WorldSetting.RegionNames[PoliticData.GetAbsPoliticValue(locPos.X, locPos.Y)]);
+            }
         }
 
         /// <summary>
@@ -777,10 +835,11 @@ namespace DaggerfallWorkshop.Game.Items
             else if (item.IsShield || item.TemplateIndex == (int)Armor.Helm)
             {
                 if ((DaggerfallUnity.Settings.HelmAndShieldMaterialDisplay == 1)
-                    && ((ArmorMaterialTypes)item.nativeMaterialValue >= ArmorMaterialTypes.Iron))
+                    && (ItemBuilder.GetArmorMaterialType(item.nativeMaterialValue) >= MaterialTypes.Iron))
                     return true;
                 else if ((DaggerfallUnity.Settings.HelmAndShieldMaterialDisplay == 2)
-                    && ((ArmorMaterialTypes)item.nativeMaterialValue >= ArmorMaterialTypes.Chain))
+                    && (ItemBuilder.GetArmorMaterialType(item.nativeMaterialValue) >= MaterialTypes.Iron ||
+                        ItemBuilder.GetArmorType(item.nativeMaterialValue) == ArmorTypes.Chain))
                     return true;
                 else if (DaggerfallUnity.Settings.HelmAndShieldMaterialDisplay == 3)
                     return true;
@@ -844,6 +903,7 @@ namespace DaggerfallWorkshop.Game.Items
                     result = WeaponTypes.Mace;
                     break;
                 case (int)Weapons.Flail:
+                case (int)Weapons.LightFlail:
                     result = WeaponTypes.Flail;
                     break;
                 case (int)Weapons.Warhammer:
@@ -851,6 +911,7 @@ namespace DaggerfallWorkshop.Game.Items
                     break;
                 case (int)Weapons.Battle_Axe:
                 case (int)Weapons.War_Axe:
+                case (int)Weapons.ArchersAxe:
                     result = WeaponTypes.Battleaxe;
                     break;
                 case (int)Weapons.Short_Bow:
@@ -932,28 +993,28 @@ namespace DaggerfallWorkshop.Game.Items
                     if (item.ItemName == "Staff of Magnus")
                         return MetalTypes.Mithril;
                 }
-                WeaponMaterialTypes weaponMaterial = (WeaponMaterialTypes)item.nativeMaterialValue;
+                MaterialTypes weaponMaterial = (MaterialTypes)item.nativeMaterialValue;
                 switch (weaponMaterial)
                 {
-                    case WeaponMaterialTypes.Iron:
+                    case MaterialTypes.Iron:
                         return MetalTypes.Iron;
-                    case WeaponMaterialTypes.Steel:
+                    case MaterialTypes.Steel:
                         return MetalTypes.Steel;
-                    case WeaponMaterialTypes.Silver:
+                    case MaterialTypes.Silver:
                         return MetalTypes.Silver;
-                    case WeaponMaterialTypes.Elven:
+                    case MaterialTypes.Elven:
                         return MetalTypes.Elven;
-                    case WeaponMaterialTypes.Dwarven:
+                    case MaterialTypes.Dwarven:
                         return MetalTypes.Dwarven;
-                    case WeaponMaterialTypes.Mithril:
+                    case MaterialTypes.Orcish:
+                        return MetalTypes.Orcish;                    
+                    case MaterialTypes.Mithril:
                         return MetalTypes.Mithril;
-                    case WeaponMaterialTypes.Adamantium:
+                    case MaterialTypes.Adamantium:
                         return MetalTypes.Adamantium;
-                    case WeaponMaterialTypes.Ebony:
+                    case MaterialTypes.Ebony:
                         return MetalTypes.Ebony;
-                    case WeaponMaterialTypes.Orcish:
-                        return MetalTypes.Orcish;
-                    case WeaponMaterialTypes.Daedric:
+                    case MaterialTypes.Daedric:
                         return MetalTypes.Daedric;
                     default:
                         return MetalTypes.None;
@@ -961,32 +1022,33 @@ namespace DaggerfallWorkshop.Game.Items
             }
             else if (item.ItemGroup == ItemGroups.Armor)
             {
-                ArmorMaterialTypes armorMaterial = (ArmorMaterialTypes)item.nativeMaterialValue;
-                switch (armorMaterial)
-                {
-                    case ArmorMaterialTypes.Iron:
-                        return MetalTypes.Iron;
-                    case ArmorMaterialTypes.Steel:
-                        return MetalTypes.Steel;
-                    case ArmorMaterialTypes.Silver:
-                        return MetalTypes.Silver;
-                    case ArmorMaterialTypes.Elven:
-                        return MetalTypes.Elven;
-                    case ArmorMaterialTypes.Dwarven:
-                        return MetalTypes.Dwarven;
-                    case ArmorMaterialTypes.Mithril:
-                        return MetalTypes.Mithril;
-                    case ArmorMaterialTypes.Adamantium:
-                        return MetalTypes.Adamantium;
-                    case ArmorMaterialTypes.Ebony:
-                        return MetalTypes.Ebony;
-                    case ArmorMaterialTypes.Orcish:
-                        return MetalTypes.Orcish;
-                    case ArmorMaterialTypes.Daedric:
-                        return MetalTypes.Daedric;
-                    default:
-                        return MetalTypes.None;
-                }
+                MaterialTypes armorMaterial = ItemBuilder.GetArmorMaterialType(item.nativeMaterialValue);
+                return (MetalTypes)((int)armorMaterial);
+                // switch (armorMaterial)
+                // {
+                //     case ArmorMaterialTypes.Iron:
+                //         return MetalTypes.Iron;
+                //     case ArmorMaterialTypes.Steel:
+                //         return MetalTypes.Steel;
+                //     case ArmorMaterialTypes.Silver:
+                //         return MetalTypes.Silver;
+                //     case ArmorMaterialTypes.Elven:
+                //         return MetalTypes.Elven;
+                //     case ArmorMaterialTypes.Dwarven:
+                //         return MetalTypes.Dwarven;
+                //     case ArmorMaterialTypes.Mithril:
+                //         return MetalTypes.Mithril;
+                //     case ArmorMaterialTypes.Adamantium:
+                //         return MetalTypes.Adamantium;
+                //     case ArmorMaterialTypes.Ebony:
+                //         return MetalTypes.Ebony;
+                //     case ArmorMaterialTypes.Orcish:
+                //         return MetalTypes.Orcish;
+                //     case ArmorMaterialTypes.Daedric:
+                //         return MetalTypes.Daedric;
+                //     default:
+                //         return MetalTypes.None;
+                // }
             }
             else
             {
@@ -1003,7 +1065,7 @@ namespace DaggerfallWorkshop.Game.Items
         {
 
             if (item.ItemGroup == ItemGroups.Weapons)
-                return GetWeaponDyeColor((WeaponMaterialTypes)item.nativeMaterialValue);
+                return GetWeaponDyeColor((MaterialTypes)item.nativeMaterialValue);
             else if (item.ItemGroup == ItemGroups.Armor)
                 return GetArmorDyeColor((ArmorMaterialTypes)item.nativeMaterialValue);
             else
@@ -1013,31 +1075,31 @@ namespace DaggerfallWorkshop.Game.Items
         /// <summary>
         /// Converts weapon material to appropriate dye colour.
         /// </summary>
-        /// <param name="material">WeaponMaterialTypes.</param>
+        /// <param name="material">MaterialTypes.</param>
         /// <returns>DyeColors.</returns>
-        public DyeColors GetWeaponDyeColor(WeaponMaterialTypes material)
+        public DyeColors GetWeaponDyeColor(MaterialTypes material)
         {
             switch (material)
             {
-                case WeaponMaterialTypes.Iron:
+                case MaterialTypes.Iron:
                     return DyeColors.Iron;
-                case WeaponMaterialTypes.Steel:
+                case MaterialTypes.Steel:
                     return DyeColors.Steel;
-                case WeaponMaterialTypes.Silver:
+                case MaterialTypes.Silver:
                     return DyeColors.Silver;
-                case WeaponMaterialTypes.Elven:
+                case MaterialTypes.Elven:
                     return DyeColors.Elven;
-                case WeaponMaterialTypes.Dwarven:
+                case MaterialTypes.Dwarven:
                     return DyeColors.Dwarven;
-                case WeaponMaterialTypes.Mithril:
-                    return DyeColors.Mithril;
-                case WeaponMaterialTypes.Adamantium:
-                    return DyeColors.Adamantium;
-                case WeaponMaterialTypes.Ebony:
-                    return DyeColors.Ebony;
-                case WeaponMaterialTypes.Orcish:
+                case MaterialTypes.Orcish:
                     return DyeColors.Orcish;
-                case WeaponMaterialTypes.Daedric:
+                case MaterialTypes.Mithril:
+                    return DyeColors.Mithril;
+                case MaterialTypes.Adamantium:
+                    return DyeColors.Adamantium;
+                case MaterialTypes.Ebony:
+                    return DyeColors.Ebony;
+                case MaterialTypes.Daedric:
                     return DyeColors.Daedric;
                 default:
                     return DyeColors.Unchanged;
@@ -1052,27 +1114,28 @@ namespace DaggerfallWorkshop.Game.Items
         /// <returns>DyeColors.</returns>
         public DyeColors GetArmorDyeColor(ArmorMaterialTypes material)
         {
-            switch (material)
+            MaterialTypes materialType = ItemBuilder.GetArmorMaterialType((int)material);
+            switch (materialType)
             {
-                case ArmorMaterialTypes.Iron:
+                case MaterialTypes.Iron:
                     return DyeColors.Iron;
-                case ArmorMaterialTypes.Steel:
+                case MaterialTypes.Steel:
                     return DyeColors.Steel;
-                case ArmorMaterialTypes.Silver:
+                case MaterialTypes.Silver:
                     return DyeColors.Silver;
-                case ArmorMaterialTypes.Elven:
+                case MaterialTypes.Elven:
                     return DyeColors.Elven;
-                case ArmorMaterialTypes.Dwarven:
+                case MaterialTypes.Dwarven:
                     return DyeColors.Dwarven;
-                case ArmorMaterialTypes.Mithril:
-                    return DyeColors.Mithril;
-                case ArmorMaterialTypes.Adamantium:
-                    return DyeColors.Adamantium;
-                case ArmorMaterialTypes.Ebony:
-                    return DyeColors.Ebony;
-                case ArmorMaterialTypes.Orcish:
+                case MaterialTypes.Orcish:
                     return DyeColors.Orcish;
-                case ArmorMaterialTypes.Daedric:
+                case MaterialTypes.Mithril:
+                    return DyeColors.Mithril;
+                case MaterialTypes.Adamantium:
+                    return DyeColors.Adamantium;
+                case MaterialTypes.Ebony:
+                    return DyeColors.Ebony;
+                case MaterialTypes.Daedric:
                     return DyeColors.Daedric;
                 default:
                     return DyeColors.Unchanged;
@@ -1278,15 +1341,15 @@ namespace DaggerfallWorkshop.Game.Items
                 };
                 byte[] StartingWeaponMaterialsByClass = { 1, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0 }; // 0 = iron, 1 = steel
                 int classIndex = characterDocument.classIndex;
-                items.AddItem(ItemBuilder.CreateWeapon(StartingWeaponTypesByClass[classIndex], (WeaponMaterialTypes)StartingWeaponMaterialsByClass[classIndex]));
+                items.AddItem(ItemBuilder.CreateWeapon(StartingWeaponTypesByClass[classIndex], (MaterialTypes)StartingWeaponMaterialsByClass[classIndex]));
 
                 // Archer also gets a steel battleaxe and some arrows
                 const int archerIndex = 13;
                 const int archerArrows = 24;
                 if (classIndex == archerIndex)
                 {
-                    items.AddItem(ItemBuilder.CreateWeapon(Weapons.Battle_Axe, WeaponMaterialTypes.Steel));
-                    DaggerfallUnityItem arrowPile = ItemBuilder.CreateWeapon(Weapons.Arrow, WeaponMaterialTypes.Iron);
+                    items.AddItem(ItemBuilder.CreateWeapon(Weapons.Battle_Axe, MaterialTypes.Steel));
+                    DaggerfallUnityItem arrowPile = ItemBuilder.CreateWeapon(Weapons.Arrow, MaterialTypes.Iron);
                     arrowPile.stackCount = archerArrows;
                     items.AddItem(arrowPile);
                 }
@@ -1294,7 +1357,7 @@ namespace DaggerfallWorkshop.Game.Items
             else
             {
                 // Custom classes only get an iron longsword
-                items.AddItem(ItemBuilder.CreateWeapon(Weapons.Longsword, WeaponMaterialTypes.Iron));
+                items.AddItem(ItemBuilder.CreateWeapon(Weapons.Longsword, MaterialTypes.Iron));
             }
 
             // Add some starting gold
@@ -1317,6 +1380,9 @@ namespace DaggerfallWorkshop.Game.Items
             Races race = player.Race;
             int chance = 0;
 
+            // TODO: give proper equipment to certain enemy class, taking into consideration
+            // weapons and armor not forbidden and maybe with an adequate weapon/armor skill
+
             // City watch never have items above iron or steel
             if (enemyEntity.EntityType == EntityTypes.EnemyClass && enemyEntity.MobileEnemy.ID == (int)MobileTypes.Knight_CityWatch)
                 itemLevel = 1;
@@ -1335,7 +1401,7 @@ namespace DaggerfallWorkshop.Game.Items
                 item = UnityEngine.Random.Range((int)Armor.Buckler, (int)(Armor.Round_Shield) + 1);
                 if (Dice100.SuccessRoll(chance))
                 {
-                    DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, (Items.Armor)item, FormulaHelper.RandomArmorMaterial(itemLevel));
+                    DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, (Items.Armor)item, FormulaHelper.RandomArmorMaterial(itemLevel, (Armor)item));
                     enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
                     enemyEntity.Items.AddItem(armor);
                 }
@@ -1364,42 +1430,48 @@ namespace DaggerfallWorkshop.Game.Items
             // helm
             if (Dice100.SuccessRoll(chance))
             {
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, Armor.Helm, FormulaHelper.RandomArmorMaterial(itemLevel));
+                Armor headGear = GetRandomArmorPiece(BodyParts.Head);
+                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, headGear, FormulaHelper.RandomArmorMaterial(itemLevel, headGear));
                 enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
                 enemyEntity.Items.AddItem(armor);
             }
             // right pauldron
             if (Dice100.SuccessRoll(chance))
             {
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, Armor.Right_Pauldron, FormulaHelper.RandomArmorMaterial(itemLevel));
+                Armor rightArm = GetRandomArmorPiece(BodyParts.RightArm);
+                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, rightArm, FormulaHelper.RandomArmorMaterial(itemLevel, rightArm));
                 enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
                 enemyEntity.Items.AddItem(armor);
             }
             // left pauldron
             if (Dice100.SuccessRoll(chance))
             {
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, Armor.Left_Pauldron, FormulaHelper.RandomArmorMaterial(itemLevel));
+                Armor leftArm = GetRandomArmorPiece(BodyParts.LeftArm);
+                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, leftArm, FormulaHelper.RandomArmorMaterial(itemLevel, leftArm));
                 enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
                 enemyEntity.Items.AddItem(armor);
             }
             // cuirass
             if (Dice100.SuccessRoll(chance))
             {
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, Armor.Cuirass, FormulaHelper.RandomArmorMaterial(itemLevel));
+                Armor torso = GetRandomArmorPiece(BodyParts.Chest);
+                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, torso, FormulaHelper.RandomArmorMaterial(itemLevel, torso));
                 enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
                 enemyEntity.Items.AddItem(armor);
             }
             // greaves
             if (Dice100.SuccessRoll(chance))
             {
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, Armor.Greaves, FormulaHelper.RandomArmorMaterial(itemLevel));
+                Armor legs = GetRandomArmorPiece(BodyParts.Legs);
+                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, legs, FormulaHelper.RandomArmorMaterial(itemLevel, legs));
                 enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
                 enemyEntity.Items.AddItem(armor);
             }
             // boots
             if (Dice100.SuccessRoll(chance))
             {
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, Armor.Boots, FormulaHelper.RandomArmorMaterial(itemLevel));
+                Armor feet = GetRandomArmorPiece(BodyParts.Feet);
+                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, feet, FormulaHelper.RandomArmorMaterial(itemLevel, feet));
                 enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
                 enemyEntity.Items.AddItem(armor);
             }
@@ -1421,6 +1493,60 @@ namespace DaggerfallWorkshop.Game.Items
                         weapon.poisonType = (Items.Poisons)UnityEngine.Random.Range(128, 135 + 1);
                     }
                 }
+            }
+        }
+
+        public Armor GetRandomArmorPiece(BodyParts part, int leatherChance = 1, int chainChance = 1, int plateChance = 1)
+        {
+            int roll = UnityEngine.Random.Range(0, (leatherChance + chainChance + plateChance));
+            chainChance += leatherChance;
+            plateChance += chainChance;
+            switch (part)
+            {
+                case BodyParts.Head:
+                    if (roll < leatherChance)
+                        return Armor.Helmet;
+                    else if (roll < chainChance)
+                        return Armor.Helmet;
+                    else return Armor.Helm;
+                case BodyParts.RightArm:
+                    if (roll < leatherChance)
+                        return Armor.Right_Vambrace;
+                    else if (roll < chainChance)
+                        return Armor.Right_Spaulder;
+                    else return Armor.Right_Pauldron;
+                case BodyParts.LeftArm:
+                    if (roll < leatherChance)
+                        return Armor.Left_Vambrace;
+                    else if (roll < chainChance)
+                        return Armor.Left_Spaulder;
+                    else return Armor.Left_Pauldron;
+                case BodyParts.Chest:
+                    if (roll < leatherChance)
+                        return Armor.Jerkin;
+                    else if (roll < chainChance)
+                        return Armor.Hauberk;
+                    else return Armor.Cuirass;
+                case BodyParts.Hands:
+                    if (roll < leatherChance)
+                        return Armor.Gloves;
+                    else if (roll < chainChance)
+                        return Armor.Gloves;
+                    else return Armor.Gauntlets;
+                case BodyParts.Legs:
+                    if (roll < leatherChance)
+                        return Armor.Cuisse;
+                    else if (roll < chainChance)
+                        return Armor.Chausses;
+                    else return Armor.Greaves;
+                case BodyParts.Feet:
+                    if (roll < leatherChance)
+                        return Armor.Light_Boots;
+                    else if (roll < chainChance)
+                        return Armor.Sollerets;
+                    else return Armor.Boots;
+                default:
+                    return Armor.Jerkin;
             }
         }
 

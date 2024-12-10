@@ -156,6 +156,7 @@ namespace DaggerfallWorkshop
             stockedDate = CreateStockedDate(DaggerfallUnity.Instance.WorldTime.Now);
             items.Clear();
 
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
             DFLocation.BuildingTypes buildingType = buildingData.buildingType;
             int shopQuality = buildingData.quality;
             Game.Entity.PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
@@ -174,7 +175,7 @@ namespace DaggerfallWorkshop
                 case DFLocation.BuildingTypes.Bookseller:
                     itemGroups = DaggerfallLootDataTables.itemGroupsBookseller;
                     if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Common))
-                        items.AddItem(ItemBuilder.CreateItem(ItemGroups.Maps, 570));
+                        items.AddItem(ItemBuilder.CreateTownMap(new DFLocation(), (100 - buildingData.quality / 10), true, true));
                     break;
                 case DFLocation.BuildingTypes.ClothingStore:
                     itemGroups = DaggerfallLootDataTables.itemGroupsClothingStore;
@@ -189,7 +190,7 @@ namespace DaggerfallWorkshop
                     if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Common))
                         items.AddItem(ItemBuilder.CreateItem(ItemGroups.Transportation, (int)Transportation.Small_cart));
                     if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Scarce))
-                        items.AddItem(ItemBuilder.CreateItem(ItemGroups.Maps, 570));
+                        items.AddItem(ItemBuilder.CreateTownMap(playerGPS.CurrentLocation, 100));
                     break;
                 case DFLocation.BuildingTypes.PawnShop:
                     itemGroups = DaggerfallLootDataTables.itemGroupsPawnShop;
@@ -234,9 +235,12 @@ namespace DaggerfallWorkshop
                                 {
                                     DaggerfallUnityItem item = null;
                                     if (itemGroup == ItemGroups.Weapons)
-                                        item = ItemBuilder.CreateWeapon(j + Weapons.Dagger, FormulaHelper.RandomMaterial(playerEntity.Level));
+                                        item = ItemBuilder.CreateWeapon(GetCorrectWeaponIndex(j, Weapons.Dagger), FormulaHelper.RandomMaterial(playerEntity.Level));
                                     else if (itemGroup == ItemGroups.Armor)
-                                        item = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, j + Armor.Cuirass, FormulaHelper.RandomArmorMaterial(playerEntity.Level));
+                                    {
+                                        Armor armor = GetCorrectArmorIndex(j, Armor.Cuirass);
+                                        item = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, armor, FormulaHelper.RandomArmorMaterial(playerEntity.Level, armor));
+                                    }
                                     else if (itemGroup == ItemGroups.MensClothing)
                                     {
                                         item = ItemBuilder.CreateMensClothing(j + MensClothing.Straps, playerEntity.Race);
@@ -276,12 +280,12 @@ namespace DaggerfallWorkshop
                                     // Setup specific group stats
                                     if (itemGroup == ItemGroups.Weapons)
                                     {
-                                        WeaponMaterialTypes material = FormulaHelper.RandomMaterial(playerEntity.Level);
+                                        MaterialTypes material = FormulaHelper.RandomMaterial(playerEntity.Level);
                                         ItemBuilder.ApplyWeaponMaterial(item, material);
                                     }
                                     else if (itemGroup == ItemGroups.Armor)
                                     {
-                                        ArmorMaterialTypes material = FormulaHelper.RandomArmorMaterial(playerEntity.Level);
+                                        ArmorMaterialTypes material = FormulaHelper.RandomArmorMaterial(playerEntity.Level, (Armor)j);
                                         ItemBuilder.ApplyArmorSettings(item, playerEntity.Gender, playerEntity.Race, material);
                                     }
 
@@ -292,6 +296,22 @@ namespace DaggerfallWorkshop
                     }
                 }
             }
+        }
+
+        public Armor GetCorrectArmorIndex(int j, Armor armor)
+        {
+            int armorInt = (int)armor;
+            if (j + armorInt <= (int)Armor.Tower_Shield)
+                return (Armor)(j + armorInt);
+            else return (Armor)(j + armorInt + ((int)Armor.Hauberk - (int)Armor.Tower_Shield) - 1);
+        }
+
+        public Weapons GetCorrectWeaponIndex(int j, Weapons weapon)
+        {
+            int weaponInt = (int)weapon;
+            if (j + weaponInt <= (int)Weapons.Arrow)
+                return (Weapons)(j + weaponInt);
+            else return (Weapons)(j + weaponInt + ((int)Weapons.ArchersAxe - (int)Weapons.Arrow) - 1);
         }
 
         public void StockHouseContainer(PlayerGPS.DiscoveredBuilding buildingData)

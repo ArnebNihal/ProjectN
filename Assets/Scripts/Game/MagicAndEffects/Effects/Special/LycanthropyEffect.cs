@@ -195,9 +195,9 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
 
             // Assign minimum metal to hit only while transformed
             if (isTransformed)
-                entityBehaviour.Entity.MinMetalToHit = WeaponMaterialTypes.Silver;
+                entityBehaviour.Entity.MinMetalToHit = MaterialTypes.Silver;
             else
-                entityBehaviour.Entity.MinMetalToHit = WeaponMaterialTypes.Iron;
+                entityBehaviour.Entity.MinMetalToHit = MaterialTypes.Iron;
 
             // Play move sound while transformed after random amount of time has elapsed
             if (isTransformed)

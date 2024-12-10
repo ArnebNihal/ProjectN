@@ -156,6 +156,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                                             answerButtons[i]);
             }
 
+            answers = new List<int>();
             PopulateControls(generalQuestionIndex);
             // PopulateControls(biogFile.Questions[questionIndex]);
 
@@ -184,6 +185,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                         if (i >= questionAnswers[generalQuestionIndex].Count)
                         {
                             answerLabels[i].Text = string.Empty;
+                            answerLabelsBis[i].Text = string.Empty;
                         }
                         else
                         {
@@ -265,16 +267,20 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                             answerLabels[i].Text = string.Empty;
                             answerLabelsBis[i].Text = string.Empty;
                         }
-                        if (!sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Contains('*'))
+                        else
+                        {
+                            if (!sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Contains('*'))
                             {
                                 answerLabels[i].Text = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]];
                                 answerLabelsBis[i].Text = string.Empty;
                             }
-                            else{
+                            else
+                            {
                                 string[] splitAnswer = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Split('*');
                                 answerLabels[i].Text = splitAnswer[0];
                                 answerLabelsBis[i].Text = splitAnswer[1];
                             }
+                        }
                     }
                     break;
 
@@ -297,29 +303,49 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (question.Answers.Count > buttonCount)
             {
                 excludedAnswers = new int[question.Answers.Count - buttonCount];
+                for (int reset = 0; reset < excludedAnswers.Length; reset++)
+                    excludedAnswers[reset] = -1;
+
                 for (int exAns = 0; exAns < (question.Answers.Count - buttonCount); exAns++)
                 {
-                    do{
+                    do
+                    {
                         picked = UnityEngine.Random.Range(0, question.Answers.Count);
-                        excludedAnswers[exAns] = picked;
                     }
                     while (excludedAnswers.Contains(picked));
+                    excludedAnswers[exAns] = picked;
                 }
             }
 
+            int iMod = 0;
             for (int i = 0; i < question.Answers.Count; i++)
             {
+                if (excludedAnswers.Length > 0 && excludedAnswers.Contains(i))
+                    continue;
+
+                if (question.Answers[i].Text.Contains('&'))
+                {
+                    string[] multiAnswer = question.Answers[i].Text.Split('&');
+                    answerLabels[iMod].Text = multiAnswer[UnityEngine.Random.Range(0, multiAnswer.Length)];
+                    answerLabelsBis[iMod].Text = string.Empty;
+                }
+
                 if (question.Answers[i].Text.Contains('*'))
                 {
                     string[] splitAnswer = question.Answers[i].Text.Split('*');
-                    answerLabels[i].Text = splitAnswer[0];
-                    answerLabelsBis[i].Text = splitAnswer[1];
+                    answerLabels[iMod].Text = splitAnswer[0];
+                    answerLabelsBis[iMod].Text = splitAnswer[1];
                 }
                 else{
-                    answerLabels[i].Text = question.Answers[i].Text;
-                    answerLabelsBis[i].Text = string.Empty;
+                    answerLabels[iMod].Text = question.Answers[i].Text;
+                    answerLabelsBis[iMod].Text = string.Empty;
                 }
+                iMod++;
             }
+
+            if (excludedAnswers.Length > 0)
+                return;
+
             // blank out remaining labels
             for (int i = question.Answers.Count; i < buttonCount; i++)
             {
@@ -352,14 +378,19 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 }
                 else
                 {
+                    Debug.Log("Reached generalQuestionEnded - else, before effect addition");
                     // Add final effects
                     foreach (string effect in curAnswers[answerIndex].Effects)
                     {
                         biogFile.AddEffect(effect, questionIndex);
                     }
 
+                    Debug.Log("Reached generalQuestionEnded - else, before backstory generation");
+
                     // Create text biography
                     BackStory = biogFile.GenerateBackstory();
+
+                    Debug.Log("Reached generalQuestionEnded - else, after backstory generation");
 
                     // Show reputation changes
                     biogFile.DigestRepChanges();
@@ -512,7 +543,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                             simpleLocSelect.Add(tile, locationsList);
                         }
 
-                        parentsPlace = PickRemoteTownSite(DFLocation.BuildingTypes.AnyHouse, region, out dataForBiog.HometownName);
+                        parentsPlace = PickRemoteTownSite(DFLocation.BuildingTypes.AnyHouse, region, out dataForBiog.HometownName, simpleLocSelect);
                         startingData.primaryPosition = parentsPlace.Item1;
                         startingData.primaryBuildingIndex = (parentsPlace.Item2, parentsPlace.Item3, parentsPlace.Item4, parentsPlace.Item5);
                         Debug.Log("startingData.primaryPosition: " + startingData.primaryPosition);

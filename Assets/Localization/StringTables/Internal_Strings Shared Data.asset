@@ -3263,6 +3263,258 @@ MonoBehaviour:
     m_Key: doneButton
     m_Metadata:
       m_Items: []
+  - m_Id: 815
+    m_Key: climateSurvival
+    m_Metadata:
+      m_Items: []
+  - m_Id: 816
+    m_Key: climateUncomfortable
+    m_Metadata:
+      m_Items: []
+  - m_Id: 817
+    m_Key: ocean
+    m_Metadata:
+      m_Items: []
+  - m_Id: 818
+    m_Key: desert
+    m_Metadata:
+      m_Items: []
+  - m_Id: 819
+    m_Key: desert2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 820
+    m_Key: mountain
+    m_Metadata:
+      m_Items: []
+  - m_Id: 821
+    m_Key: rainforest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 822
+    m_Key: swamp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 823
+    m_Key: subtropical
+    m_Metadata:
+      m_Items: []
+  - m_Id: 824
+    m_Key: mountainWoods
+    m_Metadata:
+      m_Items: []
+  - m_Id: 825
+    m_Key: woodlands
+    m_Metadata:
+      m_Items: []
+  - m_Id: 826
+    m_Key: hauntedWoodlands
+    m_Metadata:
+      m_Items: []
+  - m_Id: 827
+    m_Key: maquis
+    m_Metadata:
+      m_Items: []
+  - m_Id: 828
+    m_Key: goodSoD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 829
+    m_Key: perfectSoD
+    m_Metadata:
+      m_Items: []
+  - m_Id: 830
+    m_Key: artificialCave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 831
+    m_Key: aviary
+    m_Metadata:
+      m_Items: []
+  - m_Id: 832
+    m_Key: building
+    m_Metadata:
+      m_Items: []
+  - m_Id: 833
+    m_Key: community
+    m_Metadata:
+      m_Items: []
+  - m_Id: 834
+    m_Key: naturalCave
+    m_Metadata:
+      m_Items: []
+  - m_Id: 835
+    m_Key: nest
+    m_Metadata:
+      m_Items: []
+  - m_Id: 836
+    m_Key: settlement
+    m_Metadata:
+      m_Items: []
+  - m_Id: 837
+    m_Key: religiousPlace
+    m_Metadata:
+      m_Items: []
+  - m_Id: 838
+    m_Key: lightArm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 839
+    m_Key: mediumArm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 840
+    m_Key: heavyArm
+    m_Metadata:
+      m_Items: []
+  - m_Id: 841
+    m_Key: block
+    m_Metadata:
+      m_Items: []
+  - m_Id: 842
+    m_Key: disguise
+    m_Metadata:
+      m_Items: []
+  - m_Id: 843
+    m_Key: cantPickpocketHostile
+    m_Metadata:
+      m_Items: []
+  - m_Id: 844
+    m_Key: purseStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 845
+    m_Key: ingredientStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 846
+    m_Key: potionStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 847
+    m_Key: paintStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 848
+    m_Key: useTownMap
+    m_Metadata:
+      m_Items: []
+  - m_Id: 849
+    m_Key: townMapStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 850
+    m_Key: bookStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 851
+    m_Key: locationMapStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 852
+    m_Key: clothesStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 853
+    m_Key: gemStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 854
+    m_Key: religiousStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 855
+    m_Key: weaponStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 856
+    m_Key: magicItemStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 857
+    m_Key: randomStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 858
+    m_Key: drugStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 859
+    m_Key: monsterStolen
+    m_Metadata:
+      m_Items: []
+  - m_Id: 860
+    m_Key: alreadyPickpocketed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 861
+    m_Key: fur
+    m_Metadata:
+      m_Items: []
+  - m_Id: 862
+    m_Key: brigandine
+    m_Metadata:
+      m_Items: []
+  - m_Id: 863
+    m_Key: unencumbered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 864
+    m_Key: lightlyEncumbered
+    m_Metadata:
+      m_Items: []
+  - m_Id: 865
+    m_Key: slightlyBurdened
+    m_Metadata:
+      m_Items: []
+  - m_Id: 866
+    m_Key: burdened
+    m_Metadata:
+      m_Items: []
+  - m_Id: 867
+    m_Key: stressed
+    m_Metadata:
+      m_Items: []
+  - m_Id: 868
+    m_Key: overburdened
+    m_Metadata:
+      m_Items: []
+  - m_Id: 869
+    m_Key: materialNotAdequate
+    m_Metadata:
+      m_Items: []
+  - m_Id: 870
+    m_Key: enemyShieldBlock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 871
+    m_Key: enemyShieldDeflect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 872
+    m_Key: playerShieldBlock
+    m_Metadata:
+      m_Items: []
+  - m_Id: 873
+    m_Key: playerShieldDeflect
+    m_Metadata:
+      m_Items: []
+  - m_Id: 874
+    m_Key: mail
+    m_Metadata:
+      m_Items: []
+  - m_Id: 875
+    m_Key: readyQuiver
+    m_Metadata:
+      m_Items: []
+  - m_Id: 876
+    m_Key: noArrowsReady
+    m_Metadata:
+      m_Items: []
+  - m_Id: 877
+    m_Key: arrowMaterialNotAdequate
+    m_Metadata:
+      m_Items: []
   - m_Id: 29516644352
     m_Key: temple
     m_Metadata:

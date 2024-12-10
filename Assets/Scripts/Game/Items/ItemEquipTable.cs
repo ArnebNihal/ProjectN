@@ -409,18 +409,30 @@ namespace DaggerfallWorkshop.Game.Items
             switch ((Armor)template.index)
             {
                 case Armor.Cuirass:
+                case Armor.Hauberk:
+                case Armor.Jerkin:
                     return EquipSlots.ChestArmor;
                 case Armor.Gauntlets:
+                case Armor.Gloves:
                     return EquipSlots.Gloves;
                 case Armor.Greaves:
+                case Armor.Chausses:
+                case Armor.Cuisse:
                     return EquipSlots.LegsArmor;
                 case Armor.Left_Pauldron:
+                case Armor.Left_Spaulder:
+                case Armor.Left_Vambrace:
                     return EquipSlots.LeftArm;
                 case Armor.Right_Pauldron:
+                case Armor.Right_Spaulder:
+                case Armor.Right_Vambrace:
                     return EquipSlots.RightArm;
                 case Armor.Helm:
+                case Armor.Helmet:
                     return EquipSlots.Head;
                 case Armor.Boots:
+                case Armor.Sollerets:
+                case Armor.Light_Boots:
                     return EquipSlots.Feet;
                 case Armor.Buckler:
                 case Armor.Round_Shield:
@@ -619,6 +631,8 @@ namespace DaggerfallWorkshop.Game.Items
                 case Weapons.Katana:
                 case Weapons.Battle_Axe:
                 case Weapons.Mace:
+                case Weapons.ArchersAxe:
+                case Weapons.LightFlail:
                     return ItemHands.Either;
 
                 // Two-handed weapons only

@@ -28,6 +28,10 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
         DaggerfallListPickerWindow itemPicker;
         static int lastSelectedIndex = 0;
 
+        // ProjectN TODO: expand this spell.
+        // First, it should be possible to create different kind of weapons/objects;
+        // Second, make it so that the metal of weapons and armours is randomly picked,
+        // maybe inside a range of Iron-Mithril(?), but heavily influenced by Mysticism skill.
         enum CreateItemSelection
         {
             LeatherCuirass,
@@ -183,46 +187,46 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
                     item = ItemBuilder.CreateArmor(gender, race, Armor.Boots, ArmorMaterialTypes.Chain);
                     break;
                 case CreateItemSelection.SteelCuirass:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Cuirass, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Cuirass, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelGauntlets:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Gauntlets, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Gauntlets, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelGreaves:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Greaves, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Greaves, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelLeftPauldron:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Left_Pauldron, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Left_Pauldron, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelRightPauldron:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Right_Pauldron, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Right_Pauldron, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelHelm:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Helm, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Helm, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelBoots:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Boots, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Boots, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelBuckler:
-                    item = ItemBuilder.CreateArmor(gender, race, Armor.Buckler, ArmorMaterialTypes.Steel);
+                    item = ItemBuilder.CreateArmor(gender, race, Armor.Buckler, ArmorMaterialTypes.PlateSteel);
                     break;
                 case CreateItemSelection.SteelDagger:
-                    item = ItemBuilder.CreateWeapon(Weapons.Dagger, WeaponMaterialTypes.Steel);
+                    item = ItemBuilder.CreateWeapon(Weapons.Dagger, MaterialTypes.Steel);
                     break;
                 case CreateItemSelection.SteelLongsword:
-                    item = ItemBuilder.CreateWeapon(Weapons.Longsword, WeaponMaterialTypes.Steel);
+                    item = ItemBuilder.CreateWeapon(Weapons.Longsword, MaterialTypes.Steel);
                     break;
                 case CreateItemSelection.SteelStaff:
-                    item = ItemBuilder.CreateWeapon(Weapons.Staff, WeaponMaterialTypes.Steel);
+                    item = ItemBuilder.CreateWeapon(Weapons.Staff, MaterialTypes.Steel);
                     break;
                 case CreateItemSelection.ShortBow:
-                    item = ItemBuilder.CreateWeapon(Weapons.Short_Bow, WeaponMaterialTypes.Steel);
+                    item = ItemBuilder.CreateWeapon(Weapons.Short_Bow, MaterialTypes.Steel);
                     break;
                 case CreateItemSelection.Arrows:
-                    item = ItemBuilder.CreateWeapon(Weapons.Arrow, WeaponMaterialTypes.Steel);
+                    item = ItemBuilder.CreateWeapon(Weapons.Arrow, MaterialTypes.Steel);
                     break;
                 case CreateItemSelection.SteelBattleAxe:
-                    item = ItemBuilder.CreateWeapon(Weapons.Battle_Axe, WeaponMaterialTypes.Steel);
+                    item = ItemBuilder.CreateWeapon(Weapons.Battle_Axe, MaterialTypes.Steel);
                     break;
                 case CreateItemSelection.Robes:
                     if (gender == Genders.Male)

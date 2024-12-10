@@ -194,7 +194,7 @@ namespace DaggerfallWorkshop
         public int AttackSound;                     // Index of enemy "attack" sound
         public int SightModifier;                   // +/- range of vision for acute/impaired sight
         public int HearingModifier;                 // +/- range of hearing for acute/impaired hearing
-        public WeaponMaterialTypes MinMetalToHit;   // Minimum metal type required to hit enemy
+        public MaterialTypes MinMetalToHit;   // Minimum metal type required to hit enemy
         public int MinDamage;                       // Minimum damage per first hit of attack
         public int MaxDamage;                       // Maximum damage per first hit of attack
         public int MinDamage2;                      // Minimum damage per second hit of attack

@@ -26,6 +26,8 @@ using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Formulas;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
+using DaggerfallConnect.Utility;
+using System.Linq;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -757,6 +759,9 @@ namespace DaggerfallWorkshop.Game
                         mobileNpc.PickpocketByPlayerAttempted = true;
                         Pickpocket();
                     }
+                    else
+                        // ProjectN: producing a message when trying to pickpocket again a target
+                        DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("alreadyPickpocketed"));
                     break;
             }
         }
@@ -788,17 +793,37 @@ namespace DaggerfallWorkshop.Game
                     // In early versions the only enemy mobiles that can be pickpocketed are classes,
                     // but patch 1.07.212 allows pickpocketing of creatures.
                     // For now, the only enemy mobiles being allowed by DF Unity are classes.
-                    if (mobileEnemyBehaviour && (mobileEnemyBehaviour.EntityType != EntityTypes.EnemyClass))
+                    // ProjectN: as part of the Pickpocket Overhaul, every enemy will be pickpocketable
+                    // BUT animals. On top of that, to be a valid target enemy will have to be pacified,
+                    // unaware or paralysed.
+                    if (mobileEnemyBehaviour && 
+                       (mobileEnemyBehaviour.EntityType != EntityTypes.EnemyClass))
+                       // && (enemyEntity.MobileEnemy.Affinity == MobileAffinity.Animal));
                         break;
                     // Classic doesn't set any flag when pickpocketing enemy mobiles, so infinite attempts are possible
-                    if (enemyEntity != null && !enemyEntity.PickpocketByPlayerAttempted)
+                    // ProjectN: I would like to try to not set a limit to how many attempts can be made at
+                    // pickpocketing an enemy, since there is already the limitation of non-hostiles.
+                    // TOEVALUATE: how about making the "PickpocketByPlayerAttempted" seriously reduce pickpocketing
+                    // chances for what concern hosiles?
+                    if (enemyEntity != null)
                     {
+                        // if (enemyEntity.PickpocketByPlayerAttempted)
+                        // {
+                        //     break;
+                        // }
                         if (hit.distance > PickpocketDistance)
                         {
                             DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youAreTooFarAway"));
                             break;
                         }
-                        enemyEntity.PickpocketByPlayerAttempted = true;
+                        // ProjectN: Exclude hostile, non-paralyzed enemies from valid targets
+                        EnemyMotor enemyMotor = mobileEnemyBehaviour.GetComponent<EnemyMotor>();
+                        if (enemyMotor.IsHostile && !enemyEntity.IsParalyzed)
+                        {
+                            DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("cantPickpocketHostile"));
+                            break;
+                        }
+                        // enemyEntity.PickpocketByPlayerAttempted = true;
                         Pickpocket(mobileEnemyBehaviour);
                     }
                     break;
@@ -1549,28 +1574,30 @@ namespace DaggerfallWorkshop.Game
 
             if (Dice100.SuccessRoll(chance))
             {
-                if (Dice100.FailedRoll(33))
+                if (target == null) // target is townsfolk
                 {
-                    int pinchedGoldPieces = Random.Range(0, 6) + 1;
-                    player.GoldPieces += pinchedGoldPieces;
-                    string gotGold;
-                    if (pinchedGoldPieces == 1)
+                    if (Dice100.FailedRoll(33))
                     {
-                        // Classic doesn't have this string, it only has the plural one
-                        gotGold = TextManager.Instance.GetLocalizedText("youPinchedGoldPiece");
+                        int locationModifier = GetPPLocationModifier();
+                        GenerateBooty(locationModifier);
                     }
-                    else
+                    else    // Pickpocket was successful, but target hadn't anything
                     {
-                        gotGold = TextManager.Instance.GetLocalizedText("youPinchedGoldPieces");
-                        gotGold = gotGold.Replace("%d", pinchedGoldPieces.ToString());
+                        string noGoldFound = DaggerfallUnity.Instance.TextProvider.GetRandomText(foundNothingValuableTextId);
+                        DaggerfallUI.MessageBox(noGoldFound);
                     }
-                    DaggerfallUI.MessageBox(gotGold);
-                    player.TallyCrimeGuildRequirements(true, 1);
                 }
-                else
+                else    // target is enemy
                 {
-                    string noGoldFound = DaggerfallUnity.Instance.TextProvider.GetRandomText(foundNothingValuableTextId);
-                    DaggerfallUI.MessageBox(noGoldFound, true);
+                    DaggerfallUnityItem stolenItem = target.Entity.Items.GetItem(UnityEngine.Random.Range(0, target.Entity.Items.Count));
+                    string gotMonsterItem = TextManager.Instance.GetLocalizedText("monsterStolen");
+                    player.Items.AddItem(stolenItem);
+                    target.Entity.Items.RemoveItem(stolenItem);
+                    bool startsWithVowel = "aeiouAEIOU".Contains(stolenItem.LongName[0].ToString());
+                    if (startsWithVowel)
+                        gotMonsterItem = gotMonsterItem.Replace("%m", ("n " + stolenItem.LongName));
+                    else gotMonsterItem = gotMonsterItem.Replace("%m", (" " + stolenItem.LongName));
+                    DaggerfallUI.MessageBox(gotMonsterItem);
                 }
             }
             else
@@ -1598,6 +1625,679 @@ namespace DaggerfallWorkshop.Game
                     enemyMotor.MakeEnemyHostileToAttacker(GameManager.Instance.PlayerEntityBehaviour);
                 }
             }
+        }
+
+        public int GetPPLocationModifier()
+        {
+            switch (playerGPS.CurrentLocationType)
+            {
+                case DFRegion.LocationTypes.TownCity:
+                    return 10;
+
+                case DFRegion.LocationTypes.TownHamlet:
+                    return 5;
+
+                default:
+                    return 0;
+            }
+        }
+
+        public void GenerateBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            if (diceRoll <= 80)     // Pinched a few coins
+            {
+                int pinchedGoldPieces = Random.Range(0, 6) + 1;
+                player.GoldPieces += pinchedGoldPieces;
+                string gotGold;
+                if (pinchedGoldPieces == 1)
+                {
+                    // Classic doesn't have this string, it only has the plural one
+                    gotGold = TextManager.Instance.GetLocalizedText("youPinchedGoldPiece");
+                }
+                else
+                {
+                    gotGold = TextManager.Instance.GetLocalizedText("youPinchedGoldPieces");
+                    gotGold = gotGold.Replace("%d", pinchedGoldPieces.ToString());
+                }
+                DaggerfallUI.MessageBox(gotGold);
+            }
+            else if (diceRoll <= 90)  // Stole a fat gold purse
+            {
+                int purseAmount = UnityEngine.Random.Range(1, 101);
+                int multiplier;
+                switch (modifier)
+                {
+                    case 10:
+                        multiplier = 3;
+                        break;
+                    case 5:
+                        multiplier = 2;
+                        break;
+                    default:
+                        multiplier = 1;
+                        break;
+                }
+                purseAmount += 50 * (UnityEngine.Random.Range(1, (multiplier + 1)));
+                player.GoldPieces += purseAmount;
+                string gotPurse;
+                gotPurse = TextManager.Instance.GetLocalizedText("purseStolen");
+                gotPurse = gotPurse.Replace("%d", purseAmount.ToString());
+                DaggerfallUI.MessageBox(gotPurse);
+            }
+            else if (diceRoll <= 94)    // Ingredient
+            {
+                string gotIngredient;
+                gotIngredient = TextManager.Instance.GetLocalizedText("ingredientStolen");
+                int ingredientQuantity = UnityEngine.Random.Range(1, 4);
+                for (int q = 0; q <= ingredientQuantity; q++)
+                {
+                    newItem = ItemBuilder.CreateRandomIngredient();
+                    player.Items.AddItem(newItem);
+                    gotIngredient = gotIngredient + " " + newItem.LongName;
+                }
+                DaggerfallUI.MessageBox(gotIngredient, true);
+            }
+            else if (diceRoll <= 95)        // Weapon
+                GenerateARMRBooty(modifier);
+            else if (diceRoll <= 96)        // Gems
+                GenerateGEMSBooty(0);
+            else // if (diceRoll <= 97)        // Block-based loot
+            {
+                DFPosition blockCoord = MapsFile.WorldCoordToLocationBlockPosition(playerGPS.WorldX, playerGPS.WorldZ, playerGPS.CurrentLocation);
+                Debug.Log("blockCoord.X" + blockCoord.X + ", blockCoord.Y: " + blockCoord.Y);
+                string blockName = playerGPS.CurrentLocation.Exterior.ExteriorData.BlockNames[blockCoord.Y * playerGPS.CurrentLocation.Exterior.ExteriorData.Width + blockCoord.X];
+                Debug.Log("blockName: " + blockName);
+
+                if (blockName.StartsWith("ALCH"))
+                    GenerateALCHBooty(modifier);
+                else if (blockName.StartsWith("ARMR") ||
+                         blockName.StartsWith("FIGH") ||
+                         blockName.StartsWith("WEAP"))
+                    GenerateARMRBooty(modifier);
+                else if (blockName.StartsWith("BANK"))
+                    GenerateBANKBooty(modifier);
+                else if (blockName.StartsWith("BOOK"))
+                    GenerateBOOKBooty(modifier);
+                else if (blockName.StartsWith("CLOT"))
+                    GenerateCLOTBooty(modifier);
+                else if (blockName.StartsWith("FARM"))
+                    GenerateFARMBooty(modifier);
+                else if (blockName.StartsWith("GEMS"))
+                    GenerateGEMSBooty(modifier);
+                else if (blockName.StartsWith("GENR"))
+                    GenerateGENRBooty(modifier);
+                else if (blockName.StartsWith("GRVE"))
+                    GenerateGRVEBooty(modifier);
+                else if (blockName.StartsWith("MAGE"))
+                    GenerateMAGEBooty(modifier);
+                else if (blockName.StartsWith("MARK"))
+                    GenerateMARKBooty(modifier);
+                else if (blockName.StartsWith("PALA"))
+                    GeneratePALABooty(modifier);
+                else if (blockName.StartsWith("PAWN"))
+                    GeneratePAWNBooty(modifier);
+                else if (blockName.StartsWith("TEMP"))
+                    GenerateTEMPBooty(modifier);
+                else if (blockName.StartsWith("THIE"))
+                    GenerateTHIEBooty(modifier);
+                else if (blockName.StartsWith("TVRN"))
+                    GenerateTVRNBooty(modifier);
+                else GenerateBooty(modifier);   // Presently this covers DARK, FILL, LIBR, MANR, RESI, WALL and every knight block type
+                                                // It could be modified as new ideas come to mind
+                                                // P.S.: it simply rerolls on the generic booty list once again
+            }
+            player.TallyCrimeGuildRequirements(true, 1);
+        }
+
+        public void GenerateALCHBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+            int diceRoll = Dice100.Roll() + modifier;
+
+            if (diceRoll <= 70)
+            {
+                string gotIngredient;
+                gotIngredient = TextManager.Instance.GetLocalizedText("ingredientStolen");
+                int ingredientsAcquired = (diceRoll / 10 + 1);
+                for (int iA = 0; iA < ingredientsAcquired; iA++)
+                {
+                    newItem = ItemBuilder.CreateRandomIngredient();
+                    player.Items.AddItem(newItem);
+                    gotIngredient = gotIngredient + " " + newItem.LongName;
+                }
+                DaggerfallUI.MessageBox(gotIngredient, true);
+            }
+            else{
+                string gotPotion;
+                gotPotion = TextManager.Instance.GetLocalizedText("potionStolen");
+                int potionsAcquired = 0;
+                if (diceRoll <= 95)
+                    potionsAcquired = 1;
+                else if (diceRoll <= 99)
+                    potionsAcquired = 2;
+                else potionsAcquired = 3;
+
+                for (int pA = 0; pA < potionsAcquired; pA++)
+                {
+                    newItem = ItemBuilder.CreateRandomPotion();
+                    player.Items.AddItem(newItem);
+                    gotPotion = gotPotion + " " + newItem.LongName;
+                }
+                DaggerfallUI.MessageBox(gotPotion, true);
+            }
+        }
+
+        public void GenerateARMRBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            string gotWeapon = TextManager.Instance.GetLocalizedText("weaponStolen");
+            int[] validWeapons = { 113, 114, 116, 117, 121, 124, 127 };
+            do
+            {
+                newItem = ItemBuilder.CreateRandomWeapon(player.Level);
+            }
+            while (!validWeapons.Contains(newItem.TemplateIndex));
+            gotWeapon = gotWeapon.Replace("%w", newItem.LongName);
+            player.Items.AddItem(newItem);
+            DaggerfallUI.MessageBox(gotWeapon);
+        }
+
+        public void GenerateBANKBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+            int diceRoll = Dice100.Roll();
+
+            if (diceRoll <= 90)
+            {
+                int purseAmount = 200;
+                purseAmount += 20 * (UnityEngine.Random.Range(0, modifier) + 1);
+                player.GoldPieces += purseAmount;
+                string gotPurse;
+                gotPurse = TextManager.Instance.GetLocalizedText("purseStolen");
+                gotPurse = gotPurse.Replace("%d", purseAmount.ToString());
+                DaggerfallUI.MessageBox(gotPurse);
+            }
+            else if (diceRoll <= 95)
+            {
+                string gotPainting = TextManager.Instance.GetLocalizedText("paintingStolen");
+                newItem = ItemBuilder.CreateItem(ItemGroups.Paintings, (int)Paintings.Painting);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotPainting);
+            }
+            else if (diceRoll <= 98)
+            {
+                // Letter of Credit + Quest (to successfully cash it);
+            }
+            else if (diceRoll <= 99)
+            {
+                // Got Ship deeds + Quest (to successfully obtain it); 1x ONLY
+            }
+            else{
+                // Got House deeds + Quest (to successfully obtain it); 1x ONLY
+            }
+        }
+
+        public void GenerateBOOKBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+            int diceRoll = Dice100.Roll();
+
+            if (diceRoll <= 50)     // Get local town map
+            {
+                string gotTownMap = TextManager.Instance.GetLocalizedText("townMapStolen");
+                newItem = ItemBuilder.CreateTownMap(playerGPS.CurrentLocation);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotTownMap);
+            }
+            else if (diceRoll <= 80)    // Get book
+            {
+                string gotBook = TextManager.Instance.GetLocalizedText("bookStolen");
+                newItem = ItemBuilder.CreateRandomBook();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotBook);
+            }
+            else if (diceRoll <= 90)    // Get skill book
+            {
+
+            }
+            else if (diceRoll <= 97)    // Get random town map
+            {
+                string gotTownMap = TextManager.Instance.GetLocalizedText("townMapStolen");
+                newItem = ItemBuilder.CreateTownMap();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotTownMap);
+            }
+            else if (diceRoll <= 99)    // Get random location map
+            {
+                string gotLocationMap = TextManager.Instance.GetLocalizedText("locationMapStolen");
+                newItem = ItemBuilder.CreateLocationMap();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotLocationMap);
+            }
+            else{                       // Get spell book
+
+            }
+        }
+
+        public void GenerateCLOTBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+            int diceRoll = Dice100.Roll();
+            int quantityStolen = 0;
+
+            if (diceRoll <= 60)
+                quantityStolen = 1;
+            else if (diceRoll <= 90)
+                quantityStolen = 2;
+            else quantityStolen = 3;
+
+            string gotClothes = TextManager.Instance.GetLocalizedText("clothesStolen");
+
+            for (int i = 0; i < quantityStolen; i++)
+            {
+                newItem = ItemBuilder.CreateRandomClothing(player.Gender, player.Race);
+                player.Items.AddItem(newItem);
+            }            
+            DaggerfallUI.MessageBox(gotClothes);
+        }
+
+        public void GenerateFARMBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+            int diceRoll = Dice100.Roll();
+
+            int ingredientsAcquired = diceRoll / 10 + 1;
+            string gotIngredient = TextManager.Instance.GetLocalizedText("ingredientStolen");
+
+            for (int iA = 0; iA < ingredientsAcquired; iA++)
+            {
+                newItem = ItemBuilder.CreateRandomIngredient((ItemGroups)(iA % 2 + 15));
+                player.Items.AddItem(newItem);
+                gotIngredient = gotIngredient + " " + newItem.LongName;
+            }
+            DaggerfallUI.MessageBox(gotIngredient);
+        }
+
+        public void GenerateGEMSBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+            int diceRoll = Dice100.Roll();
+
+            int gemsAcquired = (diceRoll + modifier) / 15 + 1;
+            string gotGems = TextManager.Instance.GetLocalizedText("gemStolen");
+
+            for (int gA = 0; gA < gemsAcquired; gA++)
+            {
+                bool lastEntry = gA == gemsAcquired - 1;
+                newItem = ItemBuilder.CreateRandomGem();
+                player.Items.AddItem(newItem);
+                gotGems = gotGems + " " + newItem.LongName;
+                if (!lastEntry) gotGems = gotGems + ",";
+                else gotGems = gotGems + ".";
+            }
+            DaggerfallUI.MessageBox(gotGems, true);
+        }
+
+        public void GenerateGENRBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            if (diceRoll <= 50)     // UselessItems2
+            {
+                string gotItem = TextManager.Instance.GetLocalizedText("randomStolen");
+                newItem = ItemBuilder.CreateRandomItem(ItemGroups.UselessItems2);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotItem);
+            }
+            else if (diceRoll <= 70)  // Clothes
+            {
+                string gotClothes = TextManager.Instance.GetLocalizedText("clothesStolen");
+                newItem = ItemBuilder.CreateRandomClothing(player.Gender, player.Race);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotClothes);
+            }
+            else if (diceRoll <= 80)  // Misc Ingredients1
+            {
+                string gotIngredient = TextManager.Instance.GetLocalizedText("ingredientStolen");
+                newItem = ItemBuilder.CreateRandomIngredient(ItemGroups.MiscellaneousIngredients1);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotIngredient);
+            }
+            else if (diceRoll <= 85)  // Creature Ingredients1
+            {
+                string gotIngredient = TextManager.Instance.GetLocalizedText("ingredientStolen");
+                newItem = ItemBuilder.CreateRandomIngredient(ItemGroups.CreatureIngredients1);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotIngredient);
+            }
+            else if (diceRoll <= 90)  // Book
+            {
+                string gotBook = TextManager.Instance.GetLocalizedText("bookStolen");
+                newItem = ItemBuilder.CreateRandomBook();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotBook);
+            }
+            else if (diceRoll <= 95)  // Religious Items
+            {
+                string gotReligiousItem = TextManager.Instance.GetLocalizedText("religiousStolen");
+                newItem = ItemBuilder.CreateRandomReligiousItem();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotReligiousItem);
+            }
+            else{       // Weapons?
+                string gotWeapon = TextManager.Instance.GetLocalizedText("weaponStolen");
+                int[] validWeapons = { 113, 114, 116, 117, 121, 124, 127 };
+                do{
+                    newItem = ItemBuilder.CreateRandomWeapon(player.Level);
+                }
+                while (!validWeapons.Contains(newItem.TemplateIndex));
+                gotWeapon = gotWeapon.Replace("%w", newItem.LongName);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotWeapon);
+            }
+        }
+
+        public void GenerateGRVEBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            string gotReligiousItem = TextManager.Instance.GetLocalizedText("religiousStolen");
+            newItem = ItemBuilder.CreateRandomReligiousItem();
+            player.Items.AddItem(newItem);
+            DaggerfallUI.MessageBox(gotReligiousItem);
+        }
+
+        public void GenerateMAGEBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            if (diceRoll <= 50)
+            {
+                string gotBook = TextManager.Instance.GetLocalizedText("bookStolen");
+                newItem = ItemBuilder.CreateRandomBook();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotBook);
+            }
+            else if (diceRoll <= 85)
+            {
+                GenerateALCHBooty(modifier);
+            }
+            else if (diceRoll <= 93)
+            {
+                // TODO: get magic skill manual
+            }
+            else if (diceRoll <= 97)
+            {
+                // TODO: get spell effect manual
+            }
+            else{
+                string gotMagicItem = TextManager.Instance.GetLocalizedText("magicItemStolen");
+                newItem = ItemBuilder.CreateRandomMagicItem(player.Level, player.Gender, player.Race);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotMagicItem);
+            }
+        }
+
+        /// <summary>
+        /// TODO: there are different market blocks, with different type stores;
+        /// Should this take into account what stores are there?
+        /// </summary>
+        public void GenerateMARKBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            if (diceRoll <= 30)
+                GenerateTVRNBooty(modifier);
+            else if (diceRoll <= 50)
+                GenerateGENRBooty(modifier);
+            else if (diceRoll <= 65)
+                GenerateCLOTBooty(modifier);
+            else if (diceRoll <= 75)
+                GenerateBOOKBooty(modifier);
+            else if (diceRoll <= 85)
+                GenerateARMRBooty(modifier);
+            else if (diceRoll <= 90)
+                GenerateGEMSBooty(modifier);
+            else if (diceRoll <= 95)
+                GenerateALCHBooty(modifier);
+            else
+                GenerateBANKBooty(modifier);
+        }
+
+        public void GeneratePALABooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            if (diceRoll <= 50)
+            {
+                int purseAmount = 200;
+                purseAmount += 50 * (UnityEngine.Random.Range(0, modifier) + 1);
+                player.GoldPieces += purseAmount;
+                string gotPurse;
+                gotPurse = TextManager.Instance.GetLocalizedText("purseStolen");
+                gotPurse = gotPurse.Replace("%d", purseAmount.ToString());
+                DaggerfallUI.MessageBox(gotPurse);
+            }
+            else if (diceRoll <= 80)
+            {
+                string gotDrug = TextManager.Instance.GetLocalizedText("drugStolen");
+                int drugsAcquired = (diceRoll / 15 + 1);
+                for (int dA = 0; dA < drugsAcquired; dA++)
+                {
+                    newItem = ItemBuilder.CreateRandomDrug();
+                    player.Items.AddItem(newItem);
+                }
+                DaggerfallUI.MessageBox(gotDrug, true);
+            }
+            else
+            {
+                int gemsAcquired = (diceRoll + modifier) / 15 + 1;
+                string gotGems = TextManager.Instance.GetLocalizedText("gemStolen");
+
+                for (int gA = 0; gA < gemsAcquired; gA++)
+                {
+                    newItem = ItemBuilder.CreateRandomGem();
+                    player.Items.AddItem(newItem);
+                    gotGems = gotGems + " " + newItem.LongName;
+                }
+                DaggerfallUI.MessageBox(gotGems);
+            }
+        }
+
+        public void GeneratePAWNBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+            
+            if (diceRoll <= 50)     // Random Item
+            {
+                string gotItem = TextManager.Instance.GetLocalizedText("randomStolen");
+                newItem = ItemBuilder.CreateRandomItem();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotItem);
+            }
+            else if (diceRoll <= 80)  // Random Ingredient
+            {
+                string gotIngredient = TextManager.Instance.GetLocalizedText("ingredientStolen");
+                newItem = ItemBuilder.CreateRandomIngredient();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotIngredient);
+            }
+            else if (diceRoll <= 90)  // Book
+            {
+                string gotBook = TextManager.Instance.GetLocalizedText("bookStolen");
+                newItem = ItemBuilder.CreateRandomBook();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotBook);
+            }
+            else if (diceRoll <= 95)  // Religious Items
+            {
+                string gotReligiousItem = TextManager.Instance.GetLocalizedText("religiousStolen");
+                newItem = ItemBuilder.CreateRandomReligiousItem();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotReligiousItem);
+            }
+            else{       // Weapons?
+                string gotWeapon = TextManager.Instance.GetLocalizedText("weaponStolen");
+                int[] validWeapons = { 113, 114, 116, 117, 121, 124, 127 };
+                do{
+                    newItem = ItemBuilder.CreateRandomWeapon(player.Level);
+                }
+                while (!validWeapons.Contains(newItem.TemplateIndex));
+                gotWeapon = gotWeapon.Replace("%w", newItem.LongName);
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotWeapon);
+            }
+        }
+
+        public void GenerateTEMPBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            if (diceRoll <= 85)  // Religious Items
+            {
+                string gotReligiousItem = TextManager.Instance.GetLocalizedText("religiousStolen");
+                newItem = ItemBuilder.CreateRandomReligiousItem();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotReligiousItem);
+            }
+            else{
+                string gotPotion;
+                gotPotion = TextManager.Instance.GetLocalizedText("potionStolen");
+                int potionsAcquired = 0;
+                if (diceRoll <= 95)
+                    potionsAcquired = 1;
+                else if (diceRoll <= 99)
+                    potionsAcquired = 2;
+                else potionsAcquired = 3;
+
+                for (int pA = 0; pA < potionsAcquired; pA++)
+                {
+                    newItem = ItemBuilder.CreateRandomPotion();
+                    player.Items.AddItem(newItem);
+                    gotPotion = gotPotion + " " + newItem.LongName;
+                }
+                DaggerfallUI.MessageBox(gotPotion, true);
+            }
+        }
+
+        public void GenerateTHIEBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            if (diceRoll <= 50)     // Totally random item
+            {
+                string gotItem = TextManager.Instance.GetLocalizedText("randomStolen");
+                newItem = ItemBuilder.CreateRandomItem();
+                player.Items.AddItem(newItem);
+                bool startsWithVowel = "aeiouAEIOU".Contains(newItem.LongName[0].ToString());
+                if (startsWithVowel)
+                    gotItem = gotItem.Replace("%i", ("n " + newItem.LongName));
+                else gotItem = gotItem.Replace("%i", (" " + newItem.LongName));
+                DaggerfallUI.MessageBox(gotItem);
+            }
+            if (diceRoll <= 80)
+            {
+                int purseAmount = 200;
+                purseAmount += 20 * (UnityEngine.Random.Range(0, modifier) + 1);
+                player.GoldPieces += purseAmount;
+                string gotPurse;
+                gotPurse = TextManager.Instance.GetLocalizedText("purseStolen");
+                gotPurse = gotPurse.Replace("%d", purseAmount.ToString());
+                DaggerfallUI.MessageBox(gotPurse);
+            }
+            else if (diceRoll <= 85)
+            {
+                string gotDrug;
+                gotDrug = TextManager.Instance.GetLocalizedText("drugStolen");
+                int drugsAcquired = (diceRoll / 15 + 1);
+                for (int dA = 0; dA < drugsAcquired; dA++)
+                {
+                    newItem = ItemBuilder.CreateRandomDrug();
+                    player.Items.AddItem(newItem);
+                }
+                DaggerfallUI.MessageBox(gotDrug, true);
+            }
+            else if (diceRoll <= 90)    // Get random dungeon map
+            {
+                string gotLocationMap = TextManager.Instance.GetLocalizedText("locationMapStolen");
+                newItem = ItemBuilder.CreateLocationMap();
+                player.Items.AddItem(newItem);
+                DaggerfallUI.MessageBox(gotLocationMap);
+            }
+            else{
+                int gemsAcquired = (diceRoll + modifier) / 15 + 1;
+                string gotGems = TextManager.Instance.GetLocalizedText("gemStolen");
+
+                for (int gA = 0; gA < gemsAcquired; gA++)
+                {
+                    newItem = ItemBuilder.CreateRandomGem();
+                    player.Items.AddItem(newItem);
+                    gotGems = gotGems + " " + newItem.LongName;
+                }
+                DaggerfallUI.MessageBox(gotGems);
+            }
+        }
+
+        public void GenerateTVRNBooty(int modifier)
+        {
+            PlayerEntity player = GameManager.Instance.PlayerEntity;
+            DaggerfallUnityItem newItem = null;
+
+            int diceRoll = Dice100.Roll() + modifier;
+            if (diceRoll > 100)
+                diceRoll = 100;
+
+            // TODO: when food will be implemented as in the C&C mod, this should be expanded
         }
     }
 }

@@ -31,9 +31,9 @@ namespace DaggerfallConnect.Arena2
         const int questionCount = 12;
         const int socialGroupCount = 5;
         const int defaultBackstoriesStart = 4116;
-        static int[] childGeneric = { 0, 1000, 3000 };  // Question 2000 is excluded
+        static int[] childGeneric = { 0, 1000, 3000, 16000 };  // Question 2000 is excluded
         static int[] adolescentGeneric = { 3001, 4000, 5000, 5001 };
-        static int[] youngadultGeneric = { 5002, 6000, 8000 };  // Question 7000 is excluded
+        static int[] youngadultGeneric = { 5002, 6000, 8000, 17000 };  // Question 7000 is excluded
         static int[] adultGeneric = { 9000, 10000, 11000, 11001, 11002, 11003, 11004, 12000, 13000, 14000, 15000 };
 
         // Folder names constants
@@ -41,6 +41,7 @@ namespace DaggerfallConnect.Arena2
 
         string questionsStr = string.Empty;
         Question[] questions = new Question[questionCount];
+        int[] questionArray = new int[questionCount];
         short[] changedReputations = new short[socialGroupCount];
         List<string> answerEffects = new List<string>();
         CharacterDocument characterDocument;
@@ -65,23 +66,22 @@ namespace DaggerfallConnect.Arena2
 
         public struct SituationalBiogs
         {
-            public string[] EarliestMemories;
-            public string[] GrowningUp;
-            public string[] TharnTalk;
-            public string[] TwentiethYear;
+            public string[] Standard;
+            public string[] Orphan;
+            public string[] WithUncles;
         }
 
         public class BiogText
         {
-            public static string[] GeneralBiogs;
-            public static SituationalBiogs GenericBiogs;    // Is this really needed?
+            public string[] GeneralBiogs;
+            public SituationalBiogs[] QuestionBiogs;    // Is this really needed?
             // public static SituationalBiogs SpellcasterBiogs;
             // public static SituationalBiogs RogueSpellcasterBiogs;
             // public static SituationalBiogs ThiefBiogs;
             // public static SituationalBiogs CarnivalBiogs;
             // public static SituationalBiogs VillageBiogs;
             // public static SituationalBiogs OrcishBiogs;
-            public static string[] BiogParts;
+            public string[] BiogParts;
 
             public BiogText()
             {
@@ -195,6 +195,7 @@ namespace DaggerfallConnect.Arena2
             {
                 questions[i] = new Question();
 
+                questionArray[i] = questionAssignment[i];
                 questionIndex = questionAssignment[i] / 1000;
                 subQuestionIndex = questionAssignment[i] % 1000;
 
@@ -220,7 +221,7 @@ namespace DaggerfallConnect.Arena2
                     else if (currentQuestion.QuestType == BiogQuestType.Combat)
                     {
                         answerList = currentQuestion.Answers.ToList();
-                        answerList.RemoveAt((int)combatOut - (int)DFCareer.Skills.ShortBlade);
+                        answerList.RemoveAt(answerList.FindIndex(x => x.EffectDetails[0].StartsWith(((int)combatOut).ToString())));
                         currentQuestion.Answers = answerList.ToArray();
                     }
                 }
@@ -245,15 +246,19 @@ namespace DaggerfallConnect.Arena2
                     if (answerIndex >= currentQuestion.Answers[j].Answer.Length) answerIndex = 0;
                     if (effectIndex >= currentQuestion.Answers[j].Effect.Length && effectIndex != -1) effectIndex = 0;
 
+                    if (answerIndex >= currentQuestion.Answers[j].Answer.Length)
+                        answerIndex = 0;
                     ans.Text = currentQuestion.Answers[j].Answer[answerIndex];
                     if (effectIndex != -1)
                     {
+                        if (effectIndex >= currentQuestion.Answers[j].EffectDetails.Length)
+                            effectIndex = 0;
                         if (currentQuestion.Answers[j].EffectDetails[effectIndex].Contains('&'))
                         {
                             string[] multEDSplit = currentQuestion.Answers[j].EffectDetails[effectIndex].Split('&');
-                            ans.effects.Add(currentQuestion.Answers[j].Effect[effectIndex] + "*" + multEDSplit[UnityEngine.Random.Range(0, multEDSplit.Length)]);
+                            ans.effects.Add((int)currentQuestion.Answers[j].Effect[effectIndex] + "*" + multEDSplit[UnityEngine.Random.Range(0, multEDSplit.Length)]);
                         }
-                        else ans.effects.Add(currentQuestion.Answers[j].Effect[effectIndex] + "*" + currentQuestion.Answers[j].EffectDetails[0]);
+                        else ans.effects.Add((int)currentQuestion.Answers[j].Effect[effectIndex] + "*" + currentQuestion.Answers[j].EffectDetails[0]);
                     }
                     else
                     {
@@ -262,7 +267,7 @@ namespace DaggerfallConnect.Arena2
                             if (currentQuestion.Answers[j].EffectDetails[k].Contains('&'))
                             {
                                 string[] multEDSplit = currentQuestion.Answers[j].EffectDetails[k].Split('&');
-                                ans.effects.Add(currentQuestion.Answers[j].Effect[k] + "*" + multEDSplit[UnityEngine.Random.Range(0, multEDSplit.Length)]);
+                                ans.effects.Add((int)currentQuestion.Answers[j].Effect[k] + "*" + multEDSplit[UnityEngine.Random.Range(0, multEDSplit.Length)]);
                             }
                             else ans.effects.Add((int)currentQuestion.Answers[j].Effect[k] + "*" + currentQuestion.Answers[j].EffectDetails[k]);
                         }
@@ -739,6 +744,9 @@ namespace DaggerfallConnect.Arena2
                     questionAssignment[i] = GetRandomGeneric(i, ref questionAssignment, ref magicIndex);
                 }
             }
+            
+            for (int u = 0; u < 12; u++)
+                Debug.Log("Question " + u + ": " + questionAssignment[u]);
         }
 
         public int GetRandomGeneric(int questionNumber, ref int[] questionAssignment, ref int magicIndex)
@@ -795,15 +803,11 @@ namespace DaggerfallConnect.Arena2
             int pickedQuestion = -1;
             int[] questReference = new int[6];
             do{
-                pickedQuestion = genList[UnityEngine.Random.Range(0, short.MaxValue) % genChoices];
+                pickedQuestion = genList[UnityEngine.Random.Range(0, genChoices)];
                 for (int qRef = 0; qRef < questReference.Length; qRef++)
                 {
-                    if (qRef == 0)
-                    {
-                        questReference[qRef] = pickedQuestion / 1000;
-                        continue;
-                    }
-                    questReference[qRef] = pickedQuestion / 1000 + qRef;
+                    questReference[qRef] = pickedQuestion / 1000 * 1000 + qRef;
+                    Debug.Log("questReference[qRef]: " + questReference[qRef]);
                 }
             }
             while (questionAssignment.Contains(questReference[0]) || questionAssignment.Contains(questReference[1]) ||questionAssignment.Contains(questReference[2]) ||questionAssignment.Contains(questReference[3]) ||questionAssignment.Contains(questReference[4]) ||questionAssignment.Contains(questReference[5]));
@@ -898,27 +902,32 @@ namespace DaggerfallConnect.Arena2
             }
             #endregion
 
-            TextFile.Token lastToken = new TextFile.Token();
-            GameManager.Instance.PlayerEntity.BirthRaceTemplate = characterDocument.raceTemplate; // Need correct race set when parsing %ra macro
+            // TextFile.Token lastToken = new TextFile.Token();
+            // GameManager.Instance.PlayerEntity.BirthRaceTemplate = characterDocument.raceTemplate; // Need correct race set when parsing %ra macro
             List<string> backStory = new List<string>();
-            TextFile.Token[] newBiogs, originalBiogs, biogParts;
-            // BiogText biogText = new BiogText(answers, out newBiogs, out originalBiogs, out biogParts);
-            TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(backstoryId);
+            // TextFile.Token[] newBiogs, originalBiogs, biogParts;
+            // // BiogText biogText = new BiogText(answers, out newBiogs, out originalBiogs, out biogParts);
+            // TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(backstoryId);
 
-            MacroHelper.ExpandMacros(ref tokens, (IMacroContextProvider)this);
+            // MacroHelper.ExpandMacros(ref tokens, (IMacroContextProvider)this);
 
-            foreach (TextFile.Token token in tokens)
+            // foreach (TextFile.Token token in tokens)
+            // {
+            //     if (token.formatting == TextFile.Formatting.Text)
+            //     {
+            //         backStory.Add(token.text);
+            //     }
+            //     else if (token.formatting == TextFile.Formatting.JustifyLeft)
+            //     {
+            //         if (lastToken.formatting == TextFile.Formatting.JustifyLeft)
+            //             backStory.Add("\n");
+            //     }
+            //     lastToken = token;
+            // }
+
+            for (int i = 0; i < questions.Length; i++)
             {
-                if (token.formatting == TextFile.Formatting.Text)
-                {
-                    backStory.Add(token.text);
-                }
-                else if (token.formatting == TextFile.Formatting.JustifyLeft)
-                {
-                    if (lastToken.formatting == TextFile.Formatting.JustifyLeft)
-                        backStory.Add("\n");
-                }
-                lastToken = token;
+                backStory.Add(biogText.QuestionBiogs[0].Standard[0]);
             }
 
             return backStory;
@@ -926,6 +935,7 @@ namespace DaggerfallConnect.Arena2
 
         public void AddEffect(string effect, int index)
         {
+            Debug.Log("Reached AddEffect, effect: " + effect + ", index: " + index);
             if (effect[0] == '#' || effect[0] == '!' || effect[0] == '?')
             {
                 AnswerEffects.Add(effect + " " + index); // Tag text macros with question numbers
@@ -944,7 +954,7 @@ namespace DaggerfallConnect.Arena2
             int parseResult;
 
             // Modify gold amount
-            if (effect.StartsWith(((int)BiogAnswerEffect.GoldPieces)).ToString())
+            if (effect.StartsWith(((int)BiogAnswerEffect.GoldPieces).ToString()))
             {
 
                 // Correct GP commands with spaces between the sign and the amount
@@ -969,7 +979,7 @@ namespace DaggerfallConnect.Arena2
                 }
             }
             // Adjust reputation
-            else if (effect.StartsWith(((int)BiogAnswerEffect.Reputation)).ToString())
+            else if (effect.StartsWith(((int)BiogAnswerEffect.Reputation).ToString()))
             {
                 int id;
                 int amount;
@@ -995,7 +1005,7 @@ namespace DaggerfallConnect.Arena2
                 }
             }
             // Add item
-            else if (effect.StartsWith(((int)BiogAnswerEffect.Item)).ToString())
+            else if (effect.StartsWith(((int)BiogAnswerEffect.Item).ToString()))
             {
                 int itemGroup;
                 int groupIndex;
@@ -1011,12 +1021,12 @@ namespace DaggerfallConnect.Arena2
                 DaggerfallUnityItem newItem = null;
                 if ((ItemGroups)itemGroup == ItemGroups.Weapons)
                 {
-                    newItem = ItemBuilder.CreateWeapon((Weapons)Enum.GetValues(typeof(Weapons)).GetValue(groupIndex), (WeaponMaterialTypes)material);
+                    newItem = ItemBuilder.CreateWeapon((Weapons)Enum.GetValues(typeof(Weapons)).GetValue(groupIndex), (MaterialTypes)material);
                 }
                 else if ((ItemGroups)itemGroup == ItemGroups.Armor)
                 {
                     // Biography commands treat weapon and armor material types the same
-                    newItem = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, (Armor)Enum.GetValues(typeof(Armor)).GetValue(groupIndex), WeaponToArmorMaterialType((WeaponMaterialTypes)material));
+                    newItem = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, (Armor)Enum.GetValues(typeof(Armor)).GetValue(groupIndex), (ArmorMaterialTypes)material);
                 }
                 else if ((ItemGroups)itemGroup == ItemGroups.Books)
                 {
@@ -1029,7 +1039,7 @@ namespace DaggerfallConnect.Arena2
                 playerEntity.Items.AddItem(newItem);
             }
             // Skill modifier effect
-            else if (effect.StartsWith(((int)BiogAnswerEffect.Skill)).ToString())
+            else if (effect.StartsWith(((int)BiogAnswerEffect.Skill).ToString()))
             {
                 if (!int.TryParse(tokens[1], out parseResult))
                 {
@@ -1049,7 +1059,7 @@ namespace DaggerfallConnect.Arena2
                 }
             }
             // Adjust poison resistance
-            else if (effect.StartsWith(((int)BiogAnswerEffect.Modifier)).ToString())
+            else if (effect.StartsWith(((int)BiogAnswerEffect.Modifier).ToString()))
             {
                 if (tokens[1].StartsWith("RP"))
                 {
@@ -1123,7 +1133,7 @@ namespace DaggerfallConnect.Arena2
                     }
                 }
             }
-            else if (effect.StartsWith(((int)BiogAnswerEffect.FriendsAndFoes)).ToString())
+            else if (effect.StartsWith(((int)BiogAnswerEffect.FriendsAndFoes).ToString()))
             {
                 if (tokens[1].StartsWith("AE"))
                 {
@@ -1191,34 +1201,34 @@ namespace DaggerfallConnect.Arena2
             return skills;
         }
 
-        private static ArmorMaterialTypes WeaponToArmorMaterialType(WeaponMaterialTypes materialType)
-        {
-            switch (materialType)
-            {
-                case WeaponMaterialTypes.Iron:
-                    return ArmorMaterialTypes.Iron;
-                case WeaponMaterialTypes.Steel:
-                    return ArmorMaterialTypes.Steel;
-                case WeaponMaterialTypes.Silver:
-                    return ArmorMaterialTypes.Silver;
-                case WeaponMaterialTypes.Elven:
-                    return ArmorMaterialTypes.Elven;
-                case WeaponMaterialTypes.Dwarven:
-                    return ArmorMaterialTypes.Dwarven;
-                case WeaponMaterialTypes.Mithril:
-                    return ArmorMaterialTypes.Mithril;
-                case WeaponMaterialTypes.Adamantium:
-                    return ArmorMaterialTypes.Adamantium;
-                case WeaponMaterialTypes.Ebony:
-                    return ArmorMaterialTypes.Ebony;
-                case WeaponMaterialTypes.Orcish:
-                    return ArmorMaterialTypes.Orcish;
-                case WeaponMaterialTypes.Daedric:
-                    return ArmorMaterialTypes.Daedric;
-                default:
-                    return ArmorMaterialTypes.None;
-            }
-        }
+        // private static ArmorMaterialTypes WeaponToArmorMaterialType(MaterialTypes materialType)
+        // {
+        //     switch (materialType)
+        //     {
+        //         case MaterialTypes.Iron:
+        //             return ArmorMaterialTypes.Iron;
+        //         case MaterialTypes.Steel:
+        //             return ArmorMaterialTypes.Steel;
+        //         case MaterialTypes.Silver:
+        //             return ArmorMaterialTypes.Silver;
+        //         case MaterialTypes.Elven:
+        //             return ArmorMaterialTypes.Elven;
+        //         case MaterialTypes.Dwarven:
+        //             return ArmorMaterialTypes.Dwarven;
+        //         case MaterialTypes.Mithril:
+        //             return ArmorMaterialTypes.Mithril;
+        //         case MaterialTypes.Adamantium:
+        //             return ArmorMaterialTypes.Adamantium;
+        //         case MaterialTypes.Ebony:
+        //             return ArmorMaterialTypes.Ebony;
+        //         case MaterialTypes.Orcish:
+        //             return ArmorMaterialTypes.Orcish;
+        //         case MaterialTypes.Daedric:
+        //             return ArmorMaterialTypes.Daedric;
+        //         default:
+        //             return ArmorMaterialTypes.None;
+        //     }
+        // }
 
         public static int GetClassAffinityIndex(DFCareer custom, List<DFCareer> classes)
         {

@@ -180,7 +180,7 @@ namespace DaggerfallWorkshop.Game.Serialization
         public ItemData_v1[] otherItems;
         public int goldPieces;
         public GlobalVar[] globalVars;
-        public WeaponMaterialTypes minMetalToHit;
+        public MaterialTypes minMetalToHit;
         public int biographyResistDiseaseMod;
         public int biographyResistMagicMod;
         public int biographyAvoidHitMod;
@@ -201,6 +201,7 @@ namespace DaggerfallWorkshop.Game.Serialization
         public PlayerEntity.Crimes crimeCommitted;
         public bool haveShownSurrenderToGuardsDialogue;
         public ulong lightSourceUID;
+        public ulong quiverUID;
         public short reputationCommoners;
         public short reputationMerchants;
         public short reputationNobility;

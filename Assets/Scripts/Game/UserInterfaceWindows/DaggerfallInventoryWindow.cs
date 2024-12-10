@@ -403,7 +403,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Set background for special items
             if (item.IsQuestItem)
                 return questItemBackgroundColor;
-            else if (playerEntity.LightSource == item)
+            else if (playerEntity.LightSource == item ||
+                     playerEntity.Quiver == item)
                 return lightSourceBackgroundColor;
             else if (item.IsSummoned)
                 return summonedItemBackgroundColor;
@@ -1504,6 +1505,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (item.IsLightSource && playerEntity.LightSource == item && from == localItems)
                 playerEntity.LightSource = null;
 
+            // Remove from quiver when transferring arrows out of player inventory
+            if (item.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.Arrow) && playerEntity.Quiver == item && from == localItems)
+                playerEntity.Quiver = null;
+
             // Handle stacks & splitting if needed
             this.maxAmount = maxAmount ?? item.stackCount;
             if (this.maxAmount <= 0)
@@ -1698,12 +1703,12 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             }
 
             // Try to handle use with a registered delegate
-            ItemHelper.ItemUseHandler itemUseHandler;
-            if (DaggerfallUnity.Instance.ItemHelper.GetItemUseHandler(item.TemplateIndex, out itemUseHandler))
-            {
-                if (itemUseHandler(item, collection))
-                    return;
-            }
+            // ItemHelper.ItemUseHandler itemUseHandler;
+            // if (DaggerfallUnity.Instance.ItemHelper.GetItemUseHandler(item.TemplateIndex, out itemUseHandler))
+            // {
+            //     if (itemUseHandler(item, collection))
+            //         return;
+            // }
 
             // Handle normal items
             if (item.ItemGroup == ItemGroups.Books && !item.IsArtifact)
@@ -1735,8 +1740,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 cannotUse.ClickAnywhereToClose = true;
                 cannotUse.Show();
             }
-            else if ((item.IsOfTemplate(ItemGroups.MiscItems, (int)MiscItems.Map) ||
-                      item.IsOfTemplate(ItemGroups.Maps, (int)Maps.Map)) && collection != null)
+            else if (item.IsOfTemplate(ItemGroups.Maps, (int)Maps.TownMap))
+            {
+                DaggerfallMessageBox townMapMsg = new DaggerfallMessageBox(uiManager, this);
+                townMapMsg.SetText(TextManager.Instance.GetLocalizedText("useTownMap"));
+                townMapMsg.ClickAnywhereToClose = true;
+                townMapMsg.Show();
+            }
+            else if (item.IsOfTemplate(ItemGroups.Maps, (int)Maps.Map) && collection != null)
             {   // Handle map items
                 RecordLocationFromMap(item);
                 collection.RemoveItem(item);
@@ -1783,6 +1794,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 else
                     DaggerfallUI.MessageBox(TextManager.Instance.GetLocalizedText("lightEmpty"), false, item);
             }
+            else if (item.ItemGroup == ItemGroups.Weapons && item.TemplateIndex == (int)Weapons.Arrow)
+            {
+                DaggerfallUI.MessageBox(TextManager.Instance.GetLocalizedText("readyQuiver"), false, item);
+                playerEntity.Quiver = item;
+            }
             else if (item.ItemGroup == ItemGroups.UselessItems2 && item.TemplateIndex == (int)UselessItems2.Oil && collection != null)
             {
                 DaggerfallUnityItem lantern = localItems.GetItem(ItemGroups.UselessItems2, (int)UselessItems2.Lantern, allowQuestItem: false);
@@ -1820,7 +1836,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             try
             {
-                DFLocation revealedLocation = playerGPS.DiscoverRandomLocation();
+                int absTile = item.message / 10000;
+                int locIndex = item.message % 10000;
+                // DFLocation revealedLocation = playerGPS.DiscoverRandomLocation();
+                
+                DFLocation revealedLocation = WorldMaps.GetLocation(absTile.ToString("00000"), locIndex);
 
                 if (string.IsNullOrEmpty(revealedLocation.Name))
                     throw new Exception();
@@ -1975,6 +1995,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 {
                     UseItem(item);
                     Refresh(false);
+                }
+                else if (item.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.Arrow))
+                {
+                    UseItem(item);
                 }
                 else
                     EquipItem(item);

@@ -80,7 +80,7 @@ namespace DaggerfallWorkshop.Utility
         /// </summary>
         /// <param name="material">Material type of weapon.</param>
         /// <returns>String for weapon material name.</returns>
-        string GetWeaponMaterialName(WeaponMaterialTypes material);
+        string GetWeaponMaterialName(MaterialTypes material);
 
         /// <summary>
         /// Gets name of armor material type.
@@ -338,29 +338,30 @@ namespace DaggerfallWorkshop.Utility
             localizedStringDebug = enable;
         }
 
-        public string GetWeaponMaterialName(WeaponMaterialTypes material)
+        public string GetWeaponMaterialName(MaterialTypes material)
         {
+            Debug.Log("GetWeaponMaterialName: " + material);
             switch(material)
             {
-                case WeaponMaterialTypes.Iron:
+                case MaterialTypes.Iron:
                     return TextManager.Instance.GetLocalizedText("iron");
-                case WeaponMaterialTypes.Steel:
+                case MaterialTypes.Steel:
                     return TextManager.Instance.GetLocalizedText("steel");
-                case WeaponMaterialTypes.Silver:
+                case MaterialTypes.Silver:
                     return TextManager.Instance.GetLocalizedText("silver");
-                case WeaponMaterialTypes.Elven:
+                case MaterialTypes.Elven:
                     return TextManager.Instance.GetLocalizedText("elven");
-                case WeaponMaterialTypes.Dwarven:
+                case MaterialTypes.Dwarven:
                     return TextManager.Instance.GetLocalizedText("dwarven");
-                case WeaponMaterialTypes.Mithril:
-                    return TextManager.Instance.GetLocalizedText("mithril");
-                case WeaponMaterialTypes.Adamantium:
-                    return TextManager.Instance.GetLocalizedText("adamantium");
-                case WeaponMaterialTypes.Ebony:
-                    return TextManager.Instance.GetLocalizedText("ebony");
-                case WeaponMaterialTypes.Orcish:
+                case MaterialTypes.Orcish:
                     return TextManager.Instance.GetLocalizedText("orcish");
-                case WeaponMaterialTypes.Daedric:
+                case MaterialTypes.Mithril:
+                    return TextManager.Instance.GetLocalizedText("mithril");
+                case MaterialTypes.Adamantium:
+                    return TextManager.Instance.GetLocalizedText("adamantium");
+                case MaterialTypes.Ebony:
+                    return TextManager.Instance.GetLocalizedText("ebony");
+                case MaterialTypes.Daedric:
                     return TextManager.Instance.GetLocalizedText("daedric");
                 default:
                     return string.Empty;
@@ -373,28 +374,69 @@ namespace DaggerfallWorkshop.Utility
             {
                 case ArmorMaterialTypes.Leather:
                     return TextManager.Instance.GetLocalizedText("leather");
+                case ArmorMaterialTypes.Fur:
+                    return TextManager.Instance.GetLocalizedText("fur");
                 case ArmorMaterialTypes.Chain:
-                case ArmorMaterialTypes.Chain2:
                     return TextManager.Instance.GetLocalizedText("chain");
-                case ArmorMaterialTypes.Iron:
+                case ArmorMaterialTypes.LeatherIron:
+                    return TextManager.Instance.GetLocalizedText("iron") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainIron:
+                    return TextManager.Instance.GetLocalizedText("iron") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateIron:
                     return TextManager.Instance.GetLocalizedText("iron");
-                case ArmorMaterialTypes.Steel:
+                case ArmorMaterialTypes.LeatherSteel:
+                    return TextManager.Instance.GetLocalizedText("steel") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainSteel:
+                    return TextManager.Instance.GetLocalizedText("steel") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateSteel:
                     return TextManager.Instance.GetLocalizedText("steel");
-                case ArmorMaterialTypes.Silver:
+                case ArmorMaterialTypes.LeatherSilver:
+                    return TextManager.Instance.GetLocalizedText("silver") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainSilver:
+                    return TextManager.Instance.GetLocalizedText("silver") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateSilver:
                     return TextManager.Instance.GetLocalizedText("silver");
-                case ArmorMaterialTypes.Elven:
+                case ArmorMaterialTypes.LeatherElven:
+                    return TextManager.Instance.GetLocalizedText("elven") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainElven:
+                    return TextManager.Instance.GetLocalizedText("elven") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateElven:
                     return TextManager.Instance.GetLocalizedText("elven");
-                case ArmorMaterialTypes.Dwarven:
+                case ArmorMaterialTypes.LeatherDwarven:
+                    return TextManager.Instance.GetLocalizedText("dwarven") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainDwarven:
+                    return TextManager.Instance.GetLocalizedText("dwarven") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateDwarven:
                     return TextManager.Instance.GetLocalizedText("dwarven");
-                case ArmorMaterialTypes.Mithril:
-                    return TextManager.Instance.GetLocalizedText("mithril");
-                case ArmorMaterialTypes.Adamantium:
-                    return TextManager.Instance.GetLocalizedText("adamantium");
-                case ArmorMaterialTypes.Ebony:
-                    return TextManager.Instance.GetLocalizedText("ebony");
-                case ArmorMaterialTypes.Orcish:
+                case ArmorMaterialTypes.LeatherOrcish:
+                    return TextManager.Instance.GetLocalizedText("orcish") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainOrcish:
+                    return TextManager.Instance.GetLocalizedText("orcish") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateOrcish:
                     return TextManager.Instance.GetLocalizedText("orcish");
-                case ArmorMaterialTypes.Daedric:
+                case ArmorMaterialTypes.LeatherMithril:
+                    return TextManager.Instance.GetLocalizedText("mithril") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainMithril:
+                    return TextManager.Instance.GetLocalizedText("mithril") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateMithril:
+                    return TextManager.Instance.GetLocalizedText("mithril");
+                case ArmorMaterialTypes.LeatherAdamantium:
+                    return TextManager.Instance.GetLocalizedText("adamantium") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainAdamantium:
+                    return TextManager.Instance.GetLocalizedText("adamantium") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateAdamantium:
+                    return TextManager.Instance.GetLocalizedText("adamantium");
+                case ArmorMaterialTypes.LeatherEbony:
+                    return TextManager.Instance.GetLocalizedText("ebony") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainEbony:
+                    return TextManager.Instance.GetLocalizedText("ebony") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateEbony:
+                    return TextManager.Instance.GetLocalizedText("ebony");
+                case ArmorMaterialTypes.LeatherDaedric:
+                    return TextManager.Instance.GetLocalizedText("daedric") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainDaedric:
+                    return TextManager.Instance.GetLocalizedText("daedric") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateDaedric:
                     return TextManager.Instance.GetLocalizedText("daedric");
             }
 
@@ -402,8 +444,9 @@ namespace DaggerfallWorkshop.Utility
             // Try again using material value masked to material type only.
             // Some save editors will not write back correct material mask, so we must try to handle this if possible.
             // Clamping range so we don't end up in infinite loop.
+            // ProjectN: don't think I'll ever need this, but just in case I made an hacky solution for it; could be better though.
             int value = (int)material >> 8;
-            value = Mathf.Clamp(value, (int)ArmorMaterialTypes.Iron, (int)ArmorMaterialTypes.Daedric);
+            value = Mathf.Clamp(value, (int)MaterialTypes.Iron, (int)MaterialTypes.Daedric);
             return GetArmorMaterialName((ArmorMaterialTypes)value);
         }
 

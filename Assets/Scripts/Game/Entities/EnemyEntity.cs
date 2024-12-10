@@ -409,7 +409,7 @@ namespace DaggerfallWorkshop.Game.Entity
             // Initialize armor values to 100 (no armor)
             for (int i = 0; i < ArmorValues.Length; i++)
             {
-                ArmorValues[i] = 100;
+                ArmorValues[i] = 0;
             }
             // Calculate armor values from equipment
             for (int i = (int)Game.Items.EquipSlots.Head; i < (int)Game.Items.EquipSlots.Feet; i++)

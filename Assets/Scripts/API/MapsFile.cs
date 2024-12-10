@@ -41,7 +41,7 @@ namespace DaggerfallConnect.Arena2
         // }
         public const ulong OneBillion = 1000000000;
         public const int WorldMapTerrainDim = 32768;
-        public const int WorldMapTileDim = 128; // This isn't to touch!!!
+        public const int WorldMapTileDim = 128; // This isn't to be touched!!!
         public const int WorldMapRMBDim = 4096;
         public const int MinWorldCoordX = 0;
         public const int MinWorldCoordZ = 0;
@@ -494,10 +494,28 @@ namespace DaggerfallConnect.Arena2
             return pos;
         }
 
-        // public static (int, int) WorldCoordToSubPixel(int worldX, int worldZ)
-        // {
+        public static DFPosition WorldCoordToLocationBlockPosition(int worldX, int worldZ, DFLocation location)
+        {
+            // DFPosition locationRelativePosition = WorldCoordToPixelRelativePosition(worldX, worldZ, location);
+            DFPosition locationRelativePosition = new DFPosition(worldX % MapsFile.WorldMapTerrainDim, worldZ % MapsFile.WorldMapTerrainDim);
+            DFPosition centerPos = new DFPosition(MapsFile.WorldMapTerrainDim / 2, MapsFile.WorldMapTerrainDim / 2);
+            DFPosition pointZero = new DFPosition(centerPos.X - (MapsFile.WorldMapRMBDim * location.Exterior.ExteriorData.Width / 2), centerPos.Y - (MapsFile.WorldMapRMBDim * location.Exterior.ExteriorData.Height / 2));
+            Debug.Log("locationRelativePosition: " + locationRelativePosition + ", centerPos: " + centerPos + ", pointZero: " + pointZero);
 
-        // }
+            return new DFPosition((locationRelativePosition.X - pointZero.X) / MapsFile.WorldMapRMBDim, (locationRelativePosition.Y - pointZero.Y) / MapsFile.WorldMapRMBDim);
+        }
+
+        public static DFPosition WorldCoordToPixelRelativePosition(int worldX, int worldZ, DFLocation location)
+        {
+            DFPosition mapPixel = MapsFile.GetPixelFromPixelID(location.Exterior.ExteriorData.MapId);
+            DFPosition pointZero = MapPixelToWorldCoord(mapPixel.X, mapPixel.Y);
+            DFPosition pixelCoord = new DFPosition(worldX % MapsFile.WorldMapTerrainDim, worldZ % MapsFile.WorldMapTerrainDim);
+
+            DFPosition locationRelativePosition =  new DFPosition(pixelCoord.X - pointZero.X, pixelCoord.Y - pointZero.Y);
+            Debug.Log("locationRelativePosition: " + locationRelativePosition);
+
+            return locationRelativePosition;
+        }
 
         /// <summary>
         /// Gets settings for specified map climate.

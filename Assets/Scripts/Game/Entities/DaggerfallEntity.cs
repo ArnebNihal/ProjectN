@@ -56,7 +56,7 @@ namespace DaggerfallWorkshop.Game.Entity
         protected int currentMagicka;
         protected int maxMagicka;
         protected int currentBreath;
-        protected WeaponMaterialTypes minMetalToHit;
+        protected MaterialTypes minMetalToHit;
         protected sbyte[] armorValues = new sbyte[NumberBodyParts];
         protected MobileTeams team;
 
@@ -266,10 +266,11 @@ namespace DaggerfallWorkshop.Game.Entity
         public int CurrentMagicka { get { return GetCurrentMagicka(); } set { SetMagicka(value); } }
         public int MaxBreath { get { return stats.LiveEndurance / 2; } }
         public int CurrentBreath { get { return currentBreath; } set { SetBreath(value); } }
-        public WeaponMaterialTypes MinMetalToHit { get { return minMetalToHit; } set { minMetalToHit = value; } }
+        public MaterialTypes MinMetalToHit { get { return minMetalToHit; } set { minMetalToHit = value; } }
         public sbyte[] ArmorValues { get { return armorValues; } set { armorValues = value; } }
         public int DamageModifier { get { return FormulaHelper.DamageModifier(stats.LiveStrength); } }
         public int MaxEncumbrance { get { return GetMaxEncumbrance(); } }
+        public short EncumbranceLevel { get { return GetEncumbranceLevel(); } }
         public int MagicResist { get { return FormulaHelper.MagicResist(stats.LiveWillpower); } }
         public int ToHitModifier { get { return FormulaHelper.ToHitModifier(stats.LiveAgility); } }
         public int HitPointsModifier { get { return FormulaHelper.HitPointsModifier(stats.LiveEndurance); } }
@@ -507,6 +508,23 @@ namespace DaggerfallWorkshop.Game.Entity
             return amount;
         }
 
+        short GetEncumbranceLevel()
+        {
+            float maxEnc = (float)FormulaHelper.MaxEncumbrance(stats.LiveStrength);
+            float actualEncumbrance = 100.0f / (maxEnc / GameManager.Instance.PlayerEntity.CarriedWeight);
+            if (actualEncumbrance <= 25.0f)
+                return 0;
+            if (actualEncumbrance <= 45.0f)
+                return 1;
+            if (actualEncumbrance <= 65.0f)
+                return 2;
+            if (actualEncumbrance <= 80.0f)
+                return 3;
+            if (actualEncumbrance <= 90.0f)
+                return 4;
+            else return 5;
+        }
+
         #endregion
 
         #region Public Methods
@@ -586,11 +604,12 @@ namespace DaggerfallWorkshop.Game.Entity
         /// <summary>
         /// Update armor values after equipping or unequipping a piece of armor.
         /// </summary>
+        // ProjectN: armor values get modified by armor skill.
         public void UpdateEquippedArmorValues(DaggerfallUnityItem armor, bool equipping)
         {
-            if (armor.ItemGroup == ItemGroups.Armor ||
-                (armor.ItemGroup == ItemGroups.MensClothing && armor.GroupIndex >= 6 && armor.GroupIndex <= 8) ||
-                (armor.ItemGroup == ItemGroups.WomensClothing && armor.GroupIndex >= 4 && armor.GroupIndex <= 6)
+            if (armor.ItemGroup == ItemGroups.Armor // ||
+                // (armor.ItemGroup == ItemGroups.MensClothing && armor.GroupIndex >= 6 && armor.GroupIndex <= 8) ||
+                // (armor.ItemGroup == ItemGroups.WomensClothing && armor.GroupIndex >= 4 && armor.GroupIndex <= 6)
                )
             {
                 if (!armor.IsShield)
@@ -605,11 +624,13 @@ namespace DaggerfallWorkshop.Game.Entity
 
                     if (equipping)
                     {
-                        armorValues[index] -= (sbyte)(armor.GetMaterialArmorValue() * 5);
+                        armorValues[index] += (sbyte)(armor.GetMaterialArmorValue() * ((skills.GetLiveSkillValue((DFCareer.Skills)((int)DFCareer.Skills.LightArmour + ((int)(ItemBuilder.GetArmorType(armor.NativeMaterialValue)) / 0x0100 % 0x0010))) / 2) + 100) / 100);
+                        Debug.Log("armor: " + armor.GetMaterialArmorValue() + ", final armor value: " + armorValues[index]);
                     }
                     else
                     {
-                        armorValues[index] += (sbyte)(armor.GetMaterialArmorValue() * 5);
+                        armorValues[index] -= (sbyte)(armor.GetMaterialArmorValue() * ((skills.GetLiveSkillValue((DFCareer.Skills)((int)DFCareer.Skills.LightArmour + ((int)(ItemBuilder.GetArmorType(armor.NativeMaterialValue)) / 0x0100 % 0x0010))) / 2) + 100) / 100);
+                        Debug.Log("armor: " + armor.GetMaterialArmorValue() + ", final armor value: " + armorValues[index]);
                     }
                 }
                 else
@@ -628,11 +649,11 @@ namespace DaggerfallWorkshop.Game.Entity
                     {
                         if (equipping)
                         {
-                            armorValues[i] -= (sbyte)(values[i] * 5);
+                            armorValues[i] += (sbyte)(values[i]);
                         }
                         else
                         {
-                            armorValues[i] += (sbyte)(values[i] * 5);
+                            armorValues[i] -= (sbyte)(values[i]);
                         }
                     }
                 }

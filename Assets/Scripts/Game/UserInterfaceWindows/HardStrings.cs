@@ -114,6 +114,6 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public const string naturalCave = "naturalCave";
         public const string nest = "nest";
         public const string settlement = "settlement";
-        public const string temple = "temple";
+        public const string temple = "religiousPlace";
     }
 }

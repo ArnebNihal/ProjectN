@@ -149,6 +149,7 @@ namespace DaggerfallWorkshop.Game.Serialization
             data.playerEntity.crimeCommitted = entity.CrimeCommitted;
             data.playerEntity.haveShownSurrenderToGuardsDialogue = entity.HaveShownSurrenderToGuardsDialogue;
             data.playerEntity.lightSourceUID = (entity.LightSource == null) ? 0 : entity.LightSource.UID;
+            data.playerEntity.quiverUID = (entity.Quiver == null) ? 0 : entity.Quiver.UID;
             data.playerEntity.reputationCommoners = entity.SGroupReputations[(int)FactionFile.SocialGroups.Commoners];
             data.playerEntity.reputationMerchants = entity.SGroupReputations[(int)FactionFile.SocialGroups.Merchants];
             data.playerEntity.reputationScholars = entity.SGroupReputations[(int)FactionFile.SocialGroups.Scholars];
@@ -318,6 +319,7 @@ namespace DaggerfallWorkshop.Game.Serialization
             entity.HaveShownSurrenderToGuardsDialogue = data.playerEntity.haveShownSurrenderToGuardsDialogue;
             if (DaggerfallUnity.Settings.PlayerTorchFromItems)
                 entity.LightSource = entity.Items.GetItem(data.playerEntity.lightSourceUID);
+            entity.Quiver = entity.Items.GetItem(data.playerEntity.quiverUID);
             entity.SGroupReputations[(int)FactionFile.SocialGroups.Commoners] = data.playerEntity.reputationCommoners;
             entity.SGroupReputations[(int)FactionFile.SocialGroups.Merchants] = data.playerEntity.reputationMerchants;
             entity.SGroupReputations[(int)FactionFile.SocialGroups.Scholars] = data.playerEntity.reputationScholars;
@@ -352,9 +354,10 @@ namespace DaggerfallWorkshop.Game.Serialization
                 entity.SkillUses = new short[DaggerfallSkills.Count];
 
             // Initialize body part armor values to 100 (no armor)
+            // ProjectN: no armor is now value 0.
             for (int i = 0; i < entity.ArmorValues.Length; i++)
             {
-                entity.ArmorValues[i] = 100;
+                entity.ArmorValues[i] = 0;
             }
 
             // Apply armor values from equipped armor
