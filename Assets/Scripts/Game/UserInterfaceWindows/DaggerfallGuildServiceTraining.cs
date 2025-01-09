@@ -31,6 +31,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public const int TrainingToSoonId = 4023;
         public const int TrainSkillId = 5221;
 
+        DFCareer.Skills skillToTrain;
+        // string skillName;
+        int trainingCost = 0;
+
         protected GuildNpcServices NpcService { get; private set; }
         protected IGuild Guild { get; private set; }
 
@@ -47,7 +51,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             TrainingService();
         }
 
-        protected virtual void TrainingService()
+        protected void TrainingService()
         {
             // Check enough time has passed since last trained
             DaggerfallDateTime now = DaggerfallUnity.Instance.WorldTime.Now;
@@ -60,45 +64,27 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 messageBox.Show();
             }
             else
-            {   // Offer training price
-                DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, uiManager.TopWindow);
-                TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(TrainingOfferId);
-                messageBox.SetTextTokens(tokens, Guild);
-                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
-                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No);
-                messageBox.OnButtonClick += ConfirmTraining_OnButtonClick;
-                messageBox.Show();
-            }
-        }
-
-        protected virtual void ConfirmTraining_OnButtonClick(DaggerfallMessageBox sender, DaggerfallMessageBox.MessageBoxButtons messageBoxButton)
-        {
-            CloseWindow();
-            if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
             {
-                if (playerEntity.GetGoldAmount() >= Guild.GetTrainingPrice())
-                {
-                    // Show skill picker loaded with guild training skills
-                    DaggerfallListPickerWindow skillPicker = new DaggerfallListPickerWindow(uiManager, this);
-                    skillPicker.OnItemPicked += TrainingSkill_OnItemPicked;
+                // Show skill picker loaded with guild training skills
+                DaggerfallListPickerWindow skillPicker = new DaggerfallListPickerWindow(uiManager, this);
+                skillPicker.OnItemPicked += TrainingSkillPicker_OnItemPicked;
 
-                    foreach (DFCareer.Skills skill in GetTrainingSkills())
-                        skillPicker.ListBox.AddItem(DaggerfallUnity.Instance.TextProvider.GetSkillName(skill));
+                foreach (DFCareer.Skills skill in GetTrainingSkills())
+                    skillPicker.ListBox.AddItem(DaggerfallUnity.Instance.TextProvider.GetSkillName(skill));
 
-                    uiManager.PushWindow(skillPicker);
-                }
-                else
-                    DaggerfallUI.MessageBox(DaggerfallTradeWindow.NotEnoughGoldId);
+                uiManager.PushWindow(skillPicker);
             }
         }
 
-        protected virtual void TrainingSkill_OnItemPicked(int index, string skillName)
+        protected void TrainingSkillPicker_OnItemPicked(int index, string skillName)
         {
             CloseWindow();
             List<DFCareer.Skills> trainingSkills = GetTrainingSkills();
-            DFCareer.Skills skillToTrain = trainingSkills[index];
+            skillToTrain = trainingSkills[index];
+            int trainingMax = Guild.GetTrainingMax(skillToTrain);
+            int skillValue = playerEntity.Skills.GetPermanentSkillValue(skillToTrain);
 
-            if (playerEntity.Skills.GetPermanentSkillValue(skillToTrain) > Guild.GetTrainingMax(skillToTrain))
+            if (skillValue > trainingMax)
             {
                 // Inform player they're too skilled to train
                 TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRandomTokens(TrainingTooSkilledId);
@@ -109,12 +95,93 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             }
             else
             {
-                // Take payment.
-                playerEntity.DeductGoldAmount(Guild.GetTrainingPrice());
-                // Train the skill
-                TrainSkill(skillToTrain);
+                // Calculate training price, modifying based on current skill value as well as player level if enabled
+                trainingCost = Guild.GetTrainingPrice();
+
+                float skillOfMax = 1 - ((float)skillValue / trainingMax);
+                trainingCost -= (int)(trainingCost * skillOfMax / 2);                
+
+                skillName = DaggerfallUnity.Instance.TextProvider.GetSkillName(skillToTrain);
+
+                // Offer training and cost to player
+                TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(TrainingOfferId);
+                int pos = tokens[0].text.IndexOf(" ");
+                tokens[0].text = tokens[0].text.Substring(0, pos) + " " + skillName + tokens[0].text.Substring(pos);
+
+                DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, uiManager.TopWindow);
+
+                messageBox.SetTextTokens(tokens);
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
+                messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No);
+                messageBox.OnButtonClick += ConfirmTrainingPayment_OnButtonClick;
+                messageBox.Show();
             }
         }
+
+        protected void ConfirmTrainingPayment_OnButtonClick(DaggerfallMessageBox sender, DaggerfallMessageBox.MessageBoxButtons messageBoxButton)
+        {
+            CloseWindow();
+            if (skillToTrain != DFCareer.Skills.None)
+            {
+                if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+                {
+                    if (playerEntity.GetGoldAmount() >= trainingCost)
+                    {
+                        // Take payment
+                        playerEntity.DeductGoldAmount(trainingCost);
+                        // Train the skill
+                        TrainSkill(skillToTrain);
+                    }
+                    else
+                        DaggerfallUI.MessageBox(DaggerfallTradeWindow.NotEnoughGoldId);
+                }
+            }
+        }
+
+        // protected virtual void ConfirmTraining_OnButtonClick(DaggerfallMessageBox sender, DaggerfallMessageBox.MessageBoxButtons messageBoxButton)
+        // {
+        //     CloseWindow();
+        //     if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Yes)
+        //     {
+        //         if (playerEntity.GetGoldAmount() >= Guild.GetTrainingPrice())
+        //         {
+        //             // Show skill picker loaded with guild training skills
+        //             DaggerfallListPickerWindow skillPicker = new DaggerfallListPickerWindow(uiManager, this);
+        //             skillPicker.OnItemPicked += TrainingSkill_OnItemPicked;
+
+        //             foreach (DFCareer.Skills skill in GetTrainingSkills())
+        //                 skillPicker.ListBox.AddItem(DaggerfallUnity.Instance.TextProvider.GetSkillName(skill));
+
+        //             uiManager.PushWindow(skillPicker);
+        //         }
+        //         else
+        //             DaggerfallUI.MessageBox(DaggerfallTradeWindow.NotEnoughGoldId);
+        //     }
+        // }
+
+        // protected virtual void TrainingSkill_OnItemPicked(int index, string skillName)
+        // {
+        //     CloseWindow();
+        //     List<DFCareer.Skills> trainingSkills = GetTrainingSkills();
+        //     DFCareer.Skills skillToTrain = trainingSkills[index];
+
+        //     if (playerEntity.Skills.GetPermanentSkillValue(skillToTrain) > Guild.GetTrainingMax(skillToTrain))
+        //     {
+        //         // Inform player they're too skilled to train
+        //         TextFile.Token[] tokens = DaggerfallUnity.Instance.TextProvider.GetRandomTokens(TrainingTooSkilledId);
+        //         DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, uiManager.TopWindow);
+        //         messageBox.SetTextTokens(tokens, Guild);
+        //         messageBox.ClickAnywhereToClose = true;
+        //         messageBox.Show();
+        //     }
+        //     else
+        //     {
+        //         // Take payment.
+        //         playerEntity.DeductGoldAmount(Guild.GetTrainingPrice());
+        //         // Train the skill
+        //         TrainSkill(skillToTrain);
+        //     }
+        // }
 
         protected void TrainSkill(DFCareer.Skills skillToTrain)
         {

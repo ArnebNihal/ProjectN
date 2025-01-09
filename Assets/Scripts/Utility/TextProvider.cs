@@ -363,6 +363,8 @@ namespace DaggerfallWorkshop.Utility
                     return TextManager.Instance.GetLocalizedText("ebony");
                 case MaterialTypes.Daedric:
                     return TextManager.Instance.GetLocalizedText("daedric");
+                case MaterialTypes.Glass:
+                    return TextManager.Instance.GetLocalizedText("glass");
                 default:
                     return string.Empty;
             }
@@ -402,6 +404,12 @@ namespace DaggerfallWorkshop.Utility
                     return TextManager.Instance.GetLocalizedText("elven") + " " + TextManager.Instance.GetLocalizedText("mail");
                 case ArmorMaterialTypes.PlateElven:
                     return TextManager.Instance.GetLocalizedText("elven");
+                case ArmorMaterialTypes.LeatherGlass:
+                    return TextManager.Instance.GetLocalizedText("glass") + " " + TextManager.Instance.GetLocalizedText("brigandine");
+                case ArmorMaterialTypes.ChainGlass:
+                    return TextManager.Instance.GetLocalizedText("glass") + " " + TextManager.Instance.GetLocalizedText("mail");
+                case ArmorMaterialTypes.PlateGlass:
+                    return TextManager.Instance.GetLocalizedText("glass");
                 case ArmorMaterialTypes.LeatherDwarven:
                     return TextManager.Instance.GetLocalizedText("dwarven") + " " + TextManager.Instance.GetLocalizedText("brigandine");
                 case ArmorMaterialTypes.ChainDwarven:
@@ -446,7 +454,7 @@ namespace DaggerfallWorkshop.Utility
             // Clamping range so we don't end up in infinite loop.
             // ProjectN: don't think I'll ever need this, but just in case I made an hacky solution for it; could be better though.
             int value = (int)material >> 8;
-            value = Mathf.Clamp(value, (int)MaterialTypes.Iron, (int)MaterialTypes.Daedric);
+            value = Mathf.Clamp(value, (int)MaterialTypes.Iron, (int)MaterialTypes.Glass);
             return GetArmorMaterialName((ArmorMaterialTypes)value);
         }
 
@@ -524,11 +532,11 @@ namespace DaggerfallWorkshop.Utility
                     return TextManager.Instance.GetLocalizedText("archery");
                 case DFCareer.Skills.CriticalStrike:
                     return TextManager.Instance.GetLocalizedText("criticalStrike");
-                case DFCareer.Skills.LightArmour:
+                case DFCareer.Skills.LightArmor:
                     return TextManager.Instance.GetLocalizedText("lightArm");
-                case DFCareer.Skills.MediumArmour:
+                case DFCareer.Skills.MediumArmor:
                     return TextManager.Instance.GetLocalizedText("mediumArm");
-                case DFCareer.Skills.HeavyArmour:
+                case DFCareer.Skills.HeavyArmor:
                     return TextManager.Instance.GetLocalizedText("heavyArm");
                 case DFCareer.Skills.Block:
                     return TextManager.Instance.GetLocalizedText("block");

@@ -12,6 +12,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
+using UnityEngine;
 using DaggerfallWorkshop.Game.Serialization;
 using DaggerfallWorkshop.Game.Questing;
 using DaggerfallWorkshop.Game.Entity;
@@ -112,8 +113,8 @@ namespace DaggerfallWorkshop.Game.Items
                 {
                     float weightReduction = 0.0f;
                     ArmorTypes armorType = ItemBuilder.GetArmorType(equippedArmor.NativeMaterialValue);
-                    if (armorType == ArmorTypes.Chain) weightReduction = equippedArmor.weightInKg * (player.Skills.GetLiveSkillValue(DaggerfallConnect.DFCareer.Skills.MediumArmour) / 3) / 100;
-                    else if (armorType == ArmorTypes.Plate) weightReduction = equippedArmor.weightInKg * (player.Skills.GetLiveSkillValue(DaggerfallConnect.DFCareer.Skills.MediumArmour) / 2) / 100;
+                    if (armorType == ArmorTypes.Chain) weightReduction = equippedArmor.weightInKg * (player.Skills.GetLiveSkillValue(DaggerfallConnect.DFCareer.Skills.MediumArmor) / 3) / 100;
+                    else if (armorType == ArmorTypes.Plate) weightReduction = equippedArmor.weightInKg * (player.Skills.GetLiveSkillValue(DaggerfallConnect.DFCareer.Skills.MediumArmor) / 2) / 100;
 
                     weight -= weightReduction;
                 }

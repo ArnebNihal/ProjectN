@@ -182,7 +182,7 @@ namespace DaggerfallWorkshop
                 //     result = 16;
 
                 // Clamp any out of range results to 0
-                if (result < 0 || result >= WorldData.WorldSetting.Regions)
+                if (result < 0 || result >= WorldData.WorldSetting.RegionNames.Length)
                     result = 31;
 
                 return result;
@@ -266,7 +266,7 @@ namespace DaggerfallWorkshop
 
         public string CurrentLocalizedRegionGovernment
         {
-            get { return TextManager.Instance.GetCurrentRegionGovernment(CurrentRegionIndex); }
+            get { return TextManager.Instance.GetCurrentRegionGovernment(CurrentRegionIndex).ToString(); }
         }
 
         /// <summary>

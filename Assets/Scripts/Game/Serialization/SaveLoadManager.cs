@@ -815,6 +815,7 @@ namespace DaggerfallWorkshop.Game.Serialization
             saveData.sceneCache = stateManager.GetSceneCache();
             saveData.travelMapData = DaggerfallUI.Instance.DfTravelMapWindow.GetTravelMapSaveData();
             saveData.advancedClimbingState = GameManager.Instance.ClimbingMotor.GetSaveData();
+            saveData.climateCaloriesSaveData = GameManager.Instance.ClimateCalories.GetSaveData();
             saveData.modInfoData = GetModInfoData();
 
             return saveData;
@@ -1432,6 +1433,9 @@ namespace DaggerfallWorkshop.Game.Serialization
 
             // Restore climbing state
             GameManager.Instance.ClimbingMotor.RestoreSaveData(saveData.advancedClimbingState);
+
+            // Restore Climate&Calories state
+            GameManager.Instance.ClimateCalories.RestoreSaveData(saveData.climateCaloriesSaveData);
 
             // Smash to black while respawning
             DaggerfallUI.Instance.FadeBehaviour.SmashHUDToBlack();

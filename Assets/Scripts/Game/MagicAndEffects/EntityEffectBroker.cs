@@ -22,6 +22,8 @@ using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
 using DaggerfallWorkshop.Game.UserInterfaceWindows;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using DaggerfallConnect.Arena2;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Game.MagicAndEffects
 {
@@ -722,15 +724,17 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects
         {
             standardSpells.Clear();
 
-            List<SpellRecord.SpellRecordData> spells = DaggerfallSpellReader.ReadSpellsFile(Path.Combine(DaggerfallUnity.Instance.Arena2Path, DaggerfallSpellReader.DEFAULT_FILENAME));
-            TextAssetReader.Merge(spells, "SpellRecords.json", (record, data) => record.index == data["index"].AsInt64);
+            string spellList = File.ReadAllText(Path.Combine(WorldMaps.mapPath, "SpellList.json"));
+            List<SpellRecord.SpellRecordData> spells = JsonConvert.DeserializeObject<List<SpellRecord.SpellRecordData>>(spellList);
+            // TextAssetReader.Merge(spells, "SpellRecords.json", (record, data) => record.index == data["index"].AsInt64);
             foreach (SpellRecord.SpellRecordData spell in spells)
             {
                 // "Holy Touch" and "Holy Word" have same ID but different properties
                 // Not sure of best way to handle - just ignoring duplicate for now
+                // ProjectN: reintroduced Holy Touch with ID 21.
                 if (standardSpells.ContainsKey(spell.index))
                 {
-                    //Debug.LogErrorFormat("RebuildClassicSpellsDict found duplicate key {0} for spell {1}. Existing spell={2}", spell.index, spell.spellName, classicSpells[spell.index].spellName);
+                    // Debug.LogErrorFormat("RebuildClassicSpellsDict found duplicate key {0} for spell {1}. Existing spell={2}", spell.index, spell.spellName, classicSpells[spell.index].spellName);
                     continue;
                 }
 

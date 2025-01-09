@@ -769,7 +769,7 @@ namespace DaggerfallWorkshop
 
                     // Create billboard batch game objects for this location
                     // Streaming world always batches for performance, regardless of options
-                    int natureArchive = ClimateSwaps.GetNatureArchive(LocalPlayerGPS.ClimateSettings.NatureSet, dfUnity.WorldTime.Now.ActualSeasonValue);
+                    int natureArchive = ClimateSwaps.GetNatureArchive(LocalPlayerGPS.ClimateSettings.NatureSet, dfUnity.WorldTime.Now.GenericSeasonValue);
                     //TextureAtlasBuilder miscBillboardAtlas = dfUnity.MaterialReader.MiscBillboardAtlas;
                     DaggerfallBillboardBatch natureBillboardBatch = GameObjectHelper.CreateBillboardBatchGameObject(natureArchive, locationObject.transform);
                     DaggerfallBillboardBatch lightsBillboardBatch = GameObjectHelper.CreateBillboardBatchGameObject(TextureReader.LightsTextureArchive, locationObject.transform);
@@ -836,7 +836,7 @@ namespace DaggerfallWorkshop
                                 null,
                                 null,
                                 dfLocation.Summary.Nature,
-                                dfUnity.WorldTime.Now.ActualSeasonValue == DaggerfallDateTime.Seasons.Winter ? ClimateSeason.Winter : ClimateSeason.Summer);
+                                dfUnity.WorldTime.Now.GenericSeasonValue == DaggerfallDateTime.Seasons.Winter ? ClimateSeason.Winter : ClimateSeason.Summer);
 
                             // Set game object properties
                             go.hideFlags = defaultHideFlags;
@@ -1290,7 +1290,7 @@ namespace DaggerfallWorkshop
             {
                 // Get current climate and nature archive and terrain distance
                 DFLocation.ClimateSettings worldClimateSettings = MapsFile.GetWorldClimateSettings(dfTerrain.MapData.worldClimate);
-                int natureArchive = ClimateSwaps.GetNatureArchive(worldClimateSettings.NatureSet, dfUnity.WorldTime.Now.ActualSeasonValue);
+                int natureArchive = ClimateSwaps.GetNatureArchive(worldClimateSettings.NatureSet, dfUnity.WorldTime.Now.GenericSeasonValue);
                 dfBillboardBatch.SetMaterial(natureArchive);
                 int terrainDist = GetTerrainDist(LocalPlayerGPS.CurrentMapPixel, dfTerrain.MapPixelX, dfTerrain.MapPixelY);
                 dfUnity.TerrainNature.LayoutNature(dfTerrain, dfBillboardBatch, TerrainScale, terrainDist);

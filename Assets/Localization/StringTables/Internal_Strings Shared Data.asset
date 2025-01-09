@@ -3515,6 +3515,70 @@ MonoBehaviour:
     m_Key: arrowMaterialNotAdequate
     m_Metadata:
       m_Items: []
+  - m_Id: 878
+    m_Key: DarkBrotherhoodExpulsion1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 879
+    m_Key: DarkBrotherhoodExpulsion2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 880
+    m_Key: DarkBrotherhoodExpulsion3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 881
+    m_Key: DarkBrotherhoodExpulsion4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 882
+    m_Key: ThievesGuildExpulsion1
+    m_Metadata:
+      m_Items: []
+  - m_Id: 883
+    m_Key: ThievesGuildExpulsion2
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884
+    m_Key: ThievesGuildExpulsion3
+    m_Metadata:
+      m_Items: []
+  - m_Id: 885
+    m_Key: ThievesGuildExpulsion4
+    m_Metadata:
+      m_Items: []
+  - m_Id: 886
+    m_Key: ThievesGuildExpulsion5
+    m_Metadata:
+      m_Items: []
+  - m_Id: 887
+    m_Key: noClimbHoldingWeapon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 888
+    m_Key: bandageHealthFull
+    m_Metadata:
+      m_Items: []
+  - m_Id: 889
+    m_Key: enemyCriticalStrike
+    m_Metadata:
+      m_Items: []
+  - m_Id: 890
+    m_Key: playerCriticalStrike
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891
+    m_Key: glass
+    _Metadata:
+      m_Items: []
+  - m_Id: 892
+    m_Key: imperial
+    _Metadata:
+      m_Items: []
+  - m_Id: 893
+    m_Key: orc
+    _Metadata:
+      m_Items: []
   - m_Id: 29516644352
     m_Key: temple
     m_Metadata:

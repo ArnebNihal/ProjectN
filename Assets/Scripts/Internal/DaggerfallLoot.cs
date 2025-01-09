@@ -160,14 +160,36 @@ namespace DaggerfallWorkshop
             DFLocation.BuildingTypes buildingType = buildingData.buildingType;
             int shopQuality = buildingData.quality;
             Game.Entity.PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
+            int luck = playerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
             byte[] itemGroups = { 0 };
+
+            float low = 1f;
+            if (buildingData.quality <= 3)
+                low = 0.25f;        // 01 - 03, worn+
+            else if (buildingData.quality <= 7)
+                low = 0.40f;        // 04 - 07, used+
+            else if (buildingData.quality <= 13)
+                low = 0.60f;        // 08 - 13, slightly used+
+            else if (buildingData.quality <= 17)
+                low = 0.75f;        // 14 - 17, almost new+
+            // else
+            //     return;     // Quality 18+ only ever stock new items.
 
             switch (buildingType)
             {
                 case DFLocation.BuildingTypes.Alchemist:
                     itemGroups = DaggerfallLootDataTables.itemGroupsAlchemist;
                     RandomlyAddPotionRecipe(25, items);
+
+                    int numPotions = Mathf.Clamp(UnityEngine.Random.Range(0, buildingData.quality), 1, 12);
+                    while (numPotions > 0)
+                    {
+                        DaggerfallUnityItem potion = ItemBuilder.CreateRandomPotion();
+                        potion.value *= 2;
+                        items.AddItem(potion);
+                        numPotions--;
+                    }
                     break;
                 case DFLocation.BuildingTypes.Armorer:
                     itemGroups = DaggerfallLootDataTables.itemGroupsArmorer;
@@ -175,7 +197,9 @@ namespace DaggerfallWorkshop
                 case DFLocation.BuildingTypes.Bookseller:
                     itemGroups = DaggerfallLootDataTables.itemGroupsBookseller;
                     if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Common))
-                        items.AddItem(ItemBuilder.CreateTownMap(new DFLocation(), (100 - buildingData.quality / 10), true, true));
+                        items.AddItem(ItemBuilder.CreateTownMap((100 - buildingData.quality / 10), true, true));
+                    if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Scarce))
+                        items.AddItem(ItemBuilder.CreateLocationMap((100 - buildingData.quality / 10), true, true, true));
                     break;
                 case DFLocation.BuildingTypes.ClothingStore:
                     itemGroups = DaggerfallLootDataTables.itemGroupsClothingStore;
@@ -190,7 +214,7 @@ namespace DaggerfallWorkshop
                     if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Common))
                         items.AddItem(ItemBuilder.CreateItem(ItemGroups.Transportation, (int)Transportation.Small_cart));
                     if (Dice100.SuccessRoll(buildingData.quality * (int)ItemRarity.Scarce))
-                        items.AddItem(ItemBuilder.CreateTownMap(playerGPS.CurrentLocation, 100));
+                        items.AddItem(ItemBuilder.CreateTownMap(100 - buildingData.quality / 10));
                     break;
                 case DFLocation.BuildingTypes.PawnShop:
                     itemGroups = DaggerfallLootDataTables.itemGroupsPawnShop;
@@ -202,6 +226,7 @@ namespace DaggerfallWorkshop
 
             for (int i = 0; i < itemGroups.Length; i += 2)
             {
+                DaggerfallUnityItem item = null;
                 ItemGroups itemGroup = (ItemGroups)itemGroups[i];
                 int chanceMod = itemGroups[i + 1];
                 if (itemGroup == ItemGroups.MensClothing && playerEntity.Gender == Game.Entity.Genders.Female)
@@ -219,7 +244,9 @@ namespace DaggerfallWorkshop
                         qualityMod++;
                         for (int j = 0; j <= qualityMod; ++j)
                         {
-                            items.AddItem(ItemBuilder.CreateRandomBook());
+                            item = ItemBuilder.CreateRandomBook();
+                            item.currentCondition = (int)(item.maxCondition * UnityEngine.Random.Range(low, 1f));
+                            items.AddItem(item);
                         }
                     }
                     else
@@ -233,13 +260,12 @@ namespace DaggerfallWorkshop
                                 int stockChance = chanceMod * 5 * (21 - itemTemplate.rarity) / 100;
                                 if (Dice100.SuccessRoll(stockChance))
                                 {
-                                    DaggerfallUnityItem item = null;
                                     if (itemGroup == ItemGroups.Weapons)
-                                        item = ItemBuilder.CreateWeapon(GetCorrectWeaponIndex(j, Weapons.Dagger), FormulaHelper.RandomMaterial(playerEntity.Level));
+                                        item = ItemBuilder.CreateWeapon(GetCorrectWeaponIndex(j, Weapons.Dagger), FormulaHelper.RandomMaterial(luck));
                                     else if (itemGroup == ItemGroups.Armor)
                                     {
                                         Armor armor = GetCorrectArmorIndex(j, Armor.Cuirass);
-                                        item = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, armor, FormulaHelper.RandomArmorMaterial(playerEntity.Level, armor));
+                                        item = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, armor, FormulaHelper.RandomArmorMaterial(armor, luck));
                                     }
                                     else if (itemGroup == ItemGroups.MensClothing)
                                     {
@@ -253,46 +279,66 @@ namespace DaggerfallWorkshop
                                     }
                                     else if (itemGroup == ItemGroups.MagicItems)
                                     {
-                                        item = ItemBuilder.CreateRandomMagicItem(playerEntity.Level, playerEntity.Gender, playerEntity.Race);
+                                        item = ItemBuilder.CreateRandomMagicItem(luck, playerEntity.Gender, playerEntity.Race);
+                                    }
+                                    else if (itemGroup == ItemGroups.Maps)
+                                    {
+                                        item = ItemBuilder.CreateLocationMap((100 - buildingData.quality / 5), true, true, true);
                                     }
                                     else
                                     {
                                         item = new DaggerfallUnityItem(itemGroup, j);
                                         if (DaggerfallUnity.Settings.PlayerTorchFromItems && item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Oil))
                                             item.stackCount = UnityEngine.Random.Range(5, 20 + 1);  // Shops stock 5-20 bottles
+                                        if (item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Bandage))
+                                            item.stackCount = UnityEngine.Random.Range(1, buildingData.quality / 2);
                                     }
+
+                                    if (item != null && 
+                                       (item.ItemGroup == ItemGroups.Armor || 
+                                        item.ItemGroup == ItemGroups.Weapons || 
+                                        item.ItemGroup == ItemGroups.MagicItems || 
+                                        item.ItemGroup == ItemGroups.MensClothing || 
+                                        item.ItemGroup == ItemGroups.ReligiousItems || 
+                                        item.ItemGroup == ItemGroups.WomensClothing) && 
+                                        !item.IsArtifact)
+                                    {
+                                        float conditionMod = UnityEngine.Random.Range(low, 1f);
+                                        item.currentCondition = (int)(item.maxCondition * conditionMod);
+                                    }
+
                                     items.AddItem(item);
                                 }
                             }
                         }
                         // Add any modded items registered in applicable groups
-                        int[] customItemTemplates = itemHelper.GetCustomItemsForGroup(itemGroup);
-                        for (int j = 0; j < customItemTemplates.Length; j++)
-                        {
-                            ItemTemplate itemTemplate = itemHelper.GetItemTemplate(itemGroup, customItemTemplates[j]);
-                            if (itemTemplate.rarity <= shopQuality)
-                            {
-                                int stockChance = chanceMod * 5 * (21 - itemTemplate.rarity) / 100;
-                                if (Dice100.SuccessRoll(stockChance))
-                                {
-                                    DaggerfallUnityItem item = ItemBuilder.CreateItem(itemGroup, customItemTemplates[j]);
+                        // int[] customItemTemplates = itemHelper.GetCustomItemsForGroup(itemGroup);
+                        // for (int j = 0; j < customItemTemplates.Length; j++)
+                        // {
+                        //     ItemTemplate itemTemplate = itemHelper.GetItemTemplate(itemGroup, customItemTemplates[j]);
+                        //     if (itemTemplate.rarity <= shopQuality)
+                        //     {
+                        //         int stockChance = chanceMod * 5 * (21 - itemTemplate.rarity) / 100;
+                        //         if (Dice100.SuccessRoll(stockChance))
+                        //         {
+                        //             DaggerfallUnityItem item = ItemBuilder.CreateItem(itemGroup, customItemTemplates[j]);
 
-                                    // Setup specific group stats
-                                    if (itemGroup == ItemGroups.Weapons)
-                                    {
-                                        MaterialTypes material = FormulaHelper.RandomMaterial(playerEntity.Level);
-                                        ItemBuilder.ApplyWeaponMaterial(item, material);
-                                    }
-                                    else if (itemGroup == ItemGroups.Armor)
-                                    {
-                                        ArmorMaterialTypes material = FormulaHelper.RandomArmorMaterial(playerEntity.Level, (Armor)j);
-                                        ItemBuilder.ApplyArmorSettings(item, playerEntity.Gender, playerEntity.Race, material);
-                                    }
+                        //             // Setup specific group stats
+                        //             if (itemGroup == ItemGroups.Weapons)
+                        //             {
+                        //                 MaterialTypes material = FormulaHelper.RandomMaterial(false, luck);
+                        //                 ItemBuilder.ApplyWeaponMaterial(item, material);
+                        //             }
+                        //             else if (itemGroup == ItemGroups.Armor)
+                        //             {
+                        //                 ArmorMaterialTypes material = FormulaHelper.RandomArmorMaterial((Armor)j, luck);
+                        //                 ItemBuilder.ApplyArmorSettings(item, playerEntity.Gender, playerEntity.Race, material);
+                        //             }
 
-                                    items.AddItem(item);
-                                }
-                            }
-                        }
+                        //             items.AddItem(item);
+                        //         }
+                        //     }
+                        // }
                     }
                 }
             }
@@ -325,6 +371,19 @@ namespace DaggerfallWorkshop
             byte[] privatePropertyList = null;
             DaggerfallUnityItem item = null;
             Game.Entity.PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
+            int luck = playerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
+
+            float low = 1f;
+            if (buildingData.quality <= 3)
+                low = 0.25f;        // 01 - 03, worn+
+            else if (buildingData.quality <= 7)
+                low = 0.40f;        // 04 - 07, used+
+            else if (buildingData.quality <= 13)
+                low = 0.60f;        // 08 - 13, slightly used+
+            else if (buildingData.quality <= 17)
+                low = 0.75f;        // 14 - 17, almost new+
+            else
+                return;     // Quality 18+ only ever stock new items.
 
             if (buildingType < DFLocation.BuildingTypes.House5)
             {
@@ -369,7 +428,7 @@ namespace DaggerfallWorkshop
                     {
                         if (itemGroup == ItemGroups.MagicItems)
                         {
-                            item = ItemBuilder.CreateRandomMagicItem(playerEntity.Level, playerEntity.Gender, playerEntity.Race);
+                            item = ItemBuilder.CreateRandomMagicItem(luck, playerEntity.Gender, playerEntity.Race);
                         }
                         else if (itemGroup == ItemGroups.Books)
                         {
@@ -378,9 +437,9 @@ namespace DaggerfallWorkshop
                         else
                         {
                             if (itemGroup == ItemGroups.Weapons)
-                                item = ItemBuilder.CreateRandomWeapon(playerEntity.Level);
+                                item = ItemBuilder.CreateRandomWeapon(luck);
                             else if (itemGroup == ItemGroups.Armor)
-                                item = ItemBuilder.CreateRandomArmor(playerEntity.Level, playerEntity.Gender, playerEntity.Race);
+                                item = ItemBuilder.CreateRandomArmor(luck, playerEntity.Gender, playerEntity.Race);
                             else
                             {
                                 System.Array enumArray = DaggerfallUnity.Instance.ItemHelper.GetEnumArray(itemGroup);
@@ -395,6 +454,19 @@ namespace DaggerfallWorkshop
                     continueChance >>= 1;
                     if (DFRandom.rand() % 100 > continueChance)
                         keepGoing = false;
+
+                    if (item != null &&
+                       (item.ItemGroup == ItemGroups.Armor ||
+                        item.ItemGroup == ItemGroups.Weapons ||
+                        item.ItemGroup == ItemGroups.MagicItems ||
+                        item.ItemGroup == ItemGroups.MensClothing ||
+                        item.ItemGroup == ItemGroups.ReligiousItems ||
+                        item.ItemGroup == ItemGroups.WomensClothing) &&
+                       !item.IsArtifact)
+                    {
+                        float conditionMod = UnityEngine.Random.Range(low, 1f);
+                        item.currentCondition = (int)(item.maxCondition * conditionMod);
+                    }
                     items.AddItem(item);
                 }
             }

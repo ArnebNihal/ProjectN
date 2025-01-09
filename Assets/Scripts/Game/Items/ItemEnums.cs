@@ -76,6 +76,7 @@ namespace DaggerfallWorkshop.Game.Items
         Adamantium  = 0x0008,
         Ebony       = 0x0009,
         Daedric     = 0x000A,
+        Glass       = 0x000B
     }
 
     /// <summary>
@@ -109,6 +110,7 @@ namespace DaggerfallWorkshop.Game.Items
         LeatherAdamantium   = 0x0008,
         LeatherEbony        = 0x0009,
         LeatherDaedric      = 0x000A,
+        LeatherGlass        = 0x000B,
         Chain               = 0x0100,
         ChainIron           = 0x0101,
         ChainSteel          = 0x0102,
@@ -120,6 +122,7 @@ namespace DaggerfallWorkshop.Game.Items
         ChainAdamantium     = 0x0108,
         ChainEbony          = 0x0109,
         ChainDaedric        = 0x010A,
+        ChainGlass          = 0x010B,
         PlateIron           = 0x0201,
         PlateSteel          = 0x0202,
         PlateSilver         = 0x0203,
@@ -130,6 +133,7 @@ namespace DaggerfallWorkshop.Game.Items
         PlateAdamantium     = 0x0208,
         PlateEbony          = 0x0209,
         PlateDaedric        = 0x020A,
+        PlateGlass          = 0x020B
     }
 
     /// <summary>
@@ -405,6 +409,17 @@ namespace DaggerfallWorkshop.Game.Items
         Oil = 252,
         Candle = 253,
         Parchment = 279,
+        CampingEquipment = 304,
+        Rations = 305,
+        Apple = 306,
+        Orange = 307,
+        Bread = 308,
+        RawFish = 309,
+        CookedFish = 310,
+        Meat = 311,
+        RawMeat = 312,
+        Waterskin = 313,
+        Skillet = 314
     }
 
     public enum ReligiousItems  //checked

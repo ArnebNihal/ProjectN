@@ -319,8 +319,9 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
         {
             if (!GameManager.HasInstance)
                 return (modelID, (ClimateBases)(-1), (DaggerfallDateTime.Seasons)(-1));
-
-            return (modelID, ClimateSwaps.FromAPIClimateBase(GameManager.Instance.PlayerGPS.ClimateSettings.ClimateType), DaggerfallUnity.Instance.WorldTime.Now.ActualSeasonValue);
+            else if (!GameManager.Instance.IsReady)
+                return (modelID, ClimateSwaps.FromAPIClimateBase(DaggerfallConnect.DFLocation.ClimateBaseType.Temperate), DaggerfallDateTime.Seasons.Summer);
+            return (modelID, ClimateSwaps.FromAPIClimateBase(GameManager.Instance.PlayerGPS.ClimateSettings.ClimateType), DaggerfallUnity.Instance.WorldTime.Now.GenericSeasonValue);
         }
 
         ///<summary>

@@ -331,6 +331,7 @@ namespace DaggerfallWorkshop.Game.Utility
             }
 
             // Draw standard body
+            Debug.Log("body offset: " + nudeBody.offset.X + ", " + nudeBody.offset.Y);
             DrawTexture(nudeBody);
 
             // Censor nudity if this setting enabled by using welded-on clothes.
@@ -347,6 +348,7 @@ namespace DaggerfallWorkshop.Game.Utility
             }
 
             // Blit head
+            Debug.Log("head offset: " + head.offset.X + ", " + head.offset.Y);
             DrawTexture(head);
         }
 

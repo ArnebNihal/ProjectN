@@ -146,7 +146,7 @@ namespace DaggerfallWorkshop.Game.Items
             }
 
             // Armour mod is double what classic displays, but this is correct according to Allofich.
-            public override string ArmourMod()
+            public override string ArmorMod()
             {   // %mod
                 return parent.GetMaterialArmorValue().ToString("+0;-0;0");
             }

@@ -46,8 +46,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         readonly Panel backgroundPanel = new Panel();
         readonly Panel characterPanel = new Panel();
 
-        readonly TextLabel[] armourLabels = new TextLabel[DaggerfallEntity.NumberBodyParts];
-        readonly Vector2[] armourLabelPos = new Vector2[] { new Vector2(70, 12), new Vector2(20, 38), new Vector2(86, 38), new Vector2(12, 58), new Vector2(6, 90), new Vector2(18, 120), new Vector2(22, 168) };
+        readonly TextLabel[] ArmorLabels = new TextLabel[DaggerfallEntity.NumberBodyParts];
+        readonly Vector2[] ArmorLabelPos = new Vector2[] { new Vector2(70, 12), new Vector2(20, 38), new Vector2(86, 38), new Vector2(12, 58), new Vector2(6, 90), new Vector2(18, 120), new Vector2(22, 168) };
 
         string lastBackgroundName = string.Empty;
         bool showArmorLabels;
@@ -84,8 +84,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             {
                 for (int bpIdx = 0; bpIdx < DaggerfallEntity.NumberBodyParts; bpIdx++)
                 {
-                    armourLabels[bpIdx] = DaggerfallUI.AddDefaultShadowedTextLabel(armourLabelPos[bpIdx], characterPanel);
-                    armourLabels[bpIdx].Text = "0";
+                    ArmorLabels[bpIdx] = DaggerfallUI.AddDefaultShadowedTextLabel(ArmorLabelPos[bpIdx], characterPanel);
+                    ArmorLabels[bpIdx].Text = "0";
                 }
             }
         }
@@ -132,8 +132,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             DaggerfallUI.Instance.PaperDollRenderer.Refresh(PaperDollRenderer.LayerFlags.All, playerEntity);
             characterPanel.BackgroundTexture = DaggerfallUI.Instance.PaperDollRenderer.PaperDollTexture;
 
-            // Update armour values
-            RefreshArmourValues(playerEntity, suppressBody);
+            // Update Armor values
+            RefreshArmorValues(playerEntity, suppressBody);
         }
 
         /// <summary>
@@ -151,8 +151,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         #region Private Methods
 
-        // Refresh armour value labels
-        void RefreshArmourValues(PlayerEntity playerEntity, bool suppress = false)
+        // Refresh Armor value labels
+        void RefreshArmorValues(PlayerEntity playerEntity, bool suppress = false)
         {
             if (!showArmorLabels)
                 return;
@@ -163,14 +163,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
                 sbyte av = playerEntity.ArmorValues[bpIdx];
                 int bpAv = av + armorMod;
-                armourLabels[bpIdx].Text = (!suppress) ? bpAv.ToString() : string.Empty;
+                ArmorLabels[bpIdx].Text = (!suppress) ? bpAv.ToString() : string.Empty;
 
                 if (armorMod < 0)
-                    armourLabels[bpIdx].TextColor = DaggerfallUI.DaggerfallUnityStatDrainedTextColor;
+                    ArmorLabels[bpIdx].TextColor = DaggerfallUI.DaggerfallUnityStatDrainedTextColor;
                 else if (armorMod > 0)
-                    armourLabels[bpIdx].TextColor = DaggerfallUI.DaggerfallUnityStatIncreasedTextColor;
+                    ArmorLabels[bpIdx].TextColor = DaggerfallUI.DaggerfallUnityStatIncreasedTextColor;
                 else
-                    armourLabels[bpIdx].TextColor = DaggerfallUI.DaggerfallDefaultTextColor;
+                    ArmorLabels[bpIdx].TextColor = DaggerfallUI.DaggerfallDefaultTextColor;
             }
         }
 

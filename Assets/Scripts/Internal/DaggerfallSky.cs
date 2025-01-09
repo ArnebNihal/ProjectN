@@ -353,7 +353,7 @@ namespace DaggerfallWorkshop
                     break;
                 default:
                     // Season value enum ordered same as sky indices
-                    SkyIndex = LocalPlayerGPS.ClimateSettings.SkyBase + (int)dfUnity.WorldTime.Now.ActualSeasonValue;
+                    SkyIndex = LocalPlayerGPS.ClimateSettings.SkyBase + dfUnity.WorldTime.Now.ToClassicSeasonValue(dfUnity.WorldTime.Now.ActualSeasonValue);
                     break;
             }
 

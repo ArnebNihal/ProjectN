@@ -624,12 +624,12 @@ namespace DaggerfallWorkshop.Game.Entity
 
                     if (equipping)
                     {
-                        armorValues[index] += (sbyte)(armor.GetMaterialArmorValue() * ((skills.GetLiveSkillValue((DFCareer.Skills)((int)DFCareer.Skills.LightArmour + ((int)(ItemBuilder.GetArmorType(armor.NativeMaterialValue)) / 0x0100 % 0x0010))) / 2) + 100) / 100);
+                        armorValues[index] += (sbyte)(armor.GetMaterialArmorValue() * ((skills.GetLiveSkillValue((DFCareer.Skills)((int)DFCareer.Skills.LightArmor + ((int)(ItemBuilder.GetArmorType(armor.NativeMaterialValue)) / 0x0100 % 0x0010))) / 2) + 100) / 100);
                         Debug.Log("armor: " + armor.GetMaterialArmorValue() + ", final armor value: " + armorValues[index]);
                     }
                     else
                     {
-                        armorValues[index] -= (sbyte)(armor.GetMaterialArmorValue() * ((skills.GetLiveSkillValue((DFCareer.Skills)((int)DFCareer.Skills.LightArmour + ((int)(ItemBuilder.GetArmorType(armor.NativeMaterialValue)) / 0x0100 % 0x0010))) / 2) + 100) / 100);
+                        armorValues[index] -= (sbyte)(armor.GetMaterialArmorValue() * ((skills.GetLiveSkillValue((DFCareer.Skills)((int)DFCareer.Skills.LightArmor + ((int)(ItemBuilder.GetArmorType(armor.NativeMaterialValue)) / 0x0100 % 0x0010))) / 2) + 100) / 100);
                         Debug.Log("armor: " + armor.GetMaterialArmorValue() + ", final armor value: " + armorValues[index]);
                     }
                 }

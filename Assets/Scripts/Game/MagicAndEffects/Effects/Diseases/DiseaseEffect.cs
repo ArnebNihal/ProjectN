@@ -85,8 +85,9 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
         public override void Start(EntityEffectManager manager, DaggerfallEntityBehaviour caster = null)
         {
             // Target must be player entity greater than level 1 to acquire a disease
+            // ProjectN: removing level limit.
             DaggerfallEntityBehaviour host = GetPeeredEntityBehaviour(manager);
-            if (host.EntityType != EntityTypes.Player || host.Entity.Level < 2)
+            if (host.EntityType != EntityTypes.Player)
             {
                 EndDisease();
                 return;

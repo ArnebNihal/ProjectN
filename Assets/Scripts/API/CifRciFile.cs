@@ -13,6 +13,8 @@
 using System;
 using System.IO;
 using DaggerfallConnect.Utility;
+using DaggerfallWorkshop;
+using Newtonsoft.Json;
 #endregion
 
 namespace DaggerfallConnect.Arena2
@@ -31,6 +33,7 @@ namespace DaggerfallConnect.Arena2
         ///  it's necessary to read through the file to count the number of image records.
         /// </summary>
         private Record[] records = new Record[64];
+        private FakeHeader fakeReader;
 
         /// <summary>
         /// Total number of records in this file. Any records past this count in Records array are not valid.
@@ -76,6 +79,13 @@ namespace DaggerfallConnect.Arena2
             public Int16 DataLength;
             public UInt16[] FrameDataOffsetList;
             public UInt16 TotalSize;
+        }
+
+        private struct FakeHeader
+        {
+            public ImgFileHeader fileHeader;
+            // public RecordHeader[] recordHeader;
+            public Record[] record;
         }
 
         #endregion
@@ -181,8 +191,17 @@ namespace DaggerfallConnect.Arena2
 
             // Validate filename
             if (!filePath.EndsWith(".CIF", StringComparison.InvariantCultureIgnoreCase) &&
+                !filePath.EndsWith("-0.png", StringComparison.InvariantCultureIgnoreCase) &&
                 !filePath.EndsWith(".RCI", StringComparison.InvariantCultureIgnoreCase))
                 return false;
+
+            // if (filePath.EndsWith("-0.png", StringComparison.InvariantCultureIgnoreCase))
+            // {
+            //     fakeReader = new FakeHeader();
+            //     fakeReader = JsonConvert.DeserializeObject<FakeHeader>(File.ReadAllText(filePath.Substring(0, (filePath.Length - 4))));
+            //     ReadFakeHeader();
+            //     return true;
+            // }
 
             // Load file
             if (!managedFile.Load(filePath, usage, readOnly))
@@ -260,6 +279,42 @@ namespace DaggerfallConnect.Arena2
                 return new DFBitmap();
 
             return records[record].Frames[frame];
+        }
+
+        public DFBitmap GetCustomDFBitmap(string filename, int record, int frame, out ImageData imageData)
+        {
+            DFBitmap result = new DFBitmap();
+            byte[] fileBytes = File.ReadAllBytes(Path.Combine(WorldMaps.mapPath, "Textures", "Races", filename));
+
+            fakeReader = new FakeHeader();
+            fakeReader = JsonConvert.DeserializeObject<FakeHeader>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "Textures", "Races", filename.Substring(0, (filename.Length - 4)))));
+            ReadFakeHeader(record);
+
+            imageData = new ImageData();
+
+            result.Data = new byte[fileBytes.Length];
+            result.Data = fileBytes;
+            result.Width = records[record].Header.Width;
+            result.Height = records[record].Header.Height;
+            result.Palette = Palette;
+
+            imageData.type = ImageTypes.CIF;
+            imageData.filename = filename.Substring(0, (filename.Length - 4));
+            imageData.record = record;
+            imageData.frame = 0;
+            imageData.hasAlpha = true;
+            imageData.alphaIndex = 0;
+            imageData.width = result.Width;
+            imageData.height = result.Height;
+            imageData.dfBitmap = result;
+            // imageData.texture = 
+            // imageData.maskTexture = 
+            // imageData.animatedTextures = 
+            imageData.offset = new DFPosition(records[record].Header.XOffset, records[record].Header.YOffset);
+            imageData.scale = new DFSize();
+            imageData.size = new DFSize(result.Width, result.Height);
+
+            return result;
         }
 
         #endregion
@@ -573,6 +628,19 @@ namespace DaggerfallConnect.Arena2
             ReadRleData(ref reader, length, ref writer);
 
             return true;
+        }
+
+        private void ReadFakeHeader(int record)
+        {
+            records[record].Header.Position = 0;
+            records[record].Header.XOffset = fakeReader.fileHeader.XOffset;
+            records[record].Header.YOffset = fakeReader.fileHeader.YOffset;
+            records[record].Header.Width = fakeReader.fileHeader.Width;
+            records[record].Header.Height = fakeReader.fileHeader.Height;
+            records[record].Header.Compression = CompressionFormats.Uncompressed;
+            records[record].Header.PixelDataLength = (ushort)(records[record].Header.Width * records[record].Header.Height);
+            records[record].Header.FrameCount = 0;
+            records[record].Header.DataPosition = 0;
         }
 
         #endregion

@@ -551,6 +551,8 @@ namespace DaggerfallWorkshop.Utility
                         return GetMetalColorTable(MetalTypes.Ebony);
                     case DyeColors.Daedric:
                         return GetMetalColorTable(MetalTypes.Daedric);
+                    case DyeColors.Glass:
+                        return GetMetalColorTable(MetalTypes.Glass);
                     default:
                         return GetMetalColorTable(MetalTypes.None);
                 }
@@ -597,6 +599,9 @@ namespace DaggerfallWorkshop.Utility
                 case MetalTypes.Daedric:
                     indices = new byte[] { 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE };
                     break;
+                case MetalTypes.Glass:
+                    indices = new byte[] { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7, 0xA8, 0xA9, 0xAA, 0xAB, 0xAC, 0xAD, 0xAE, 0xAF };
+                    break;
                 default:
                     indices = new byte[] { 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F };
                     break;
@@ -632,6 +637,8 @@ namespace DaggerfallWorkshop.Utility
                     return DyeColors.Ebony;
                 case MetalTypes.Daedric:
                     return DyeColors.Daedric;
+                case MetalTypes.Glass:
+                    return DyeColors.Glass;
                 default:
                     return DyeColors.Unchanged;
             }

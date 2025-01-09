@@ -12,9 +12,13 @@
 using UnityEngine;
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using DaggerfallWorkshop.Game;
 using DaggerfallConnect.Utility;
 using DaggerfallConnect.Arena2;
+using DaggerfallWorkshop.Game.Questing;
+using System.Linq;
+using UnityEditor.Build.Pipeline.Utilities;
 
 namespace DaggerfallWorkshop.Utility
 {
@@ -106,6 +110,22 @@ namespace DaggerfallWorkshop.Utility
         }
 
         /// <summary>
+        /// Gets ActivityStart (in minutes) based on DawnHour, Season and stuff.
+        /// </summary>
+        public int ActivityStart
+        {
+            get { return GetActivityStart(); }
+        }
+
+        /// <summary>
+        /// Gets ActivityEnd (in minutes) based on DuskHour, Season and stuff.
+        /// </summary>
+        public int ActivityEnd
+        {
+            get { return GetActivityEnd(); }
+        }
+
+        /// <summary>
         /// Gets LightsOffHour based on DawnHour.
         /// </summary>
         public int LightsOffHour
@@ -178,11 +198,19 @@ namespace DaggerfallWorkshop.Utility
         }
 
         /// <summary>
-        /// Gets season enum value based on latitude and altitude.
+        /// Gets season enum value based on latitude and altitude, and differentiate between early, full and late season.
         /// </summary>
         public Seasons ActualSeasonValue
         {
             get { return GetSeasonValue(true); }
+        }
+
+        /// <summary>
+        /// Gets season enum value based on latitude and altitude.
+        /// </summary>
+        public Seasons GenericSeasonValue
+        {
+            get { return ((Seasons)((int)GetSeasonValue(true) / 100 * 100 + 1)); }
         }
 
         /// <summary>
@@ -229,7 +257,15 @@ namespace DaggerfallWorkshop.Utility
         }
 
         /// <summary>
-        /// Gets minute of day 0-1339
+        /// True when activity in the settlement is ongoing.
+        /// </summary>
+        public bool SettlementIsActive
+        {
+            get { return (MinuteOfDay >= ActivityStart && MinuteOfDay < ActivityEnd) ? true : false; }
+        }
+
+        /// <summary>
+        /// Gets minute of day 0-1439
         /// </summary>
         public int MinuteOfDay
         {
@@ -325,15 +361,25 @@ namespace DaggerfallWorkshop.Utility
         }
 
         /// <summary>
-        /// Season, ordered as in game.
+        /// Season, plus sub-seasons when needed.
         /// </summary>
         public enum Seasons
         {
-            Fall,
-            Spring,
-            Summer,
-            Winter,
+            SpringEarly = 100,
+            Spring = 101,
+            SpringLate = 102,
+            SummerEarly = 200,
+            Summer = 201,
+            SummerLate = 202,
+            FallEarly = 300,
+            Fall = 301,
+            FallLate = 302,
+            WinterEarly = 400,
+            Winter = 401,
+            WinterLate = 402
         }
+
+
 
         #endregion
 
@@ -597,6 +643,31 @@ namespace DaggerfallWorkshop.Utility
             return clone;
         }
 
+        public int ToClassicSeasonValue(Seasons season)
+        {
+            switch (season)
+            {
+                case Seasons.SpringEarly:
+                case Seasons.Spring:
+                case Seasons.SpringLate:
+                    return 1;
+                case Seasons.SummerEarly:
+                case Seasons.Summer:
+                case Seasons.SummerLate:
+                    return 2;
+                case Seasons.FallEarly:
+                case Seasons.Fall:
+                case Seasons.FallLate:
+                    return 0;
+                case Seasons.WinterEarly:
+                case Seasons.Winter:
+                case Seasons.WinterLate:
+                    return 3;
+                default:
+                    return 2;
+            }
+        }
+
         #endregion
 
         #region Private Methods
@@ -616,6 +687,9 @@ namespace DaggerfallWorkshop.Utility
 
         private int GetDawnHour()
         {
+            if (!GameManager.Instance.IsReady)
+                return (BaseDawnHour * 60);
+
             (int, Seasons) adjustment = GetDawnDuskAdjustment();
 
             switch (adjustment.Item2)
@@ -634,6 +708,9 @@ namespace DaggerfallWorkshop.Utility
 
         private int GetDuskHour()
         {
+            if (!GameManager.Instance.IsReady)
+                return (BaseDuskHour * 60);
+
             (int, Seasons) adjustment = GetDawnDuskAdjustment();
 
             switch (adjustment.Item2)
@@ -648,6 +725,64 @@ namespace DaggerfallWorkshop.Utility
                     // Debug.Log("Dusk Hour (Fall/Winter):" + ((BaseDuskHour * SecondsPerHour + adjustment.Item1 / 2) / SecondsPerMinute));
                     return ((BaseDuskHour * SecondsPerHour + adjustment.Item1 / 2) / SecondsPerMinute);
             }
+        }
+
+        private int GetActivityStart()
+        {
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            if (!playerGPS.IsPlayerInLocationRect)
+                return (24 * 60);
+
+            int baseAS = (DawnHour + (BaseDawnHour * 60)) / 2;
+
+            if (baseAS < (BaseDawnHour * 60))
+                baseAS = (BaseDawnHour * 60);
+
+            if (SeasonValue != Seasons.Winter)
+            {
+                if (playerGPS.CurrentLocationType == DaggerfallConnect.DFRegion.LocationTypes.TownCity)
+                    baseAS -= 60;
+                else if (playerGPS.CurrentLocationType == DaggerfallConnect.DFRegion.LocationTypes.TownHamlet)
+                    baseAS -= 30;
+                else if (playerGPS.CurrentLocationType == DaggerfallConnect.DFRegion.LocationTypes.HomeFarms)
+                {
+                    if (SeasonValue == Seasons.Summer)
+                        baseAS -= 60;
+                    else baseAS -= 30;
+                }
+            }            
+            return baseAS;
+        }
+
+        private int GetActivityEnd()
+        {
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            if (!playerGPS.IsPlayerInLocationRect)
+                return -1;
+
+            int baseAE = (DuskHour + (BaseDuskHour * 60)) / 2;
+
+            if (baseAE > (22 * 60))
+                baseAE = (22 * 60);
+
+            if (SeasonValue != Seasons.Winter)
+            {
+                if (playerGPS.CurrentLocationType == DaggerfallConnect.DFRegion.LocationTypes.TownCity)
+                    baseAE += 60;
+                else if (playerGPS.CurrentLocationType == DaggerfallConnect.DFRegion.LocationTypes.HomeFarms)
+                {
+                    baseAE -= 60;
+                }
+                else baseAE += 30;
+            }
+            else
+            {
+                if (playerGPS.CurrentLocationType == DaggerfallConnect.DFRegion.LocationTypes.HomeFarms)
+                {
+                    baseAE = DuskHour;
+                }
+            }
+            return baseAE;
         }
 
         private int GetLightsOffHour()
@@ -712,7 +847,7 @@ namespace DaggerfallWorkshop.Utility
             // {Daggerfall seems to roll over seasons part way through final month.}
             // {Using clean month boundaries here for simplicity.}
             // {Could use DayOfYear ranges instead to be more accurate.}
-            // Obsolete, now actually using DayOfYear, plus season start/end date changes based on latitude and altitude:
+            // PrjectN: obsolete, now actually using DayOfYear, plus season start/end date changes based on latitude and altitude:
             // Standard length seasons (halfway between tropic and arctic): y == 2000, hottest latitude (Nirn equator): y == 4700,
             // "Tropic of Cancer" (Tropic of Mage?): y == 3450, "Tropic of Capricorn" (Tropic of Tower?): y == 5950,
             // "Arctic Circle": y == 550 (this last one was determined mathematically, it could need some adjustment).
@@ -722,15 +857,27 @@ namespace DaggerfallWorkshop.Utility
             int springStart = SpringStart;
             int summerStart = SummerStart;
             int fallStart = FallStart;
+            bool borealHemisphere = true;
             int latitude;
             int altitude;
             int totalDiffFactor, latitudeDiffFactor, altitudeDiffFactor;
+            List<(int, int)> seasonOrder = new List<(int, int)>();
 
             if (modifiedSeason)
             {
                 DFPosition position = GameManager.Instance.PlayerGPS.CurrentMapPixel;
-                // TODO: Write the function for the Austral Emisphere.
-                latitude = position.Y;
+                // TODO: Write the function for the Austral Emisphere - should be done?
+                if (position.Y <= Equator) latitude = position.Y;
+                else
+                {
+                    latitude = Equator - (position.Y - Equator);
+                    borealHemisphere = false;
+                    winterStart = SummerStart;
+                    springStart = FallStart;
+                    summerStart = WinterStart;
+                    fallStart = SpringStart;
+                }
+
                 if (latitude > UpperTropic && latitude <= Equator)
                     latitude = UpperTropic;
 
@@ -739,15 +886,15 @@ namespace DaggerfallWorkshop.Utility
                 altitudeDiffFactor = (int)Math.Pow((altitude / 15), 2);
 
                 totalDiffFactor = latitudeDiffFactor - altitudeDiffFactor;
-                if (totalDiffFactor < 180) totalDiffFactor = -180;
+                if (totalDiffFactor < -180) totalDiffFactor = -180;
                 if (totalDiffFactor > 180) totalDiffFactor = 180;
 
                 if (totalDiffFactor >= 0) // hotter
                 {
-                    winterStart += totalDiffFactor / 2;                    
-                    springStart -= totalDiffFactor / 2;                    
-                    summerStart -= totalDiffFactor;                    
-                    fallStart += totalDiffFactor;                    
+                    winterStart += totalDiffFactor / 2;
+                    springStart -= totalDiffFactor / 2;
+                    summerStart -= totalDiffFactor;
+                    fallStart += totalDiffFactor;
                 }
                 else if (totalDiffFactor < 0) // colder
                 {
@@ -762,55 +909,171 @@ namespace DaggerfallWorkshop.Utility
                 int summerStartCorr = CorrectDayOfYear(summerStart);
                 int fallStartCorr = CorrectDayOfYear(fallStart);
 
+                // Debug.Log("Phase1 - totalDiffFactor: " + totalDiffFactor + ", springStartCorr: " + springStartCorr + ", summerStartCorr: " + summerStartCorr + ", fallStartCorr: " + fallStartCorr + ", winterStartCorr: " + winterStartCorr) ;
+
                 if (totalDiffFactor >= 0)
                 {
                     // summerStart stays the same;
-                    if (springStartCorr > summerStartCorr) springStartCorr = summerStartCorr;
-                    if (fallStartCorr > springStartCorr && fallStart > DaysPerYear) fallStartCorr = springStartCorr;
-                    if (winterStartCorr > springStartCorr && winterStart > DaysPerYear) winterStartCorr = springStartCorr;
-
-                    if (summerStartCorr == fallStartCorr && fallStartCorr == winterStartCorr && winterStartCorr == springStartCorr) return Seasons.Summer;
-                    if (fallStartCorr == winterStartCorr && winterStartCorr == springStartCorr)
+                    if (borealHemisphere)
                     {
-                        if (DayOfYear >= summerStartCorr || DayOfYear < fallStartCorr) return Seasons.Summer;
-                        else return Seasons.Spring;
+                        if (springStartCorr > summerStartCorr) springStartCorr = summerStartCorr;
+                        if (fallStartCorr > springStartCorr && fallStart > DaysPerYear) fallStartCorr = springStartCorr;
+                        if (winterStartCorr > springStartCorr && winterStart > DaysPerYear) winterStartCorr = springStartCorr;
                     }
-                    if (winterStartCorr == springStartCorr)
+                    else
                     {
-                        if (DayOfYear >= summerStartCorr || DayOfYear < fallStartCorr) return Seasons.Summer;
-                        if (DayOfYear >= springStartCorr && DayOfYear < summerStartCorr) return Seasons.Spring;
-                        if ((fallStart > DaysPerYear && DayOfYear >= fallStartCorr && DayOfYear < winterStartCorr) || (fallStart <= DaysPerYear && (DayOfYear >= fallStartCorr || DayOfYear < winterStartCorr))) return Seasons.Fall;
-                    }                    
-
-                    if (DayOfYear >= summerStartCorr && DayOfYear < fallStartCorr) return Seasons.Summer;
-                    if (DayOfYear >= springStartCorr && DayOfYear < summerStartCorr) return Seasons.Spring;
-                    if (winterStart > DaysPerYear)
-                    {
-                        if (DayOfYear >= fallStartCorr || DayOfYear < winterStartCorr) return Seasons.Fall;
-                        if (DayOfYear >= winterStartCorr && DayOfYear < springStartCorr) return Seasons.Winter;
+                        if (springStartCorr > summerStartCorr && summerStart > DaysPerYear) springStartCorr = summerStartCorr;
+                        if (fallStartCorr > springStartCorr) fallStartCorr = springStartCorr;
+                        if (winterStartCorr > springStartCorr) winterStartCorr = springStartCorr;
                     }
-                    if (winterStart <= DaysPerYear)
+
+                    // Debug.Log("Phase2 - totalDiffFactor: " + totalDiffFactor + ", springStartCorr: " + springStartCorr + ", summerStartCorr: " + summerStartCorr + ", fallStartCorr: " + fallStartCorr + ", winterStartCorr: " + winterStartCorr) ;
+                    // If there's only one long summer, it's divided into three time periods of 120 days each:
+                    // 120 days before "summer start" is Early Summer, 120 days after summer start is proper Summer, 
+                    // the others are Late Summer.
+                    if (summerStartCorr == fallStartCorr && fallStartCorr == winterStartCorr && winterStartCorr == springStartCorr)
                     {
-                        if (DayOfYear >= fallStartCorr && DayOfYear < winterStartCorr) return Seasons.Fall;
-                        if (DayOfYear >= winterStartCorr || DayOfYear < springStartCorr) return Seasons.Winter;
+                        if (summerStartCorr <= 120)
+                        {
+                            if (DayOfYear >= summerStartCorr && DayOfYear < (summerStartCorr + 120))
+                                return Seasons.Summer;
+                            if (DayOfYear >= (summerStartCorr + 120) && DayOfYear < (summerStartCorr + 240))
+                                return Seasons.SummerLate;
+                            else return Seasons.SummerEarly;
+                        }
+                        if (summerStartCorr > 120 && summerStartCorr <= 240)
+                        {
+                            if (DayOfYear < summerStartCorr && DayOfYear >= (summerStartCorr - 120))
+                                return Seasons.SummerEarly;
+                            if (DayOfYear >= summerStartCorr && DayOfYear < (summerStartCorr + 120))
+                                return Seasons.Summer;
+                            else return Seasons.SummerLate;
+                        }
+                        if (summerStartCorr > 240)
+                        {
+                            if (DayOfYear >= (summerStartCorr - 240) && DayOfYear < (summerStartCorr - 120))
+                                return Seasons.SummerLate;
+                            if (DayOfYear >= (summerStartCorr - 120) && DayOfYear < summerStartCorr)
+                                return Seasons.SummerEarly;
+                            else return Seasons.Summer;
+                        }
+                    }
+
+                    seasonOrder = new List<(int, int)> { (4, winterStartCorr), (1, springStartCorr), (2, summerStartCorr), (3, fallStartCorr) };
+                    seasonOrder = SortSeasonOrder(seasonOrder);
+                    int seasonIndex = -1;
+                    int seasonLength = 0;
+
+                    for (int i = 0; i < (seasonOrder.Count - 1); i++)
+                    {
+                        if (DayOfYear >= seasonOrder[i].Item2 &&
+                            DayOfYear < seasonOrder[i + 1].Item2)
+                            seasonIndex = i;
+                    }
+                    if (seasonIndex != -1)
+                    {
+                        seasonLength = seasonOrder[seasonIndex + 1].Item2 - seasonOrder[seasonIndex].Item2;
+                        if (DayOfYear >= seasonOrder[seasonIndex].Item2 && DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100);
+                        if (DayOfYear >= (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)) &&
+                            DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength - (seasonLength / 3))))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 1);
+                        else return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 2);
+                    }
+                    else
+                    {
+                        seasonIndex = 3;
+                        seasonLength = (DaysPerYear - seasonOrder[3].Item2) + (seasonOrder[1].Item1 - 1);
+                        if (DayOfYear >= seasonOrder[seasonIndex].Item2 && DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100);
+                        if (DayOfYear >= (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)) &&
+                            DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength - (seasonLength / 3))))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 1);
+                        else return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 2);
                     }
                 }
                 if (totalDiffFactor < 0)
                 {
                     // winterStart stays the same;
-                    if (fallStartCorr > winterStartCorr) fallStartCorr = winterStartCorr;
-                    if (springStartCorr > fallStartCorr) springStartCorr = fallStartCorr;
-                    if (summerStartCorr > fallStartCorr) summerStartCorr = fallStartCorr;
+                    if (borealHemisphere)
+                    {
+                        if (fallStartCorr > winterStartCorr) fallStartCorr = winterStartCorr;
+                        if (springStartCorr > fallStartCorr) springStartCorr = fallStartCorr;
+                        if (summerStartCorr > fallStartCorr) summerStartCorr = fallStartCorr;
+                    }
+                    else
+                    {
+                        if (fallStartCorr > winterStartCorr) fallStartCorr = winterStartCorr;
+                        if (summerStartCorr > fallStartCorr && summerStart > DaysPerYear) summerStartCorr = fallStartCorr;
+                        if (springStartCorr > summerStartCorr && summerStart < DaysPerYear) springStartCorr = summerStartCorr;
+                    }
+                    // Debug.Log("Phase2 - totalDiffFactor: " + totalDiffFactor + ", springStartCorr: " + springStartCorr + ", summerStartCorr: " + summerStartCorr + ", fallStartCorr: " + fallStartCorr + ", winterStartCorr: " + winterStartCorr) ;
 
-                    if (DayOfYear >= winterStartCorr || DayOfYear < springStartCorr) return Seasons.Winter;
-                    if (DayOfYear >= fallStartCorr && DayOfYear < winterStartCorr) return Seasons.Fall;
-                    if (DayOfYear >= springStartCorr && DayOfYear < summerStartCorr) return Seasons.Spring;
-                    if (DayOfYear >= summerStartCorr && DayOfYear < fallStartCorr) return Seasons.Summer;
+                    // If there's only one long winter, it's divided into three time periods of 120 days each:
+                    // 120 days before "winter start" is Early Winter, 120 days after winter start is proper Winter, 
+                    // the others are Late Winter.
+                    if (winterStartCorr == fallStartCorr && fallStartCorr == winterStartCorr && winterStartCorr == springStartCorr)
+                    {
+                        if (winterStartCorr <= 120)
+                        {
+                            if (DayOfYear >= winterStartCorr && DayOfYear < (winterStartCorr + 120))
+                                return Seasons.Winter;
+                            if (DayOfYear >= (winterStartCorr + 120) && DayOfYear < (winterStartCorr + 240))
+                                return Seasons.WinterLate;
+                            else return Seasons.WinterEarly;
+                        }
+                        if (winterStartCorr > 120 && winterStartCorr <= 240)
+                        {
+                            if (DayOfYear < winterStartCorr && DayOfYear >= (winterStartCorr - 120))
+                                return Seasons.WinterEarly;
+                            if (DayOfYear >= winterStartCorr && DayOfYear < (winterStartCorr + 120))
+                                return Seasons.Winter;
+                            else return Seasons.WinterLate;
+                        }
+                        if (winterStartCorr > 240)
+                        {
+                            if (DayOfYear >= (winterStartCorr - 240) && DayOfYear < (winterStartCorr - 120))
+                                return Seasons.WinterLate;
+                            if (DayOfYear >= (winterStartCorr - 120) && DayOfYear < winterStartCorr)
+                                return Seasons.WinterEarly;
+                            else return Seasons.Winter;
+                        }
+                    }
+
+                    seasonOrder = new List<(int, int)> { (4, winterStartCorr), (1, springStartCorr), (2, summerStartCorr), (3, fallStartCorr) };
+                    seasonOrder = SortSeasonOrder(seasonOrder);
+                    int seasonIndex = -1;
+                    int seasonLength = 0;
+
+                    for (int i = 0; i < (seasonOrder.Count - 1); i++)
+                    {
+                        if (DayOfYear >= seasonOrder[i].Item2 &&
+                            DayOfYear < seasonOrder[i + 1].Item2)
+                            seasonIndex = i;
+                    }
+                    if (seasonIndex != -1)
+                    {
+                        seasonLength = seasonOrder[seasonIndex + 1].Item2 - seasonOrder[seasonIndex].Item2;
+                        if (DayOfYear >= seasonOrder[seasonIndex].Item2 && DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100);
+                        if (DayOfYear >= (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)) &&
+                            DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength - (seasonLength / 3))))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 1);
+                        else return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 2);
+                    }
+                    else
+                    {
+                        seasonIndex = 3;
+                        seasonLength = (DaysPerYear - seasonOrder[3].Item2) + (seasonOrder[1].Item1 - 1);
+                        if (DayOfYear >= seasonOrder[seasonIndex].Item2 && DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100);
+                        if (DayOfYear >= (seasonOrder[seasonIndex].Item2 + (seasonLength / 3)) &&
+                            DayOfYear < (seasonOrder[seasonIndex].Item2 + (seasonLength - (seasonLength / 3))))
+                            return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 1);
+                        else return (Seasons)(seasonOrder[seasonIndex].Item1 * 100 + 2);
+                    }
                 }
             }
-            
-            // month = DayOfYear / DaysPerMonth;
-            // day = DayOfYear % DaysPerMonth;
 
             if (DayOfYear < springStart || DayOfYear >= winterStart)
                 return Seasons.Winter;
@@ -821,27 +1084,31 @@ namespace DaggerfallWorkshop.Utility
             if (DayOfYear < winterStart && DayOfYear >= fallStart)
                 return Seasons.Fall;
 
-            // switch (month)
-            // {
-            //     case 0:
-            //     case 1:
-            //         return Seasons.Winter;
-            //     case 2:
-            //     case 3:
-            //     case 4:
-            //         return Seasons.Spring;
-            //     case 5:
-            //     case 6:
-            //     case 7:
-            //         return Seasons.Summer;
-            //     case 8:
-            //     case 9:
-            //     case 10:
-            //         return Seasons.Fall;
-            //     default:
-            //         return Seasons.Summer;
             Debug.Log("Unable to select season properly, returning default Spring");
             return Seasons.Spring;
+        }
+
+        private List<(int, int)> SortSeasonOrder(List<(int, int)> seasonOrder)
+        {
+            bool foundSomething = false;
+            int index = 0;
+
+            do{
+                foundSomething = false;
+                for (int i = 0; i < (seasonOrder.Count - 1); i++)
+                {
+                    if (seasonOrder[i].Item2 > seasonOrder[i + 1].Item2)
+                    {
+                        (int, int) temp = seasonOrder[i];
+                        seasonOrder[i] = seasonOrder[i + 1];
+                        seasonOrder[i + 1] = temp;
+                        foundSomething = true;
+                    }                        
+                }
+            }
+            while (foundSomething);
+
+            return seasonOrder;
         }
 
         private int CorrectDayOfYear(int dayOfYear)

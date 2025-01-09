@@ -65,7 +65,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
                 (int)Items.Gems.Diamond,
                 (int)Items.CreatureIngredients2.Mummy_wrappings);
             purification.AddSecondaryEffect(HealHealth.EffectKey);
-            purification.AddSecondaryEffect(InvisibilityNormal.EffectKey);
+            purification.AddSecondaryEffect(CurePoison.EffectKey);
 
             cureDisease.TextureRecord = 35;
             purification.TextureRecord = 35;

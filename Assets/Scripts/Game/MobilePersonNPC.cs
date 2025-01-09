@@ -187,13 +187,16 @@ namespace DaggerfallWorkshop.Game
             SetPerson();
         }
 
-        public static Races GetEntityRace()
+        public static Races GetEntityRace(int seed = -1)
         {
             // {Convert factionfile race to entity race}
             // {DFTFU is mostly isolated from game classes and does not know entity races}
             // {Need to convert this into something the billboard can use}
             // {Only Redguard, Nord, Breton have mobile NPC assets}
-            int populationSelected = UnityEngine.Random.Range(0, 100);
+            int populationSelected;
+            if (seed == -1)
+                populationSelected = UnityEngine.Random.Range(0, 100);
+            else populationSelected = seed % 1000;
             playerGPS = GameManager.Instance.PlayerGPS;
 
             if (playerGPS.CurrentLocationType == DFRegion.LocationTypes.TownCity && playerGPS.CurrentLocation.Exterior.ExteriorData.PortTownAndUnknown != 0)
@@ -283,7 +286,7 @@ namespace DaggerfallWorkshop.Game
                 case FactionFile.FactionRaces.Argonian:
                     return NameHelper.BankTypes.Argonian;
                 case FactionFile.FactionRaces.Breton:
-                    return NameHelper.BankTypes.Breton;
+                    return GetBretonName();
                 case FactionFile.FactionRaces.DarkElf:
                     return NameHelper.BankTypes.DarkElf;
                 case FactionFile.FactionRaces.HighElf:
@@ -313,18 +316,7 @@ namespace DaggerfallWorkshop.Game
                 case Races.Argonian:
                     return NameHelper.BankTypes.Argonian;
                 case Races.Breton:
-                    if (Array.IndexOf(WorldData.WorldSetting.RegionNames, GameManager.Instance.PlayerGPS.CurrentLocalizedRegionName) < 62)
-                    {
-                        if (DFRandom.rand() % 100 < 80)
-                            return NameHelper.BankTypes.Breton;
-                        else return NameHelper.BankTypes.BretonModern;
-                    }
-                    else{
-                        if (DFRandom.rand() % 100 < 80)
-                            return NameHelper.BankTypes.BretonModern;
-                        else return NameHelper.BankTypes.Breton;
-                    }
-                    break;
+                    return GetBretonName();
                 case Races.DarkElf:
                     return NameHelper.BankTypes.DarkElf;
                 case Races.HighElf:
@@ -341,6 +333,29 @@ namespace DaggerfallWorkshop.Game
                     return NameHelper.BankTypes.WoodElf;
                 default:
                     return NameHelper.BankTypes.Breton;
+            }
+        }
+
+        public static NameHelper.BankTypes GetBretonName(bool random = false)
+        {
+            if (random)
+            {
+                if (UnityEngine.Random.Range(0, 100) % 2 == 0)
+                    return NameHelper.BankTypes.Breton;
+                else return NameHelper.BankTypes.BretonModern;
+            }
+
+            if (Array.IndexOf(WorldData.WorldSetting.RegionNames, GameManager.Instance.PlayerGPS.CurrentLocalizedRegionName) < 62)
+            {
+                if (DFRandom.rand() % 100 < 80)
+                    return NameHelper.BankTypes.Breton;
+                else return NameHelper.BankTypes.BretonModern;
+            }
+            else
+            {
+                if (DFRandom.rand() % 100 < 80)
+                    return NameHelper.BankTypes.BretonModern;
+                else return NameHelper.BankTypes.Breton;
             }
         }
 

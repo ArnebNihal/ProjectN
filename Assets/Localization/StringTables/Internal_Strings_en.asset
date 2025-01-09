@@ -3737,15 +3737,15 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 838
-    m_Localized: Light Armour
+    m_Localized: Light Armor
     m_Metadata:
       m_Items: []
   - m_Id: 839
-    m_Localized: Medium Armour
+    m_Localized: Medium Armor
     m_Metadata:
       m_Items: []
   - m_Id: 840
-    m_Localized: Heavy Armour
+    m_Localized: Heavy Armor
     m_Metadata:
       m_Items: []
   - m_Id: 841
@@ -3894,6 +3894,70 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 877
     m_Localized: Your arrow material is not very effective against this opponent.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 878
+    m_Localized: '%pcn, you have disappointed us yet again, and you have not'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 879
+    m_Localized: made powerful enough connections to save your reputation.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 880
+    m_Localized: Our patience is limited and it's worn thin. Now your
+    m_Metadata:
+      m_Items: []
+  - m_Id: 881
+    m_Localized: membership, and by extension your life, is forfeit!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 882
+    m_Localized: '%pcn, you''ve disappointed us yet again with your bleedin'''
+    m_Metadata:
+      m_Items: []
+  - m_Id: 883
+    m_Localized: shoddy work and our patience has run as dry as a desert.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 884
+    m_Localized: An' without bringing in nearly enough dough or gaining
+    m_Metadata:
+      m_Items: []
+  - m_Id: 885
+    m_Localized: powerful connections, is not sufficient to save your skin.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 886
+    m_Localized: You're bloody done as a thief, get 'em lads!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 887
+    m_Localized: You can't climb whilst holding your weapon.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 888
+    m_Localized: You are not injured, you don't need to use bandages.
+    m_Metadata:
+      m_Items: []
+  - m_Id: 889
+    m_Localized: delivered a devastating blow!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 890
+    m_Localized: You delivered a devastating blow!
+    m_Metadata:
+      m_Items: []
+  - m_Id: 891
+    m_Localized: Glass
+    m_Metadata:
+      m_Items: []
+  - m_Id: 892
+    m_Localized: Imperial
+    m_Metadata:
+      m_Items: []
+  - m_Id: 893
+    m_Localized: Orc
     m_Metadata:
       m_Items: []
   - m_Id: 29516644352

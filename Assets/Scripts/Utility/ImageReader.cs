@@ -286,7 +286,7 @@ namespace DaggerfallWorkshop.Utility
                     }
                     else
                     {
-                        Debug.Log("Now loading textureNumber: " + textureNumber);
+                        // Debug.Log("Now loading textureNumber: " + textureNumber);
                         textureFile = new TextureFile(Path.Combine(WorldMaps.mapPath, "Textures", filename), FileUsage.UseMemory, true);
                         textureFile.LoadPalette(Path.Combine(WorldMaps.mapPath, "Textures", textureFile.PaletteName));
                         dfBitmap = textureFile.GetCustomDFBitmap(textureNumber, record, frame, TextureReader.MapsPath);
@@ -318,12 +318,33 @@ namespace DaggerfallWorkshop.Utility
                     break;
 
                 case ImageTypes.IMG:
-                    ImgFile imgFile = new ImgFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
-                    imgFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, imgFile.PaletteName));
-                    dfBitmap = imgFile.GetDFBitmap();
-                    imageData.offset = imgFile.ImageOffset;
-                    imageData.scale = new DFSize();
-                    imageData.size = imgFile.GetSize(0);
+                    if (!filename.StartsWith("BODY08") && !filename.StartsWith("BODY18") && !filename.StartsWith("BODY09") && !filename.StartsWith("BODY19"))
+                    {
+                        ImgFile imgFile = new ImgFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
+                        imgFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, imgFile.PaletteName));
+                        dfBitmap = imgFile.GetDFBitmap();
+                        imageData.offset = imgFile.ImageOffset;
+                        Debug.Log("ImageOffset: " + imgFile.ImageOffset);
+                        imageData.scale = new DFSize();
+                        imageData.size = imgFile.GetSize(0);
+                    }
+                    else{
+                        filename = filename + ".png";
+                        Debug.Log("body file: " + filename);
+                        ImgFile fakeHeader = new ImgFile();
+                        ImgFile imgFile = new ImgFile(Path.Combine(WorldMaps.mapPath, "Textures", "Races", filename), FileUsage.UseMemory, true);
+                        imgFile.LoadPalette(Path.Combine(WorldMaps.mapPath, "Textures", "Races", imgFile.PaletteName));
+                        dfBitmap = imgFile.GetCustomDFBitmap(filename, out fakeHeader);
+                        imageData.offset = fakeHeader.ImageOffset;
+                        imageData.scale = new DFSize();
+                        imageData.size = new DFSize(dfBitmap.Width, dfBitmap.Height);
+                        Debug.Log("imageData.size: " + imageData.size.Width + ", " + imageData.size.Height);
+                        imageData.texture = new Texture2D(4, 4);
+                        if (!imageData.texture.LoadImage(dfBitmap.Data, false))
+                            Debug.Log("Unable to load image " + filename);
+                        imageData.texture.filterMode = FilterMode.Point;
+                        createTexture = false;
+                    }
 
                     // Texture pack support
                     if (createTexture && AssetInjection.TextureReplacement.TryImportImage(filename, false, out imageData.texture))
@@ -333,12 +354,29 @@ namespace DaggerfallWorkshop.Utility
 
                 case ImageTypes.CIF:
                 case ImageTypes.RCI:
-                    CifRciFile cifFile = new CifRciFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
-                    cifFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, cifFile.PaletteName));
-                    dfBitmap = cifFile.GetDFBitmap(record, frame);
-                    imageData.offset = cifFile.GetOffset(record);
-                    imageData.scale = new DFSize();
-                    imageData.size = cifFile.GetSize(record);
+                    if (!filename.StartsWith("FACE08") && !filename.StartsWith("FACE18") && !filename.StartsWith("FACE09") && !filename.StartsWith("FACE19"))
+                    {
+                        CifRciFile cifFile = new CifRciFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
+                        cifFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, cifFile.PaletteName));
+                        dfBitmap = cifFile.GetDFBitmap(record, frame);
+                        imageData.offset = cifFile.GetOffset(record);
+                        imageData.scale = new DFSize();
+                        imageData.size = cifFile.GetSize(record);
+                    }
+                    else{
+                        filename = filename + "_" + record + "-" + frame + ".png";
+                        CifRciFile cifFile = new CifRciFile(Path.Combine(WorldMaps.mapPath, "Textures", "Races", filename), FileUsage.UseMemory, true);
+                        cifFile.LoadPalette(Path.Combine(WorldMaps.mapPath, "Textures", "Races", cifFile.PaletteName));
+                        dfBitmap = cifFile.GetCustomDFBitmap(filename, record, frame, out imageData);
+                        // imageData.offset = new DFPosition();
+                        // imageData.scale = new DFSize();
+                        // imageData.size = new DFSize();
+                        imageData.texture = new Texture2D(4, 4);
+                        if (!imageData.texture.LoadImage(dfBitmap.Data, false))
+                            Debug.Log("Unable to load image " + filename);
+                        imageData.texture.filterMode = FilterMode.Point;
+                        createTexture = false;
+                    }
 
                     // Texture pack support
                     if (createTexture && AssetInjection.TextureReplacement.TryImportCifRci(filename, record, frame, false, out imageData.texture))

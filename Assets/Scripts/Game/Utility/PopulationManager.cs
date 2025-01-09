@@ -99,8 +99,8 @@ namespace DaggerfallWorkshop.Game.Utility
             // populationRace = playerGPS.ClimateSettings.People;
             populationRaces = WorldData.WorldSetting.regionRaces[playerGPS.CurrentRegionIndex];
             mainPopulationRace = populationRaces / 100;
-            secondaryPopulationRace = (populationRaces - mainPopulationRace) / 10;
-            tertiaryPopulationRace = populationRaces - (mainPopulationRace + secondaryPopulationRace);
+            secondaryPopulationRace = (populationRaces % 100) / 10;
+            tertiaryPopulationRace = populationRaces % 10;
 
             // Calculate maximum population
             int totalBlocks = dfLocation.Summary.BlockWidth * dfLocation.Summary.BlockHeight;
@@ -184,7 +184,7 @@ namespace DaggerfallWorkshop.Game.Utility
             MagicAndEffects.MagicEffects.RacialOverrideEffect racialOverride = GameManager.Instance.PlayerEffectManager.GetRacialOverrideEffect();
             bool suppressPopulationSpawns = racialOverride != null && racialOverride.SuppressPopulationSpawns;
 
-            bool isDaytime = DaggerfallUnity.Instance.WorldTime.Now.IsDay;
+            bool isActivetime = DaggerfallUnity.Instance.WorldTime.Now.SettlementIsActive;
 
             for (int i = 0; i < populationPool.Count; i++)
             {
@@ -197,7 +197,7 @@ namespace DaggerfallWorkshop.Game.Utility
                 if (poolItem.active &&
                     poolItem.scheduleEnable &&
                     AllowMobileActivationChange(ref poolItem) &&
-                    isDaytime &&
+                    isActivetime &&
                     !suppressPopulationSpawns)
                 {
                     poolItem.npc.Motor.gameObject.SetActive(true);
@@ -225,7 +225,7 @@ namespace DaggerfallWorkshop.Game.Utility
                 // Mark for recycling
                 if (poolItem.npc.Motor.SeekCount > 4 ||
                     poolItem.distanceToPlayer > recycleDistance ||
-                    !isDaytime)
+                    !isActivetime)
                 {
                     poolItem.scheduleRecycle = true;
                 }

@@ -235,7 +235,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 for (int i = 0; i <= numOfItems; i++)
                 {
                     // Create magic item which is already identified
-                    DaggerfallUnityItem magicItem = ItemBuilder.CreateRandomMagicItem(playerEntity.Level, playerEntity.Gender, playerEntity.Race);
+                    DaggerfallUnityItem magicItem = ItemBuilder.CreateRandomMagicItem(playerEntity.Stats.LiveLuck, playerEntity.Gender, playerEntity.Race);
                     magicItem.IdentifyItem();
                     items.AddItem(magicItem);
                 }

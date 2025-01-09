@@ -1369,7 +1369,8 @@ namespace DaggerfallWorkshop.Utility
 
                 if (playerGPS.IsPlayerInLocationRect)
                 {
-                    if (isDay)
+                    bool isActiveTime = DaggerfallUnity.Instance.WorldTime.Now.SettlementIsActive;
+                    if (isActiveTime)
                         return MobileTypes.None;
 
                     // Player in location rectangle, night

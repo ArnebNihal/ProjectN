@@ -318,7 +318,7 @@ namespace DaggerfallWorkshop.Game.Questing
             if (itemClass == (int)ItemGroups.MagicItems)
             {
                 Entity.PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
-                result = ItemBuilder.CreateRegularMagicItem(itemSubClass, playerEntity.Level, playerEntity.Gender, playerEntity.Race);
+                result = ItemBuilder.CreateRegularMagicItem(itemSubClass, playerEntity.Stats.GetLiveStatValue(DaggerfallConnect.DFCareer.Stats.Luck), playerEntity.Gender, playerEntity.Race);
             }
             // Handle books
             else if (itemClass == (int)ItemGroups.Books)
@@ -364,6 +364,7 @@ namespace DaggerfallWorkshop.Game.Questing
         }
 
         // Create stack of gold pieces
+        // ProjectN: removing player level from equation.
         DaggerfallUnityItem CreateGold(int rangeLow, int rangeHigh)
         {
             // Get amount
@@ -372,7 +373,7 @@ namespace DaggerfallWorkshop.Game.Questing
             {
                 Entity.PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
 
-                int playerMod = (playerEntity.Level / 2) + 1;
+                int playerMod = 1;
                 int factionMod = 50;
                 IGuild guild = null;
                 if (ParentQuest.FactionId != 0)

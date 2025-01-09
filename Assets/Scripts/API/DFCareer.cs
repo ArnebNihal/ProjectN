@@ -189,6 +189,7 @@ namespace DaggerfallConnect
             // Unknown value
             // All classes are 0 except Ranger which has a value of 8
             // All monsters are 0
+            // ProjectN: it was probably referring to the cut Survival Advantage
             public Byte Unknown1;
 
             // bytes [9]
@@ -323,12 +324,13 @@ namespace DaggerfallConnect
             Steel = 2,
             Silver = 4,
             Elven = 8,
-            Dwarven = 16,
-            Mithril = 32,
-            Adamantium = 64,
-            Ebony = 128,
-            Orcish = 256,
-            Daedric = 512,
+            Glass = 16,
+            Dwarven = 32,
+            Orcish = 64,
+            Mithril = 128,
+            Adamantium = 256,
+            Ebony = 512,
+            Daedric = 1024,
         }
 
         /// <summary>
@@ -550,9 +552,9 @@ namespace DaggerfallConnect
             BluntWeapon = 32,
             Archery = 33,
             CriticalStrike = 34,
-            LightArmour = 35,
-            MediumArmour = 36,
-            HeavyArmour = 37,
+            LightArmor = 35,
+            MediumArmor = 36,
+            HeavyArmor = 37,
             Block = 38,
             Disguise = 39
         }

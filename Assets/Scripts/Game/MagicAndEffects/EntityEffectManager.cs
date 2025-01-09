@@ -46,6 +46,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects
         const int shockCastSoundID = 351;
         const int fireCastSoundID = 352;
         const int coldCastSoundID = 353;
+        public static float EncEffectScaleFactor = 2f;
 
         public DaggerfallMissile FireMissilePrefab;
         public DaggerfallMissile ColdMissilePrefab;
@@ -170,6 +171,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects
             {
                 DaggerfallRestWindow.OnSleepEnd += DaggerfallRestWindow_OnSleepEnd;
                 EntityEffectBroker.OnEndSyntheticTimeIncrease += EntityEffectBroker_OnEndSyntheticTimeIncrease;
+                EntityEffectBroker.OnNewMagicRound += EncumbranceEffects_OnNewMagicRound;
             }
         }
 
@@ -2161,6 +2163,35 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects
         private void EntityEffectBroker_OnEndSyntheticTimeIncrease()
         {
             RerollItemEffects();
+        }
+
+        private static void EncumbranceEffects_OnNewMagicRound()
+        {
+            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
+            if (!GameManager.IsGamePaused &&
+                !playerEntity.IsResting &&
+                playerEntity.CurrentHealth > 0 &&
+                !GameManager.Instance.EntityEffectBroker.SyntheticTimeIncrease &&
+                !DaggerfallUI.Instance.FadeBehaviour.FadeInProgress)
+            {
+                float encPc = Mathf.Min(playerEntity.CarriedWeight / playerEntity.MaxEncumbrance, 1.2f);
+                float encOver = Mathf.Max(encPc - 0.75f, 0f) * EncEffectScaleFactor;
+                if (encOver > 0)
+                {
+                    int speedEffect = Mathf.Min(playerEntity.Stats.LiveSpeed - 2, (int)(playerEntity.Stats.PermanentSpeed * encOver));
+                    int fatigueEffect = Mathf.Min(playerEntity.CurrentFatigue - 100, (int)(encOver * 100));
+
+#if UNITY_EDITOR
+                    Debug.LogFormat("Encumbrance {0}, over {1} = effects: {2} speed, {3} fatigue  speed={4}", encPc, encOver, speedEffect, fatigueEffect, playerEntity.Stats.LiveSpeed);
+#endif
+                    playerEntity.DecreaseFatigue(fatigueEffect, false);
+
+                    EntityEffectManager playerEffectManager = playerEntity.EntityBehaviour.GetComponent<EntityEffectManager>();
+                    int[] statMods = new int[DaggerfallStats.Count];
+                    statMods[(int)DFCareer.Stats.Speed] = -speedEffect;
+                    playerEffectManager.MergeDirectStatMods(statMods);
+                }
+            }
         }
 
         #endregion

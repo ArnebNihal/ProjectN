@@ -97,7 +97,7 @@ namespace DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects
             Params type = (Params)EnchantmentParam.Value.ClassicParam;
             if (EnchantmentParam.Value.ClassicParam < 4)
             {
-                DaggerfallDateTime.Seasons currentSeason = DaggerfallUnity.Instance.WorldTime.Now.ActualSeasonValue;
+                DaggerfallDateTime.Seasons currentSeason = DaggerfallUnity.Instance.WorldTime.Now.GenericSeasonValue;
                 if (type == Params.DuringWinter && currentSeason == DaggerfallDateTime.Seasons.Winter ||
                     type == Params.DuringSpring && currentSeason == DaggerfallDateTime.Seasons.Spring ||
                     type == Params.DuringSummer && currentSeason == DaggerfallDateTime.Seasons.Summer ||

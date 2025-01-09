@@ -13,6 +13,8 @@ using DaggerfallConnect.Arena2;
 using DaggerfallConnect.Utility;
 using DaggerfallWorkshop.Game.Banking;
 using DaggerfallWorkshop.Game.Items;
+using System.Collections.Generic;
+using DaggerfallConnect;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -65,6 +67,11 @@ namespace DaggerfallWorkshop.Game
         public ImageData RidingTexture { get { return ridingTexture; } }
         public int FrameIndex { get { return frameIndex; } }
 
+        public Color Tint { get; set; } = Color.white;
+
+        public void AddHorseItemIndex(int index) { horseItemIndexes.Add(index); }
+        List<int> horseItemIndexes = new List<int>() { (int)Transportation.Horse };
+
         #endregion
 
         #region Public Methods
@@ -96,7 +103,11 @@ namespace DaggerfallWorkshop.Game
         {
             ItemCollection inventory = GameManager.Instance.PlayerEntity.Items;
 
-            return inventory.Contains(ItemGroups.Transportation, (int)Transportation.Horse);
+            foreach (int horseItemIndex in horseItemIndexes)
+                if (inventory.Contains(ItemGroups.Transportation, horseItemIndex))
+                    return true;
+
+            return false;
         }
 
         /// <summary>
@@ -118,8 +129,7 @@ namespace DaggerfallWorkshop.Game
             }
         }
 
-        public delegate bool PlayerShipAvailiable();
-        public PlayerShipAvailiable ShipAvailiable { get; set; }
+        public bool ShipAvailable { get; set; }
 
         /// <summary>
         /// True when player has bought a ship
@@ -170,7 +180,7 @@ namespace DaggerfallWorkshop.Game
 
         void Awake()
         {
-            ShipAvailiable = HasShip;
+            ShipAvailable = (HasShip() && IsShipAvailable());
         }
 
         // Use this for initialization
@@ -391,7 +401,21 @@ namespace DaggerfallWorkshop.Game
                 DaggerfallUI.Instance.FadeBehaviour.FadeHUDFromBlack();
                 mode = TransportModes.Foot;
             }
-        } 
+        }
+
+        private static bool IsShipAvailable()
+        {
+            if (GameManager.Instance.TransportManager.IsOnShip())
+                return true;
+
+            DaggerfallConnect.DFLocation location = GameManager.Instance.PlayerGPS.CurrentLocation;
+            if (location.Loaded == true)
+            {
+                return location.Exterior.ExteriorData.PortTownAndUnknown != 0 && DaggerfallBankManager.OwnsShip;
+            }
+            return false;
+        }
+
         #endregion
     }
 }

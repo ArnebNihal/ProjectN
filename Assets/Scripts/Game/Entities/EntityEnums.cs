@@ -32,7 +32,6 @@ namespace DaggerfallWorkshop.Game.Entity
     public enum Races
     {
         None = -1,
-        Imperial = 0,
         Breton = 1,
         Redguard = 2,
         Nord = 3,
@@ -41,10 +40,11 @@ namespace DaggerfallWorkshop.Game.Entity
         WoodElf = 6,
         Khajiit = 7,
         Argonian = 8,
-        Vampire = 9,
-        Werewolf = 10,
-        Wereboar = 11,
-        Orc = 12
+        Imperial = 9,
+        Orc = 10,
+        Vampire = 51,
+        Werewolf = 52,
+        Wereboar = 53,
     }
 
     /// <summary>
@@ -114,9 +114,9 @@ namespace DaggerfallWorkshop.Game.Entity
         BluntWeapon = 32,
         Archery = 33,
         CriticalStrike = 34,
-        LightArmour = 35,
-        MediumArmour = 36,
-        HeavyArmour = 37,
+        LightArmor = 35,
+        MediumArmor = 36,
+        HeavyArmor = 37,
         Block = 38,
         Disguise = 39
     }

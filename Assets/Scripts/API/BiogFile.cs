@@ -491,9 +491,9 @@ namespace DaggerfallConnect.Arena2
                 case DFCareer.Skills.Block:
                 case DFCareer.Skills.BluntWeapon:
                 case DFCareer.Skills.HandToHand:
-                case DFCareer.Skills.HeavyArmour:
+                case DFCareer.Skills.HeavyArmor:
                 case DFCareer.Skills.LongBlade:
-                case DFCareer.Skills.MediumArmour:
+                case DFCareer.Skills.MediumArmor:
                 case DFCareer.Skills.ShortBlade:
                     return (int)BiogQuestType.Combat;
                     break;
@@ -504,7 +504,7 @@ namespace DaggerfallConnect.Arena2
                 case DFCareer.Skills.Disguise:
                 case DFCareer.Skills.Dodging:
                 case DFCareer.Skills.Jumping:
-                case DFCareer.Skills.LightArmour:
+                case DFCareer.Skills.LightArmor:
                 case DFCareer.Skills.Lockpicking:
                 case DFCareer.Skills.Pickpocket:
                 case DFCareer.Skills.Stealth:
@@ -1009,7 +1009,7 @@ namespace DaggerfallConnect.Arena2
             {
                 int itemGroup;
                 int groupIndex;
-                int material;
+                int material = -1;
                 if (!int.TryParse(tokens[1], out itemGroup)
                     || !int.TryParse(tokens[2], out groupIndex)
                     || !int.TryParse(tokens[3], out material))
@@ -1017,6 +1017,9 @@ namespace DaggerfallConnect.Arena2
                     Debug.LogError("CreateCharBiography: IT - invalid argument(s).");
                     return;
                 }
+
+                if (material != -1)
+                    material++;
 
                 DaggerfallUnityItem newItem = null;
                 if ((ItemGroups)itemGroup == ItemGroups.Weapons)

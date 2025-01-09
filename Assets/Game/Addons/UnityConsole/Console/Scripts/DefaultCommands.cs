@@ -23,6 +23,8 @@ using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallConnect.FallExe;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
+using DaggerfallWorkshop.Game.Utility;
+using DaggerfallConnect.Save;
 
 namespace Wenzil.Console
 {
@@ -118,6 +120,8 @@ namespace Wenzil.Console
 
             ConsoleCommandsDatabase.RegisterCommand(SummonDaedra.name, SummonDaedra.description, SummonDaedra.usage, SummonDaedra.Execute);
             ConsoleCommandsDatabase.RegisterCommand(ChangeModSettings.name, ChangeModSettings.description, ChangeModSettings.usage, ChangeModSettings.Execute);
+            ConsoleCommandsDatabase.RegisterCommand(PrintSpellList.name, PrintSpellList.description, PrintSpellList.usage, PrintSpellList.Execute);
+            ConsoleCommandsDatabase.RegisterCommand(FastFlying.command, FastFlying.description, FastFlying.usage, FastFlying.Execute);
         }
 
         private static class DumpRegion
@@ -1153,8 +1157,6 @@ namespace Wenzil.Console
 
         }
 
-
-
         private static class TeleportToDungeonDoor
         {
             public static readonly string name = "tele2exit";
@@ -1737,10 +1739,10 @@ namespace Wenzil.Console
                             newItem = ItemBuilder.CreateRandomBook();
                             break;
                         case "weapon":
-                            newItem = ItemBuilder.CreateRandomWeapon(playerEntity.Level);
+                            newItem = ItemBuilder.CreateRandomWeapon(playerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck));
                             break;
                         case "armor":
-                            newItem = ItemBuilder.CreateRandomArmor(playerEntity.Level, playerEntity.Gender, playerEntity.Race);
+                            newItem = ItemBuilder.CreateRandomArmor(playerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck), playerEntity.Gender, playerEntity.Race);
                             break;
                         case "cloth":
                             newItem = ItemBuilder.CreateRandomClothing(playerEntity.Gender, playerEntity.Race);
@@ -1755,13 +1757,13 @@ namespace Wenzil.Console
                             newItem = ItemBuilder.CreateRandomlyFilledSoulTrap();
                             break;
                         case "magic":
-                            newItem = ItemBuilder.CreateRandomMagicItem(playerEntity.Level, playerEntity.Gender, playerEntity.Race);
+                            newItem = ItemBuilder.CreateRandomMagicItem(playerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck), playerEntity.Gender, playerEntity.Race);
                             break;
                         case "drug":
                             newItem = ItemBuilder.CreateRandomDrug();
                             break;
                         case "map":
-                            newItem = ItemBuilder.CreateItem(ItemGroups.MiscItems, (int)MiscItems.Map);
+                            newItem = ItemBuilder.CreateLocationMap(exoticism: default, false, false, false);
                             break;
                         case "torch":
                             newItem = ItemBuilder.CreateItem(ItemGroups.UselessItems2, (int)UselessItems2.Torch);
@@ -1973,12 +1975,12 @@ namespace Wenzil.Console
             public static MaterialTypes[] armorMaterials = {
                 MaterialTypes.Iron, MaterialTypes.Steel,
                 MaterialTypes.Silver, MaterialTypes.Elven, MaterialTypes.Dwarven, MaterialTypes.Mithril,
-                MaterialTypes.Adamantium, MaterialTypes.Ebony, MaterialTypes.Orcish, MaterialTypes.Daedric
+                MaterialTypes.Adamantium, MaterialTypes.Ebony, MaterialTypes.Orcish, MaterialTypes.Daedric, MaterialTypes.Glass
             };
             public static MaterialTypes[] weaponMaterials = {
                 MaterialTypes.Iron, MaterialTypes.Steel, MaterialTypes.Silver, MaterialTypes.Elven,
                 MaterialTypes.Dwarven, MaterialTypes.Mithril, MaterialTypes.Adamantium, MaterialTypes.Ebony,
-                MaterialTypes.Orcish, MaterialTypes.Daedric
+                MaterialTypes.Orcish, MaterialTypes.Daedric, MaterialTypes.Glass
             };
             public static List<MensClothing> mensUsableClothing = new List<MensClothing>() {
                 MensClothing.Casual_cloak, MensClothing.Formal_cloak, MensClothing.Reversible_tunic, MensClothing.Plain_robes,
@@ -2777,6 +2779,78 @@ namespace Wenzil.Console
 
                 Debug.LogError("Failed to find console controller.");
                 return false;
+            }
+        }
+
+        private static class PrintSpellList
+        {
+            public static readonly string name = "printspelllist";
+            public static readonly string description = "Dump classic spell list (from SPELL.STD) to json file";
+            public static readonly string usage = "printspelllist";
+
+            public static string Execute(params string[] args)
+            {
+                SpellRecord.SpellRecordData spell = new SpellRecord.SpellRecordData();
+                List<SpellRecord.SpellRecordData> spellList = new List<SpellRecord.SpellRecordData>();
+                for (int i = 0; i < 100; i++)
+                {
+                    GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(i, out spell);
+                    if (spell != null)
+                        spellList.Add(spell);
+                }
+                string fileName = "SpellList.json";
+                string spellJson = SaveLoadManager.Serialize(spellList.GetType(), spellList);
+                File.WriteAllText(Path.Combine(WorldMaps.mapPath, fileName), spellJson);
+
+                return "Success..?";
+            }
+        }
+
+        private static class FastFlying
+        {
+            public static readonly string command = "fastflying";
+            public static readonly string description = "Toggle noclip by turning off all collisions and activates levitate, but with super sonic speed as well.";
+            public static readonly string usage = "fastflying [n]; try something like: 'fastflying' or for a custom speed setting, 'fastflying 100' or even 'fastflying 52.8'";
+
+            public static string Execute(params string[] args)
+            {
+                PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
+                LevitateMotor levitateMotor = GameManager.Instance.PlayerMotor.GetComponent<LevitateMotor>();
+                float n = 4.0f;
+
+                if (args.Length > 1)
+                    return "Error - Too many arguments, check the usage notes.";
+
+                if (args.Length > 0)
+                {
+                    if (!float.TryParse(args[0], out n))
+                        return string.Format("`{0}` is not a number, please use a number for [n].", args[0]);
+                    if (n < 4.0f)
+                        return "Invalid amount, [n] must be a value greater than or equal to 4.0, since this is the default levitation speed.";
+                }
+
+                if (playerEntity != null && levitateMotor != null)
+                {
+                    playerEntity.NoClipMode = !playerEntity.NoClipMode;
+                    levitateMotor.IsLevitating = playerEntity.NoClipMode;
+                    GameManager.Instance.PlayerController.gameObject.layer = playerEntity.NoClipMode ? LayerMask.NameToLayer("NoclipLayer") : LayerMask.NameToLayer("Player");
+
+                    if (playerEntity.NoClipMode)
+                    {
+                        if (args.Length == 1)
+                            levitateMotor.LevitateMoveSpeed = n; // Custom Speed Value
+                        else
+                            levitateMotor.LevitateMoveSpeed = 100.0f; // Default None Custom Speed Value
+                    }
+                    else
+                    {
+                        levitateMotor.LevitateMoveSpeed = 4.0f; // Default Levitation Speed, I.E. Very Slow
+                    }
+
+                    return string.Format("Fast Flying enabled: {0}", playerEntity.NoClipMode);
+                }
+                else
+                    return "Error - Something went wrong.";
             }
         }
     }

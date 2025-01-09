@@ -12,7 +12,9 @@
 #region Using Statements
 using System;
 using System.IO;
+using UnityEngine;
 using DaggerfallConnect.Utility;
+using Newtonsoft.Json;
 #endregion
 
 namespace DaggerfallConnect.Arena2
@@ -28,6 +30,8 @@ namespace DaggerfallConnect.Arena2
         /// File header.
         /// </summary>
         private ImgFileHeader header;
+
+        private ImgFileHeader fakeHeader;
 
         /// <summary>
         /// The image data for this image. Each IMG file only contains a single image.
@@ -123,6 +127,7 @@ namespace DaggerfallConnect.Arena2
                     return string.Empty;
 
                 string fn = Path.GetFileName(managedFile.FilePath);
+                Debug.Log("filePath: " + managedFile.FilePath + ", file name: " + fn);
 
                 // Handle special palettes
                 if (fn.Substring(0, 4) == "FMAP")
@@ -224,7 +229,8 @@ namespace DaggerfallConnect.Arena2
 
             // Validate filename
             string fn = Path.GetFileName(filePath);
-            if (!fn.EndsWith(".IMG", StringComparison.InvariantCultureIgnoreCase))
+            if (!fn.EndsWith(".IMG", StringComparison.InvariantCultureIgnoreCase) &&
+                !fn.EndsWith(".IMG.png", StringComparison.InvariantCultureIgnoreCase))
                 return false;
 
             // Handle unsupported files
@@ -274,6 +280,28 @@ namespace DaggerfallConnect.Arena2
                 return new DFBitmap();
 
             return GetDFBitmap();
+        }
+
+        public DFBitmap GetCustomDFBitmap(string filename, out ImgFile imgFile)
+        {
+            DFBitmap result = new DFBitmap();
+            byte[] fileBytes = File.ReadAllBytes(Path.Combine(WorldMaps.mapPath, "Textures", "Races", filename));
+
+            // string fileDataPath = Path.Combine(WorldMaps.mapPath, "Textures", "Races", "BodyTest.json");
+            // var json = JsonConvert.SerializeObject(fakeHeader, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+            // File.WriteAllText(fileDataPath, json);
+            fakeHeader = new ImgFileHeader();
+            fakeHeader = JsonConvert.DeserializeObject<ImgFileHeader>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "Textures", "Races", filename.Substring(0, (filename.Length - 4)))));
+            // imgFile = fakeHeader;
+            ReadFakeHeader(out imgFile);
+
+            result.Data = new byte[fileBytes.Length];
+            result.Data = fileBytes;
+            result.Width = imgFile.header.Width;
+            result.Height = imgFile.header.Height;
+            result.Palette = Palette;
+
+            return result;
         }
 
         /// <summary>
@@ -502,6 +530,20 @@ namespace DaggerfallConnect.Arena2
                     myPalette.Set(i, (byte)r, (byte)g, (byte)b);
                 }
             }
+        }
+
+        private void ReadFakeHeader(out ImgFile imgFile)
+        {
+            imgFile = new ImgFile();
+            imgFile.header.Position = fakeHeader.Position;
+            imgFile.header.XOffset = fakeHeader.XOffset;
+            imgFile.header.YOffset = fakeHeader.YOffset;
+            imgFile.header.Width = fakeHeader.Width;
+            imgFile.header.Height = fakeHeader.Height;
+            imgFile.header.Compression = CompressionFormats.Uncompressed;
+            imgFile.header.PixelDataLength = (ushort)(fakeHeader.Width * fakeHeader.Height);
+            imgFile.header.FrameCount = 0;
+            imgFile.header.DataPosition = fakeHeader.DataPosition;
         }
 
         #endregion

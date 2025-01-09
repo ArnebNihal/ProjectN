@@ -263,7 +263,7 @@ namespace DaggerfallWorkshop.Game.Entity
                     maxHealth = Random.Range(mobileEnemy.MinHealth, mobileEnemy.MaxHealth + 1);
                     for (int i = 0; i < ArmorValues.Length; i++)
                     {
-                        ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue * 5);
+                        ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue);
                     }
                 }
                 else
@@ -285,7 +285,7 @@ namespace DaggerfallWorkshop.Game.Entity
                 maxHealth = UnityEngine.Random.Range(mobileEnemy.MinHealth, mobileEnemy.MaxHealth + 1);
                 for (int i = 0; i < ArmorValues.Length; i++)
                 {
-                    ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue * 5);
+                    ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue);
                 }
             }
             else if (entityType == EntityTypes.EnemyClass)
@@ -446,9 +446,9 @@ namespace DaggerfallWorkshop.Game.Entity
                     // How I read it, if the equipment has a better value than the standard monster value,
                     // the former is reduced to the standard; how I see it, it should be that, if the equipment
                     // has a lower value than the standard, it should be raised to the standard value.
-                    if (ArmorValues[i] > (sbyte)(mobileEnemy.ArmorValue * 5))
+                    if (ArmorValues[i] > (sbyte)(mobileEnemy.ArmorValue))
                     {
-                        ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue * 5);
+                        ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue);
                     }
                 }
             }

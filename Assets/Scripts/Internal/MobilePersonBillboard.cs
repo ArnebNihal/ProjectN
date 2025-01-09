@@ -303,7 +303,7 @@ namespace DaggerfallWorkshop
 
             isUsingGuardTexture = isGuard;
             MapsFile.Climates climate = (MapsFile.Climates)GameManager.Instance.PlayerGPS.CurrentClimateIndex;
-            DaggerfallDateTime.Seasons season = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ActualSeasonValue;
+            DaggerfallDateTime.Seasons season = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.GenericSeasonValue;
 
             if (isGuard)
             {

@@ -491,14 +491,14 @@ namespace DaggerfallWorkshop.Game
                 wasPaused = true;
 
                 // Allow quickload during death
-                if (GameManager.Instance.PlayerObject && GameManager.Instance.PlayerDeath.DeathInProgress)
-                {
-                    KeyCode quickLoadBinding = GetBinding(Actions.QuickLoad);
-                    if (GetKey(quickLoadBinding))
-                    {
-                        currentActions.Add(Actions.QuickLoad);
-                    }
-                }
+                // if (GameManager.Instance.PlayerObject && GameManager.Instance.PlayerDeath.DeathInProgress)
+                // {
+                //     KeyCode quickLoadBinding = GetBinding(Actions.QuickLoad);
+                //     if (GetKey(quickLoadBinding))
+                //     {
+                //         currentActions.Add(Actions.QuickLoad);
+                //     }
+                // }
 
                 return;
             }

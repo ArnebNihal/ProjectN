@@ -67,6 +67,9 @@ namespace DaggerfallWorkshop
 
         void Start()
         {
+            if (!GameManager.Instance.IsReady)
+                return;
+                
             if (Application.isPlaying)
             {
                 // Get component references

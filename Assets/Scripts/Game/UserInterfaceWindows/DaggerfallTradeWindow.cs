@@ -268,10 +268,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         Color RepairItemBackgroundColourHandler(DaggerfallUnityItem item)
         {
-            if (DaggerfallUnity.Settings.InstantRepairs)
-                return (item.currentCondition == item.maxCondition) ? repairItemBackgroundColor : Color.clear;
-            else
-                return (item.RepairData.IsBeingRepaired()) ? repairItemBackgroundColor : Color.clear;
+            return (item.RepairData.IsBeingRepaired()) ? repairItemBackgroundColor : Color.clear;
         }
 
         Texture2D[] BuyItemBackgroundAnimationHandler(DaggerfallUnityItem item)

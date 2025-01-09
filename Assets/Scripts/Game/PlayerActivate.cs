@@ -423,8 +423,9 @@ namespace DaggerfallWorkshop.Game
                         }
                     }
 
-                    // Check for functional interior furniture: Ladders, Bookshelves.
+                    // Check for functional interior furniture: Ladders, Bookshelves, Beds.
                     ActivateLaddersAndShelves(hit);
+                    ActivateBed(hit);
 
                     // Invoke any matched custom flat / model activations registered by mods.
                     string flatModelName = hit.transform.gameObject.name;
@@ -852,6 +853,23 @@ namespace DaggerfallWorkshop.Game
             }
         }
 
+        void ActivateBed(RaycastHit hit)
+        {
+            DaggerfallBed bed = hit.transform.GetComponent<DaggerfallBed>();
+            if (bed)
+            {
+                if (hit.distance > DefaultActivationDistance)
+                {
+                    DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youAreTooFarAway"));
+                    return;
+                }
+                if (bed)
+                {
+                    bed.Rest();
+                }
+            }
+        }
+
         void ActivateLootContainer(RaycastHit hit, DaggerfallLoot loot)
         {
             // Check if close enough to activate for all types, except for corpses
@@ -977,7 +995,7 @@ namespace DaggerfallWorkshop.Game
                 // but the difficulty text is always based on the exterior function.
                 // DF Unity doesn't have exterior locked doors yet, so the below uses the interior function.
                 // TODO: Implement LookAtExteriorLock variant for exterior doors
-                int chance = FormulaHelper.CalculateInteriorLockpickingChance(player.Level, lockValue, player.Skills.GetLiveSkillValue(DFCareer.Skills.Lockpicking));
+                int chance = FormulaHelper.CalculateInteriorLockpickingChance(lockValue, player.Skills.GetLiveSkillValue(DFCareer.Skills.Lockpicking));
 
                 if (chance >= 30)
                     if (chance >= 35)
@@ -1125,6 +1143,7 @@ namespace DaggerfallWorkshop.Game
             // Perform transition
             playerEnterExit.BuildingDiscoveryData = db;
             playerEnterExit.IsPlayerInsideOpenShop = RMBLayout.IsShop(db.buildingType) && IsBuildingOpen(db.buildingType);
+            playerEnterExit.IsPlayerInsideClosedShop = RMBLayout.IsShop(db.buildingType) && !IsBuildingOpen(db.buildingType);
             playerEnterExit.IsPlayerInsideTavern = RMBLayout.IsTavern(db.buildingType);
             playerEnterExit.IsPlayerInsideResidence = RMBLayout.IsResidence(db.buildingType);
             playerEnterExit.TransitionInterior(doorOwner, door, doFade, false);
@@ -1804,7 +1823,7 @@ namespace DaggerfallWorkshop.Game
             int[] validWeapons = { 113, 114, 116, 117, 121, 124, 127 };
             do
             {
-                newItem = ItemBuilder.CreateRandomWeapon(player.Level);
+                newItem = ItemBuilder.CreateRandomWeapon(player.Stats.GetLiveStatValue(DFCareer.Stats.Luck));
             }
             while (!validWeapons.Contains(newItem.TemplateIndex));
             gotWeapon = gotWeapon.Replace("%w", newItem.LongName);
@@ -1857,7 +1876,7 @@ namespace DaggerfallWorkshop.Game
             if (diceRoll <= 50)     // Get local town map
             {
                 string gotTownMap = TextManager.Instance.GetLocalizedText("townMapStolen");
-                newItem = ItemBuilder.CreateTownMap(playerGPS.CurrentLocation);
+                newItem = ItemBuilder.CreateTownMap(location: playerGPS.CurrentLocation);
                 player.Items.AddItem(newItem);
                 DaggerfallUI.MessageBox(gotTownMap);
             }
@@ -2007,7 +2026,7 @@ namespace DaggerfallWorkshop.Game
                 string gotWeapon = TextManager.Instance.GetLocalizedText("weaponStolen");
                 int[] validWeapons = { 113, 114, 116, 117, 121, 124, 127 };
                 do{
-                    newItem = ItemBuilder.CreateRandomWeapon(player.Level);
+                    newItem = ItemBuilder.CreateRandomWeapon(player.Stats.GetLiveStatValue(DFCareer.Stats.Luck));
                 }
                 while (!validWeapons.Contains(newItem.TemplateIndex));
                 gotWeapon = gotWeapon.Replace("%w", newItem.LongName);
@@ -2057,7 +2076,7 @@ namespace DaggerfallWorkshop.Game
             }
             else{
                 string gotMagicItem = TextManager.Instance.GetLocalizedText("magicItemStolen");
-                newItem = ItemBuilder.CreateRandomMagicItem(player.Level, player.Gender, player.Race);
+                newItem = ItemBuilder.CreateRandomMagicItem(player.Stats.GetLiveStatValue(DFCareer.Stats.Luck), player.Gender, player.Race);
                 player.Items.AddItem(newItem);
                 DaggerfallUI.MessageBox(gotMagicItem);
             }
@@ -2180,7 +2199,7 @@ namespace DaggerfallWorkshop.Game
                 string gotWeapon = TextManager.Instance.GetLocalizedText("weaponStolen");
                 int[] validWeapons = { 113, 114, 116, 117, 121, 124, 127 };
                 do{
-                    newItem = ItemBuilder.CreateRandomWeapon(player.Level);
+                    newItem = ItemBuilder.CreateRandomWeapon(player.Stats.GetLiveStatValue(DFCareer.Stats.Luck));
                 }
                 while (!validWeapons.Contains(newItem.TemplateIndex));
                 gotWeapon = gotWeapon.Replace("%w", newItem.LongName);

@@ -10,6 +10,7 @@
 //
 
 #region Using Statements
+using UnityEngine;
 using System;
 using System.IO;
 using DaggerfallConnect.Utility;
@@ -223,6 +224,7 @@ namespace DaggerfallConnect.Arena2
         private void ReadPalette(int index)
         {
             // Read palette data if not already stored
+            Debug.Log("index: " + index);
             if (null == palettes[index])
             {
                 BinaryReader Reader = managedFile.GetReader(paletteDataPosition + (776 * index) + 8);

@@ -11084,26 +11084,16 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 621
-    m_Localized: 'Nords hail from the province of Skyrim. You are[/center]
-
-      part
-      of a tall and fair-skinned people, strong,[/center]
-
-      willful, and hardy.
-      Owing to the climate of Skyrim,[/center]
-
-      Nords are resistant to the
-      coldest of temperatures, and[/center]
-
-      take little damage even from ice-based
-      magical[/center]
-
-      attacks. Nords are historically well-suited[/center]
-
-      to
-      all the arts of the warrior.[/center]
-
-      Is your character to be a Nord?[/center]
+    m_Localized: 'The citizens of Skyrim are aggressive and fearless in war,[/center]
+    industrious and enterprising in trade and exploration.[/center]
+    Strong, stubborn, and hardy, Nords are famous for their[/center]
+    resistance to cold, even magical frost. Violence is an accepted[/center]
+    and comfortable aspect of Nord culture; Nords of all classes[/center]
+    are skilled with a variety of weapon and armor styles, and they[/center]
+    cheerfully face battle with an ecstatic ferocity that shocks[/center]
+    and appalls their enemies.[/center]
+    [/center]
+    Is your character to be a Nord?[/center]
 
       [/end]'
     m_Metadata:
@@ -11129,7 +11119,7 @@ MonoBehaviour:
       excellent climbers, and adept in[/center]
 
       all the arts of the thief.[/center]
-
+      [/center]
       Is
       your character to be a Khajiiti?[/center]
 
@@ -11137,146 +11127,91 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 623
-    m_Localized: 'Redguards hail from the province of Hammerfell.[/center]
-
-      You
-      are part of a dark-skinned people, extremely[/center]
-
-      hardy and quick.
-      Legend has it that the Redguard[/center]
-
-      are innately more proficient
-      with weaponry than any[/center]
-
-      other race. In general, Redguards[/center]
-
-      make
-      excellent warriors.[/center]
-
-      Is your character to be a Redguard?[/center]
+    m_Localized: 'The most naturally talented warriors in Tamriel,[/center]
+    the dark-skinned, wiry-haired Redguards of Hammerfell[/center]
+    seem born to battle, though their pride and fierce independence[/center]
+    of spirit makes them more suitable as scouts or skirmishers,[/center]
+    or as free-ranging heroes and adventurers,[/center]
+    than as rank-and-file soldiers. In addition to their cultural[/center]
+    affinities for many weapon and armor styles, Redguards are also[/center]
+    physically blessed with hardy constitutions and quickness of foot.[/center]
+    [/center]
+    Is your character to be a Redguard?[/center]
 
       [/end]'
     m_Metadata:
       m_Items: []
   - m_Id: 624
-    m_Localized: 'Bretons hail from the province of High Rock.[/center]
-
-      You
-      are part of a tall, fair-skinned people,[/center]
-
-      highly intelligent
-      and willful. Magic seems to[/center]
-
-      infuse the very being of the Breton
-      people.[/center]
-
-      As a race, they are more resistant to the effects[/center]
-
-      of
-      hostile magic than any other group, and[/center]
-
-      thus are excellent
-      in all arcane arts.[/center]
-
-      Is your character to be a Breton?[/center]
+    m_Localized: 'Passionate and eccentric, poetic and flamboyant,[/center]
+    intelligent and willful, the Bretons feel an inborn,[/center]
+    instinctive bond with the mercurial forces of magic and[/center]
+    the supernatural. Many great sorcerers have come out[/center]
+    of their home province of High Rock, and in addition[/center]
+    to their quick and perceptive grasp of spellcraft,[/center]
+    enchantment, and alchemy, even the humblest of Bretons[/center]
+    can boast a high resistance to destructive and[/center]
+    dominating magical energies.[/center]
+    [/center]
+    Is your character to be a Breton?[/center]
 
       [/end]'
     m_Metadata:
       m_Items: []
   - m_Id: 625
-    m_Localized: 'Argonians hail from the province of Black Marsh.[/center]
-
-      You
-      are part of a highly-evolved race[/center]
-
-      of reptiles, known for their
-      intelligence,[/center]
-
-      agility, and speed. Because of[/center]
-
-      their
-      reptilian nature, Argonians do not tire[/center]
-
-      easily when swimming.
-      While many Argonians have[/center]
-
-      successfully mastered the arts of
-      thievery and[/center]
-
-      spellcasting, there are some regarded well as
-      warriors.[/center]
-
-      Is your character to be an Argonian?[/center]
+    m_Localized: 'At home in water and on land, the Argonians[/center]
+    of Black Marsh are well-suited to the treacherous[/center]
+    swamps of their homeland, with natural immunities[/center]
+    protecting them from disease and poison. The female[/center]
+    life-phase is highly intelligent, and gifted in the magical arts.[/center]
+    The more aggressive male phase has the traits of the hunter:[/center]
+    stealth, speed, and agility. Argonians are reserved with strangers,[/center]
+    yet fiercely loyal to those they accept as friends.[/center]
+    [/center]
+    Is your character to be an Argonian?[/center]
 
       [/end]'
     m_Metadata:
       m_Items: []
   - m_Id: 626
-    m_Localized: 'Wood Elves hail from the province of Valenwood.[/center]
-
-      You
-      are part of a tall, fair-skinned people[/center]
-
-      known to be extremely
-      agile and quick.[/center]
-
-      Wood Elves have a natural affinity for the[/center]
-
-      bow
-      and arrow, and all members of their race[/center]
-
-      have some ability
-      with that weapon. There are[/center]
-
-      well-known Wood Elves in most every
-      class, but the[/center]
-
-      arts of thievery are their particular forte.[/center]
-
-      Is
-      your character to be a Wood Elf?[/center]
+    m_Localized: 'The Wood Elves are the various barbarian Elven clanfolk[/center]
+    of the Western Valenwood forests. These country cousins[/center]
+    of the High Elves and Dark Elves are nimble and quick[/center]
+    in body and wit, and because of their curious natures[/center]
+    and natural agility, Wood Elves are especially suitable as scouts,[/center]
+    agents, and thieves. But most of all, the Wood Elves are known[/center]
+    for their skills with bows; there are no finer archers in all of Tamriel.[/center]
+    [/center]
+    Is your character to be a Wood Elf?[/center]
 
       [/end]'
     m_Metadata:
       m_Items: []
   - m_Id: 627
-    m_Localized: 'High Elves hail from the province of Sumurset.[/center]
-
-      You
-      are part of a tall, golden-skinned people,[/center]
-
-      extremely intelligent,
-      agile, and willful.[/center]
-
-      The magical nature of Sumurset Isle has
-      made the High[/center]
-
-      Elves natural spellcasters who are immune to[/center]
-
-      paralysing
-      poisons and spells.[/center]
-
-      Is your character to be a High Elf?[/center]
+    m_Localized: 'The High Elves consider themselves the most civilized[/center]
+    culture of Tamriel; the common tongue of the Empire,[/center]
+    Tamrielic, is based on Altmer speech and writing,[/center]
+    and most of the Empire''s arts, crafts, and sciences[/center]
+    derive from High Elven traditions. Deft, intelligent,[/center]
+    and strong-willed, High Elves are often gifted in the arcane arts,[/center]
+    and High Elves boast that their sublime physical natures make them[/center]
+    far more resistant to paralysis than the "lesser races".[/center]
+    [/center]
+    Is your character to be a High Elf?[/center]
 
       [/end]'
     m_Metadata:
       m_Items: []
   - m_Id: 628
-    m_Localized: 'Dark Elves hail from the province of Morrowind.[/center]
-
-      You
-      are part of a tall, dark-skinned[/center]
-
-      people, known to be extremely
-      strong, intelligent,[/center]
-
-      and quick. They are extremely versatile
-      in all manners[/center]
-
-      of skills and well-known as warriors and mages.[/center]
-
-      Is
-      your character to be a Dark Elf?[/center]
+    m_Localized: 'In the Empire, "Dark Elves" is the common usage,[/center]
+    but in their Morrowind homeland, they call themselves[/center]
+    the "Dunmer". The dark-skinned, red-eyed Dark Elves[/center]
+    combine powerful intellect with strong and agile physiques,[/center]
+    producing superior warriors and sorcerers. On the battlefield,[/center]
+    Dark Elves are noted for their skilled and balanced integration[/center]
+    of swordsmen, marksmen, and war wizards. In character,[/center]
+    they are grim, distrusting, and disdainful of other races.[/center]
+    [/center]
+    Is your character to be a Dark Elf?[/center]
 
       [/end]'
     m_Metadata:
@@ -12786,7 +12721,7 @@ MonoBehaviour:
       a Warrior are: Axe, Long Blade,[/center]
 
       Blunt Weapon, Hand-to-Hand,
-      Archery, and Short Blade.[/center]
+      Block and Heavy Armor.[/center]
 
       Do you wish your character to be
       a Warrior?[/center]
@@ -26991,6 +26926,37 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 1408
     m_Localized: Dummy entry. Must always [/end]
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1409
+    m_Localized: 'The well-educated and well-spoken native of Cyrodiil[/center]
+    are known for the discipline and training[/center]
+    of their citizen armies. Though physically less imposing[/center]
+    than the other races, Imperials are shrewd diplomats[/center]
+    and traders, and these traits, along with their[/center]
+    remarkable skill and training as light infantry,[/center]
+    have enabled them to subdue all the other nations and races,[/center]
+    and to have erected the monument to peace and prosperity[/center]
+    that comprises the Glorious Empire.[/center]
+    [/center]
+    Is your character to be an Imperial?[/center]
+
+      [/end]'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 1410
+    m_Localized: These sophisticated barbarian beast peoples of[/center]
+    the Wrothgarian and Dragontail Mountains are noted[/center] 
+    for their unshakeable courage in war and their unflinching[/center] 
+    endurance of hardships. Orc warriors in heavy armor are among[/center] 
+    the finest front-line troops in the Empire. Most Imperial citizens[/center]
+    regard Orc society as rough and cruel, but there is much to admire[/center]
+    in their fierce tribal loyalties and generous equality of rank[/center]
+    and respect among the sexes.[/center]
+    [/center]
+    Is your character to be an Orc?[/center]
+
+      [/end]'
     m_Metadata:
       m_Items: []
   - m_Id: 45335265898790912

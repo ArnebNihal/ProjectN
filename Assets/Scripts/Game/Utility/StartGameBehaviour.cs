@@ -80,6 +80,7 @@ namespace DaggerfallWorkshop.Game.Utility
             public (int, int, int, DFBlock) primaryBuildingIndex;
             public (int, int, int, DFBlock) secondaryBuildingIndex;
             public StartingHouseData startingHouseData;
+            public List<int> givenAnswers;
         }
 
         public static StartLocation startingState = new StartLocation();
@@ -482,6 +483,10 @@ namespace DaggerfallWorkshop.Game.Utility
             // Apply biography effects to player entity
             BiogFile.ApplyEffects(characterDocument.biographyEffects, playerEntity);
 
+            // Discover initial locations
+            MapsFile.DiscoverCloseLocations(startingState.primaryPosition, startingState.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)startingState.givenAnswers[5], startingState.givenAnswers[5] == (int)AgeRanges.OldEnough, (startingState.givenAnswers[5]) / 2);
+            MapsFile.DiscoverCloseLocations(startingState.secondaryPosition, startingState.areaKnowledge.Item2, (AgeRanges)startingState.givenAnswers[5], AgeRanges.OldEnough, startingState.givenAnswers[5] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
+
             // Assign starting gear to player entity
             AssignStartingEquipment(playerEntity, characterDocument);
             
@@ -513,17 +518,17 @@ namespace DaggerfallWorkshop.Game.Utility
             lastStartMethod = StartMethods.NewCharacter;
 
             // Start main quest
-            QuestMachine.Instance.StartQuest("_TUTOR__");
-            QuestMachine.Instance.StartQuest("_BRISIEN");
+            // QuestMachine.Instance.StartQuest("_TUTOR__");
+            // QuestMachine.Instance.StartQuest("_BRISIEN");
 
             // Launch startup optional quest
-            if (!string.IsNullOrEmpty(LaunchQuest))
-            {
-                QuestMachine.Instance.StartQuest(LaunchQuest);
-                LaunchQuest = string.Empty;
-            }
+            // if (!string.IsNullOrEmpty(LaunchQuest))
+            // {
+            //     QuestMachine.Instance.StartQuest(LaunchQuest);
+            //     LaunchQuest = string.Empty;
+            // }
             // Launch any InitAtGameStart quests
-            GameManager.Instance.QuestListsManager.InitAtGameStartQuests();
+            // GameManager.Instance.QuestListsManager.InitAtGameStartQuests();
 
             if (OnStartGame != null)
                 OnStartGame(this, null);
@@ -871,62 +876,74 @@ namespace DaggerfallWorkshop.Game.Utility
         /// </summary>
         void SetStartingSpells(PlayerEntity playerEntity, CharacterDocument characterDocument)
         {
-            if (characterDocument.classIndex > 6 && !characterDocument.isCustom) // Class does not have starting spells
-                return;
+            Debug.Log("Starting Spells: Assigning Based on Skills");
 
-            // Get starting set based on class
-            int spellSetIndex = -1;
-            if (characterDocument.isCustom)
+            // Skill based items
+            AssignSkillSpells(playerEntity, playerEntity.Career.PrimarySkill1, true);
+            AssignSkillSpells(playerEntity, playerEntity.Career.PrimarySkill2, true);
+            AssignSkillSpells(playerEntity, playerEntity.Career.PrimarySkill3, true);
+
+            AssignSkillSpells(playerEntity, playerEntity.Career.MajorSkill1);
+            AssignSkillSpells(playerEntity, playerEntity.Career.MajorSkill2);
+            AssignSkillSpells(playerEntity, playerEntity.Career.MajorSkill3);
+
+            Debug.Log("Starting Spells: Assigning Finished");
+        }
+
+        static void AssignSkillSpells(PlayerEntity playerEntity, DFCareer.Skills skill, bool primary = false)
+        {
+            // ItemCollection items = playerEntity.Items;
+            Genders gender = playerEntity.Gender;
+            Races race = playerEntity.Race;
+
+            switch (skill)
             {
-                DFCareer dfc = characterDocument.career;
-
-                // Custom class uses Spellsword starting spells if it has at least 1 primary or major magic skill
-                if (Enum.IsDefined(typeof(DFCareer.MagicSkills), (int)dfc.PrimarySkill1) ||
-                    Enum.IsDefined(typeof(DFCareer.MagicSkills), (int)dfc.PrimarySkill2) ||
-                    Enum.IsDefined(typeof(DFCareer.MagicSkills), (int)dfc.PrimarySkill3) ||
-                    Enum.IsDefined(typeof(DFCareer.MagicSkills), (int)dfc.MajorSkill1) ||
-                    Enum.IsDefined(typeof(DFCareer.MagicSkills), (int)dfc.MajorSkill2) ||
-                    Enum.IsDefined(typeof(DFCareer.MagicSkills), (int)dfc.MajorSkill3))
-                {
-                    spellSetIndex = 1;
-                }
+                // Classic spell indexes are on https://en.uesp.net/wiki/Daggerfall:SPELLS.STD_indices under Spell Catalogue
+                case DFCareer.Skills.Alteration:
+                    playerEntity.AddSpell(GetClassicSpell(63));         // Gentle Fall
+                    if (primary)
+                        playerEntity.AddSpell(GetClassicSpell(38)); // Jumping
+                    return;
+                case DFCareer.Skills.Destruction:
+                    playerEntity.AddSpell(GetClassicSpell(48));        // Arcane Arrow
+                    if (primary)
+                        playerEntity.AddSpell(GetClassicSpell(43));     // Minor shock
+                    return;
+                case DFCareer.Skills.Illusion:
+                    playerEntity.AddSpell(GetClassicSpell(65));             // Candle
+                    if (primary)
+                        playerEntity.AddSpell(GetClassicSpell(44)); // Chameleon
+                    return;
+                case DFCareer.Skills.Mysticism:
+                    playerEntity.AddSpell(GetClassicSpell(95));              // Knock
+                    playerEntity.AddSpell(GetClassicSpell(68));         // Knick-Knack
+                    if (primary) {
+                        playerEntity.AddSpell(GetClassicSpell(1));  // Fenrik's Door Jam
+                        playerEntity.AddSpell(GetClassicSpell(94)); // Recall!
+                    }
+                    return;
+                case DFCareer.Skills.Restoration:
+                    playerEntity.AddSpell(GetClassicSpell(69));         // Salve Bruise
+                    if (primary) {
+                        playerEntity.AddSpell(GetClassicSpell(70));  // Smelling Salts
+                        playerEntity.AddSpell(GetClassicSpell(97)); // Balyna's Balm
+                    }
+                    return;
+                case DFCareer.Skills.Thaumaturgy:
+                    playerEntity.AddSpell(GetClassicSpell(2));      // Buoyancy
+                    if (primary)
+                        playerEntity.AddSpell(GetClassicSpell(93));           // Rise
+                    return;
             }
-            else
-            {
-                spellSetIndex = characterDocument.classIndex;
-            }
+        }
 
-            if (spellSetIndex == -1)
-                return;
-
-            // Get the set's spell indices
-            TextAsset spells = Resources.Load<TextAsset>("StartingSpells") as TextAsset;
-            List<CareerStartingSpells> startingSpells = SaveLoadManager.Deserialize(typeof(List<CareerStartingSpells>), spells.text) as List<CareerStartingSpells>;
-            List<StartingSpell> spellsToAdd = new List<StartingSpell>();
-            for (int i = 0; i < startingSpells[spellSetIndex].SpellsList.Length; i++)
-            {
-                spellsToAdd.Add(startingSpells[spellSetIndex].SpellsList[i]);
-            }
-
-            // Add spells to player from standard list
-            foreach (StartingSpell spell in spellsToAdd)
-            {
-                SpellRecord.SpellRecordData spellData;
-                GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(spell.SpellID, out spellData);
-                if (spellData.index == -1)
-                {
-                    Debug.LogError("Failed to locate starting spell in standard spells list.");
-                    continue;
-                }
-
-                EffectBundleSettings bundle;
-                if (!GameManager.Instance.EntityEffectBroker.ClassicSpellRecordDataToEffectBundleSettings(spellData, BundleTypes.Spell, out bundle))
-                {
-                    Debug.LogError("Failed to create effect bundle for starting spell.");
-                    continue;
-                }
-                playerEntity.AddSpell(bundle);
-            }
+        static EffectBundleSettings GetClassicSpell(int spellId)
+        {
+            SpellRecord.SpellRecordData spellData;
+            GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(spellId, out spellData);
+            EffectBundleSettings bundle;
+            GameManager.Instance.EntityEffectBroker.ClassicSpellRecordDataToEffectBundleSettings(spellData, BundleTypes.Spell, out bundle);
+            return bundle;
         }
 
         public void DeployCoreGameEffectSettings(CoreGameEffectSettingsGroups groups)

@@ -45,6 +45,8 @@ GameObject:
   - component: {fileID: 114397629012878356}
   - component: {fileID: 114025923971531530}
   - component: {fileID: 114374011142275900}
+  - component: {fileID: 5915918716453609888}
+  - component: {fileID: 897694392685389675}
   m_Layer: 13
   m_Name: PlayerAdvanced
   m_TagString: Player
@@ -683,6 +685,37 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 89997fcd6fd7870439147bc0e133e2e4, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+--- !u!114 &5915918716453609888
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 380e0c90faf0fc0ba8481ce084b2f9f6, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  LookPitchRatio: 2.6
+  extX: 0.06
+  extW: 0.78
+  RealisticMovement: 1
+  TerrainFollowing: 1
+  GallopingInTowns: 1
+  TrampleCivilians: 1
+--- !u!114 &897694392685389675
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4e575c1b4a006689589e0b254994d1b4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
 --- !u!1 &100002

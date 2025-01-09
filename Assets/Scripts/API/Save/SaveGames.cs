@@ -220,7 +220,7 @@ namespace DaggerfallConnect.Save
             {
                 PlayerGPS gps = GameManager.Instance.PlayerGPS;
                 gps.ClearDiscoveryData();
-                for (int regionIndex = 0; regionIndex < WorldData.WorldSetting.Regions; regionIndex++)
+                for (int regionIndex = 0; regionIndex < WorldData.WorldSetting.RegionNames.Length; regionIndex++)
                 {
                     // Generate name from region index
                     string name = string.Format("MAPSAVE.{0:000}", regionIndex);

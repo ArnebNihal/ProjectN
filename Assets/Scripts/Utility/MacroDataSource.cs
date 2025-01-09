@@ -140,7 +140,7 @@ namespace DaggerfallWorkshop.Utility
             throw new NotImplementedException();
         }
 
-        public virtual string ArmourMod()
+        public virtual string ArmorMod()
         {   // %mod
             throw new NotImplementedException();
         }

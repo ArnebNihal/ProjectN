@@ -56,6 +56,17 @@ namespace DaggerfallWorkshop.Game.Formulas
         public const int classicFrameUpdate = 980;
         public const int weaponArmorMultiplier = 50;
 
+        // ProjectN: values for unleveled material generation
+        public const int rareMaterial = 100;    // Is 100 for experimenting with metals. It was 1000 before.
+        public const int ebonyChance = 10;
+        public const int adamantiumChance = ebonyChance + 20;
+        public const int mithrilOrcishRelativeChance = 2;
+        public const int dwarvenChance = 3;
+        public const int glassChance = dwarvenChance + 3;
+        public const int elvenChance =  glassChance + 3;
+        public const int silverChance = elvenChance + 3;
+        public const int steelChance = (rareMaterial - silverChance) / 10 * 4;
+
         /// <summary>Struct for return values of formula that affect damage and to-hit chance.</summary>
         public struct ToHitAndDamageMods
         {
@@ -232,40 +243,29 @@ namespace DaggerfallWorkshop.Game.Formulas
         }
 
         // Calculate chance of successfully lockpicking a door in an interior (an animating door). If this is higher than a random number between 0 and 100 (inclusive), the lockpicking succeeds.
-        public static int CalculateInteriorLockpickingChance(int level, int lockvalue, int lockpickingSkill)
+        // ProjectN: removing player level from the equation. It will be substituted by lockpicking tools.
+        public static int CalculateInteriorLockpickingChance(int lockvalue, int lockpickingSkill)
         {
-            Func<int, int, int, int> del;
-            if (TryGetOverride("CalculateInteriorLockpickingChance", out del))
-                return del(level, lockvalue, lockpickingSkill);
-
-            int chance = (5 * (level - lockvalue) + lockpickingSkill);
+            int chance = (lockpickingSkill - 5 * lockvalue);
             return Mathf.Clamp(chance, 5, 95);
         }
 
         // Calculate chance of successfully lockpicking a door in an exterior (a door that leads to an interior). If this is higher than a random number between 0 and 100 (inclusive), the lockpicking succeeds.
         public static int CalculateExteriorLockpickingChance(int lockvalue, int lockpickingSkill)
         {
-            Func<int, int, int> del;
-            if (TryGetOverride("CalculateExteriorLockpickingChance", out del))
-                return del(lockvalue, lockpickingSkill);
-
             int chance = lockpickingSkill - (5 * lockvalue);
             return Mathf.Clamp(chance, 5, 95);
         }
 
         // Calculate chance of successfully pickpocketing a target
-        // ProjectN: Added LUC to the calculation
+        // ProjectN: Added LUC and AGI to the calculation, removed player and target level
         public static int CalculatePickpocketingChance(PlayerEntity player, EnemyEntity target)
         {
-            Func<PlayerEntity, EnemyEntity, int> del;
-            if (TryGetOverride("CalculatePickpocketingChance", out del))
-                return del(player, target);
-
-            int chance = player.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) + (player.Stats.LiveLuck / 10 - 5);
+            int chance = player.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) + ((player.Stats.LiveLuck / 10 - 5) - (target.Stats.LiveLuck / 10 - 5));
             // If target is an enemy mobile, apply level modifier.
             if (target != null)
             {
-                chance += 5 * ((player.Level) - (target.Level));
+                chance += ((player.Stats.LiveAgility - 50) / 5) - ((target.Stats.LiveAgility - 50) / 5);
             }
             return Mathf.Clamp(chance, 5, 95);
         }
@@ -298,9 +298,12 @@ namespace DaggerfallWorkshop.Game.Formulas
         // Calculate chance of successfully climbing - checked repeatedly while climbing
         public static int CalculateClimbingChance(PlayerEntity player, int basePercentSuccess)
         {
-            Func<PlayerEntity, int, int> del;
-            if (TryGetOverride("CalculateClimbingChance", out del))
-                return del(player, basePercentSuccess);
+            // Fail to climb if weapon not sheathed.
+            if (!GameManager.Instance.WeaponManager.Sheathed && GameManager.Instance.WeaponManager.ScreenWeapon.WeaponType != WeaponTypes.Melee)
+            {
+                DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("noClimbHoldingWeapon"), 1f);
+                return 0;
+            }
 
             int skill = player.Skills.GetLiveSkillValue(DFCareer.Skills.Climbing);
             int luck = player.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
@@ -572,7 +575,9 @@ namespace DaggerfallWorkshop.Game.Formulas
             bool blockSuccessful = false;
             int chanceToHitMod = 0;
             int backstabChance = 0;
+            int criticalStrikeChance = 0;
             bool backstabSuccessful = false;
+            bool criticalStrikeSuccessful = false;
             PlayerEntity player = GameManager.Instance.PlayerEntity;
             short skillID = 0;
 
@@ -635,6 +640,8 @@ namespace DaggerfallWorkshop.Game.Formulas
 
             chanceToHitMod = attacker.Skills.GetLiveSkillValue(skillID);
 
+            criticalStrikeChance = CalculateCriticalStrikeChance(attacker);
+
             if (attacker == player)
             {
                 // Apply swing modifiers
@@ -674,11 +681,13 @@ namespace DaggerfallWorkshop.Game.Formulas
 
                         damage = CalculateBackstabDamage(damage, backstabChance, weapon);
 
-                        if (!backstabSuccessful && (target.ItemEquipTable.GetItem(EquipSlots.LeftHand) != null && target.ItemEquipTable.GetItem(EquipSlots.LeftHand).IsShield))
+                        damage = CalculateCriticalStrikeDamage(attacker, target, criticalStrikeChance, weapon, damage, out criticalStrikeSuccessful);
+
+                        if (!backstabSuccessful && !criticalStrikeSuccessful && (target.ItemEquipTable.GetItem(EquipSlots.LeftHand) != null && target.ItemEquipTable.GetItem(EquipSlots.LeftHand).IsShield))
                             damage = CalculateBlock(attacker, target, weapon, damage, (BodyParts)struckBodyPart, out blockSuccessful, out shieldDamage);
 
                         if (damage > 0)
-                            damage = CalculateArmorProtection(damage, target, struckBodyPart, weapon);
+                            damage = CalculateArmorProtection(damage, target, struckBodyPart, weapon, criticalStrikeSuccessful);
 
                         if (damage > 0 && metalMultiplier < 10)
                             damage = damage * metalMultiplier / 10;
@@ -724,12 +733,15 @@ namespace DaggerfallWorkshop.Game.Formulas
                         // Apply bonus damage only when monster has actually hit, or they will accumulate bonus damage even for missed attacks and zero-damage attacks
                         if (hitDamage > 0)
                             damage += GetBonusOrPenaltyByEnemyType(attacker, target);
+
+                        if (hitDamage > 0)
+                            damage = CalculateCriticalStrikeDamage(attacker, target, criticalStrikeChance, weapon, damage, out criticalStrikeSuccessful);
                         
-                        if (target.ItemEquipTable.GetItem(EquipSlots.LeftHand) != null && target.ItemEquipTable.GetItem(EquipSlots.LeftHand).IsShield)
+                        if (!criticalStrikeSuccessful && hitDamage > 0 && target.ItemEquipTable.GetItem(EquipSlots.LeftHand) != null && target.ItemEquipTable.GetItem(EquipSlots.LeftHand).IsShield)
                             damage = CalculateBlock(attacker, target, weapon, damage, (BodyParts)struckBodyPart, out blockSuccessful, out shieldDamage);
 
                         if (damage > 0)
-                            damage = CalculateArmorProtection(damage, target, struckBodyPart, weapon);
+                            damage = CalculateArmorProtection(damage, target, struckBodyPart, weapon, criticalStrikeSuccessful);
 
                         if (metalMultiplier < 10)
                             damage = damage * metalMultiplier / 10;
@@ -745,7 +757,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                 chanceToHitMod += CalculateWeaponToHit(weapon);
 
                 // Mod hook for adjusting final hit chance mod and adding new elements to calculation. (no-op in DFU)
-                chanceToHitMod = AdjustWeaponHitChanceMod(attacker, target, chanceToHitMod, weaponAnimTime, weapon);
+                chanceToHitMod = AdjustArcheryHitChanceMod(attacker, target, chanceToHitMod, weaponAnimTime, weapon);
 
                 if (CalculateSuccessfulHit(attacker, target, chanceToHitMod, struckBodyPart))
                 {
@@ -753,11 +765,13 @@ namespace DaggerfallWorkshop.Game.Formulas
 
                     damage = CalculateBackstabDamage(damage, backstabChance, weapon);
 
-                    if (!backstabSuccessful && (target.ItemEquipTable.GetItem(EquipSlots.LeftHand) != null && target.ItemEquipTable.GetItem(EquipSlots.LeftHand).IsShield))
+                    damage = CalculateCriticalStrikeDamage(attacker, target, criticalStrikeChance, weapon, damage, out criticalStrikeSuccessful);
+
+                    if (!backstabSuccessful && !criticalStrikeSuccessful && (target.ItemEquipTable.GetItem(EquipSlots.LeftHand) != null && target.ItemEquipTable.GetItem(EquipSlots.LeftHand).IsShield))
                         damage = CalculateBlock(attacker, target, weapon, damage, (BodyParts)struckBodyPart, out blockSuccessful, out shieldDamage);
 
                     if (damage > 0)
-                        damage = CalculateArmorProtection(damage, target, struckBodyPart, weapon);
+                        damage = CalculateArmorProtection(damage, target, struckBodyPart, weapon, criticalStrikeSuccessful);
 
                     if (damage > 0 && metalMultiplier < 10)
                         damage = damage * metalMultiplier / 10;
@@ -851,14 +865,18 @@ namespace DaggerfallWorkshop.Game.Formulas
             return damage;
         }
 
-        public static int CalculateArmorProtection(int damage, DaggerfallEntity target, int struckBodyPart, DaggerfallUnityItem weapon)
+        public static int CalculateArmorProtection(int damage, DaggerfallEntity target, int struckBodyPart, DaggerfallUnityItem weapon, bool criticalStrikeSuccessful)
         {
             int armorValue = 0;
+            int csArmorModifier = 1;
+            if (criticalStrikeSuccessful)
+                csArmorModifier = GetCSArmorModifier(weapon);
             if (struckBodyPart <= target.ArmorValues.Length)
             {
                 armorValue = target.ArmorValues[struckBodyPart] + target.IncreasedArmorValueModifier + target.DecreasedArmorValueModifier;
                 Debug.Log("target.ArmorValues[struckBodyPart]: " + target.ArmorValues[struckBodyPart] + ", target.IncreasedArmorValueModifier: " + target.IncreasedArmorValueModifier + ", target.DecreasedArmorValueModifier: " + ", armorValue: " + armorValue);
             }
+            armorValue = armorValue * csArmorModifier / 10;
 
             DaggerfallUnityItem armor = target.ItemEquipTable.GetItem(BodyPartsToEquipSlots((BodyParts)struckBodyPart, true));
 
@@ -872,7 +890,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                         armorValue += armorValue * weaponArmorMultiplier / 100;
                     else if (weapon.GetWeaponSkillID() == DFCareer.Skills.LongBlade)
                         armorValue = armorValue * weaponArmorMultiplier / 100;
-                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.LightArmour, 1);
+                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.LightArmor, 1);
                 }
                 else if (armorType == ArmorTypes.Chain)
                 {
@@ -881,7 +899,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                         armorValue += armorValue * weaponArmorMultiplier / 100;
                     else if (weapon.GetWeaponSkillID() == DFCareer.Skills.Axe)
                         armorValue = armorValue * weaponArmorMultiplier / 100;
-                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.MediumArmour, 1);
+                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.MediumArmor, 1);
                 }
                 else if (armorType == ArmorTypes.Plate)
                 {
@@ -891,7 +909,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                         armorValue += armorValue * weaponArmorMultiplier / 100;
                     else if (weapon.GetWeaponSkillID() == DFCareer.Skills.BluntWeapon)
                         armorValue = armorValue * weaponArmorMultiplier / 100;
-                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.HeavyArmour, 1);
+                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.HeavyArmor, 1);
                 }
             }
             else{
@@ -902,6 +920,26 @@ namespace DaggerfallWorkshop.Game.Formulas
             Debug.Log("damage: " + damage + ", struckBodyPart: " + (BodyParts)struckBodyPart + ", armorValue: " + armorValue + ", final damage: " + (damage - armorValue));
 
             return (damage - armorValue);
+        }
+
+        public static int GetCSArmorModifier(DaggerfallUnityItem weapon)
+        {
+            if (weapon == null)
+                return 10;
+            
+            DFCareer.Skills weaponType = weapon.GetWeaponSkillID();
+            switch (weaponType)
+            {
+                case DFCareer.Skills.ShortBlade:
+                    return 0;
+                case DFCareer.Skills.LongBlade:
+                case DFCareer.Skills.Archery:
+                    return 5;
+                case DFCareer.Skills.Axe:
+                    return 7;
+                default:
+                    return 10;
+            }
         }
 
         public static EquipSlots BodyPartsToEquipSlots(BodyParts bodyPart, bool isArmor)
@@ -1006,14 +1044,13 @@ namespace DaggerfallWorkshop.Game.Formulas
             if (arrow != null)
                 damage += (weapon.GetWeaponMaterialModifier() + arrow.GetWeaponMaterialModifier()) / 2;
             else damage += weapon.GetWeaponMaterialModifier();
+
+            damage = AdjustArcheryAttackDamage(attacker, target, damage, weaponAnimTime, weapon);
+
+            damage += GetBonusOrPenaltyByEnemyType(attacker, target);
             
             if (damage < 1)
                 damage = 0;
-
-            damage += GetBonusOrPenaltyByEnemyType(attacker, target);
-
-            // Mod hook for adjusting final weapon damage. (no-op in DFU)
-            damage = AdjustWeaponAttackDamage(attacker, target, damage, weaponAnimTime, weapon);
 
             return damage;
         }
@@ -1140,12 +1177,32 @@ namespace DaggerfallWorkshop.Game.Formulas
 
         public static float GetMeleeWeaponAnimTime(PlayerEntity player, WeaponTypes weaponType, ItemHands weaponHands)
         {
-            Func<PlayerEntity, WeaponTypes, ItemHands, float> del;
-            if (TryGetOverride("GetMeleeWeaponAnimTime", out del))
-                return del(player, weaponType, weaponHands);
+            EquipSlots weaponSlot = GameManager.Instance.WeaponManager.UsingRightHand ? EquipSlots.RightHand : EquipSlots.LeftHand;
+            DaggerfallUnityItem weapon = player.ItemEquipTable.GetItem(weaponSlot);
+            int adjustedSpeed = 0;
+            float weaponWeight = 0f;
+            float SpeedReductionFactor = 3.4f;
 
-            float speed = 3 * (115 - player.Stats.LiveSpeed);
-            return speed / classicFrameUpdate;
+            if (weaponType == WeaponTypes.Melee || weapon == null)
+            {
+                adjustedSpeed = player.Stats.LiveSpeed;
+            }
+            else
+            {
+                weaponWeight = weapon.ItemTemplate.baseWeight;
+                int strWeightPerc = 150 - player.Stats.LiveStrength;
+                float adjustedWeight = strWeightPerc * weaponWeight / 100;
+                float speedReductionPerc = adjustedWeight * SpeedReductionFactor;
+                int playerSpeed = Mathf.Min(player.Stats.LiveSpeed, 98);    // Cap speed at 98%
+
+                adjustedSpeed = (int)(playerSpeed - (playerSpeed * speedReductionPerc / 90));
+            }
+            float frameSpeed = 3 * (115 - adjustedSpeed);
+
+#if UNITY_EDITOR
+            Debug.LogFormat("anim= {0}ms/frame, speed={1} strength={2} weight={3} adjustedSpeed={4}", frameSpeed / FormulaHelper.classicFrameUpdate, player.Stats.LiveSpeed, player.Stats.LiveStrength, weaponWeight, adjustedSpeed);
+#endif
+            return frameSpeed / FormulaHelper.classicFrameUpdate;
         }
 
         public static float GetBowCooldownTime(PlayerEntity player)
@@ -1188,7 +1245,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                 return del(onscreenWeapon);
 
             ToHitAndDamageMods mods = new ToHitAndDamageMods();
-            if (onscreenWeapon != null)
+            if (onscreenWeapon != null && onscreenWeapon.SpecificWeapon.GetWeaponSkillID() != DFCareer.Skills.ShortBlade)
             {
                 // The Daggerfall manual groups diagonal slashes to the left and right as if they are the same, but they are different.
                 // Classic does not apply swing modifiers to unarmed attacks.
@@ -1211,6 +1268,28 @@ namespace DaggerfallWorkshop.Game.Formulas
                 {
                     mods.damageMod = 4;
                     mods.toHitMod = -10;
+                }
+            }
+            else{
+                if (onscreenWeapon.WeaponState == WeaponStates.StrikeUp)
+                {
+                    mods.damageMod = 4;
+                    mods.toHitMod = -10;
+                }
+                if (onscreenWeapon.WeaponState == WeaponStates.StrikeRight)
+                {
+                    mods.damageMod = -4;
+                    mods.toHitMod = 10;
+                }
+                if (onscreenWeapon.WeaponState == WeaponStates.StrikeDownLeft)
+                {
+                    mods.damageMod = 2;
+                    mods.toHitMod = -5;
+                }
+                if (onscreenWeapon.WeaponState == WeaponStates.StrikeDown)
+                {
+                    mods.damageMod = -2;
+                    mods.toHitMod = 5;
                 }
             }
             return mods;
@@ -1319,6 +1398,41 @@ namespace DaggerfallWorkshop.Game.Formulas
             return 1;
         }
 
+        public static int CalculateCriticalStrikeChance(DaggerfallEntity attacker)
+        {
+            return attacker.Skills.GetLiveSkillValue(DFCareer.Skills.CriticalStrike) / 3;
+        }
+
+        public static int CalculateCriticalStrikeDamage(DaggerfallEntity attacker, DaggerfallEntity target, int criticalStrikeChance, DaggerfallUnityItem weapon, int damageMod, out bool criticalStrikeSuccessful)
+        {
+            criticalStrikeSuccessful = false;
+            if (Dice100.SuccessRoll(criticalStrikeChance))
+            {
+                criticalStrikeSuccessful = true;
+
+                if (weapon.GetWeaponSkillID() == DFCareer.Skills.LongBlade)
+                    damageMod = damageMod * 13 / 10;
+                else if (weapon.GetWeaponSkillID() == DFCareer.Skills.Axe ||
+                         weapon.GetWeaponSkillID() == DFCareer.Skills.Archery)
+                    damageMod = damageMod * 15 / 10;
+                else if (weapon.GetWeaponSkillID() == DFCareer.Skills.BluntWeapon)
+                    damageMod = damageMod * 2;
+
+                if (target is EnemyEntity)
+                {
+                    DaggerfallUI.Instance.PopupMessage(TextManager.Instance.GetLocalizedEnemyName((target as EnemyEntity).MobileEnemy.ID) + " " + TextManager.Instance.GetLocalizedText("enemyCriticalStrike"));
+                }
+                else
+                {
+                    // Tally player's CS skill
+                    GameManager.Instance.PlayerEntity.TallySkill(DFCareer.Skills.CriticalStrike, 1);
+                    DaggerfallUI.Instance.PopupMessage(TextManager.Instance.GetLocalizedText("playerCriticalStrike"));
+                } 
+            }
+
+            return damageMod;
+        }
+
         public static int GetBonusOrPenaltyByEnemyType(DaggerfallEntity attacker, DaggerfallEntity target)
         {
             Func<DaggerfallEntity, DaggerfallEntity, int> del;
@@ -1385,21 +1499,55 @@ namespace DaggerfallWorkshop.Game.Formulas
             return damage;
         }
 
-        public static int AdjustWeaponHitChanceMod(DaggerfallEntity attacker, DaggerfallEntity target, int hitChanceMod, int weaponAnimTime, DaggerfallUnityItem weapon)
+        public static int AdjustArcheryHitChanceMod(DaggerfallEntity attacker, DaggerfallEntity target, int hitChanceMod, int weaponAnimTime, DaggerfallUnityItem weapon)
         {
-            Func<DaggerfallEntity, DaggerfallEntity, int, int, DaggerfallUnityItem, int> del;
-            if (TryGetOverride("AdjustWeaponHitChanceMod", out del))
-                return del(attacker, target, hitChanceMod, weaponAnimTime, weapon);
+            if (weaponAnimTime > 0 && (weapon.TemplateIndex == (int)Weapons.Short_Bow || weapon.TemplateIndex == (int)Weapons.Long_Bow))
+            {
+                int adjustedHitChanceMod = hitChanceMod;
+                if (weaponAnimTime < 200)
+                    adjustedHitChanceMod -= 40;
+                else if (weaponAnimTime < 500)
+                    adjustedHitChanceMod -= 10;
+                else if (weaponAnimTime < 1000)
+                    adjustedHitChanceMod = hitChanceMod;
+                else if (weaponAnimTime < 2000)
+                    adjustedHitChanceMod += 10;
+                else if (weaponAnimTime > 5000)
+                    adjustedHitChanceMod -= 10;
+                else if (weaponAnimTime > 8000)
+                    adjustedHitChanceMod -= 20;
 
+#if UNITY_EDITOR
+                Debug.LogFormat("Adjusted Weapon HitChanceMod for bow drawing from {0} to {1} (t={2}ms)", hitChanceMod, adjustedHitChanceMod, weaponAnimTime);
+#endif
+                return adjustedHitChanceMod;
+            }
             return hitChanceMod;
         }
 
-        public static int AdjustWeaponAttackDamage(DaggerfallEntity attacker, DaggerfallEntity target, int damage, int weaponAnimTime, DaggerfallUnityItem weapon)
+        public static int AdjustArcheryAttackDamage(DaggerfallEntity attacker, DaggerfallEntity target, int damage, int weaponAnimTime, DaggerfallUnityItem weapon)
         {
-            Func<DaggerfallEntity, DaggerfallEntity, int, int, DaggerfallUnityItem, int> del;
-            if (TryGetOverride("AdjustWeaponAttackDamage", out del))
-                return del(attacker, target, damage, weaponAnimTime, weapon);
+            if (weaponAnimTime > 0 && (weapon.TemplateIndex == (int)Weapons.Short_Bow || weapon.TemplateIndex == (int)Weapons.Long_Bow))
+            {
+                double adjustedDamage = damage;
+                if (weaponAnimTime < 800)
+                    adjustedDamage *= (double)weaponAnimTime / 800;
+                else if (weaponAnimTime < 5000)
+                    adjustedDamage = damage;
+                else if (weaponAnimTime < 6000)
+                    adjustedDamage *= 0.85;
+                else if (weaponAnimTime < 8000)
+                    adjustedDamage *= 0.75;
+                else if (weaponAnimTime < 9000)
+                    adjustedDamage *= 0.5;
+                else if (weaponAnimTime >= 9000)
+                    adjustedDamage *= 0.25;
 
+#if UNITY_EDITOR
+                Debug.LogFormat("Adjusted Weapon Damage for bow drawing from {0} to {1} (t={2}ms)", damage, (int)adjustedDamage, weaponAnimTime);
+#endif
+                return (int)adjustedDamage;
+            }
             return damage;
         }
 
@@ -1516,12 +1664,7 @@ namespace DaggerfallWorkshop.Game.Formulas
         /// Applies condition damage to an item based on physical hit damage.
         /// </summary>
         public static void ApplyConditionDamageThroughPhysicalHit(DaggerfallUnityItem item, DaggerfallEntity owner, int damage, bool isWeapon = false, DaggerfallUnityItem weapon = null)
-        {
-            Func<DaggerfallUnityItem, DaggerfallEntity, int, bool> del;
-            if (TryGetOverride("ApplyConditionDamageThroughPhysicalHit", out del))
-                if (del(item, owner, damage))
-                    return; // Only return if override returns true
-            
+        {            
             int amount = 0;
             int resilienceFactor = 100;
 
@@ -1663,9 +1806,9 @@ namespace DaggerfallWorkshop.Game.Formulas
                 feetArmor = target.ItemEquipTable.EquipTable[(int)EquipSlots.Feet].NativeMaterialValue;
                 ArmorTypes feetArmorType = ItemBuilder.GetArmorType(feetArmor);
                 if (feetArmorType == ArmorTypes.Leather || feetArmorType == ArmorTypes.Fur)
-                    dodgeMalus -= 5 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.LightArmour) + 10) / 25);
+                    dodgeMalus -= 5 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.LightArmor) + 10) / 25);
                 else if (feetArmorType == ArmorTypes.Chain)
-                    dodgeMalus -= 10 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.MediumArmour) + 10) / 25);
+                    dodgeMalus -= 10 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.MediumArmor) + 10) / 25);
                 else dodgeMalus -= 15;
             }
             if (!target.ItemEquipTable.IsSlotOpen(EquipSlots.LegsArmor))
@@ -1673,9 +1816,9 @@ namespace DaggerfallWorkshop.Game.Formulas
                 legsArmor = target.ItemEquipTable.EquipTable[(int)EquipSlots.LegsArmor].NativeMaterialValue;
                 ArmorTypes legsArmorType = ItemBuilder.GetArmorType(legsArmor);
                 if (legsArmorType == ArmorTypes.Leather || legsArmorType == ArmorTypes.Fur)
-                    dodgeMalus -= 5 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.LightArmour) + 10) / 25);
+                    dodgeMalus -= 5 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.LightArmor) + 10) / 25);
                 else if (legsArmorType == ArmorTypes.Chain)
-                    dodgeMalus -= 10 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.MediumArmour) + 10) / 25);
+                    dodgeMalus -= 10 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.MediumArmor) + 10) / 25);
                 else dodgeMalus -= 15;
             }
             if (!target.ItemEquipTable.IsSlotOpen(EquipSlots.ChestArmor))
@@ -1683,9 +1826,9 @@ namespace DaggerfallWorkshop.Game.Formulas
                 chestArmor = target.ItemEquipTable.EquipTable[(int)EquipSlots.ChestArmor].NativeMaterialValue;
                 ArmorTypes chestArmorType = ItemBuilder.GetArmorType(chestArmor);
                 if (chestArmorType == ArmorTypes.Leather || chestArmorType == ArmorTypes.Fur)
-                    dodgeMalus -= 5 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.LightArmour) + 10) / 25);
+                    dodgeMalus -= 5 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.LightArmor) + 10) / 25);
                 else if (chestArmorType == ArmorTypes.Chain)
-                    dodgeMalus -= 10 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.MediumArmour) + 10) / 25);
+                    dodgeMalus -= 10 - ((target.Skills.GetLiveSkillValue(DFCareer.Skills.MediumArmor) + 10) / 25);
                 else dodgeMalus -= 15;
             }
             if (!target.ItemEquipTable.IsSlotOpen(EquipSlots.LeftHand) && target.ItemEquipTable.EquipTable[(int)EquipSlots.LeftHand].IsShield)
@@ -2352,11 +2495,8 @@ namespace DaggerfallWorkshop.Game.Formulas
         /// <returns>Shop specific cost</returns>
         public static int CalculateCost(int baseValue, int shopQuality, int conditionPercentage = -1)
         {
-            Func<int, int, int, int> del;
-            if (TryGetOverride("CalculateCost", out del))
-                return del(baseValue, shopQuality, conditionPercentage);
-
-            int cost = baseValue;
+            float conditionMod = (conditionPercentage == -1) ? 1f : Mathf.Max((float)conditionPercentage / 100, 0.2f);
+            int cost = (int)(baseValue * conditionMod);
 
             if (cost < 1)
                 cost = 1;
@@ -2367,6 +2507,7 @@ namespace DaggerfallWorkshop.Game.Formulas
             return cost;
         }
 
+        // ProjectN: applying R&R:I formula
         public static int CalculateItemRepairCost(int baseItemValue, int shopQuality, int condition, int max, IGuild guild)
         {
             Func<int, int, int, int, IGuild, int> del;
@@ -2377,12 +2518,16 @@ namespace DaggerfallWorkshop.Game.Formulas
             if (condition == max)
                 return 0;
 
-            int cost = 10 * baseItemValue / 100;
-
-            if (cost < 1)
-                cost = 1;
+            float repairCostScaleFactor = 0.6f;
+            float conditionFactor = repairCostScaleFactor * (max - condition) / max;
+            int cost = Mathf.Max((int)(baseItemValue * conditionFactor), 1);
 
             cost = CalculateCost(cost, shopQuality);
+
+            // int cost = 10 * baseItemValue / 100;
+
+            // if (cost < 1)
+            //     cost = 1;
 
             if (guild != null)
                 cost = guild.ReducedRepairCost(cost);
@@ -2573,6 +2718,7 @@ namespace DaggerfallWorkshop.Game.Formulas
             if (item.IsIngredient || item.IsPotion || (item.ItemGroup == ItemGroups.Books) ||
                 item.IsOfTemplate(ItemGroups.Currency, (int)Currency.Gold_pieces) ||
                 item.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.Arrow) ||
+                item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Bandage) ||
                 item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Oil))
                 return true;
             else
@@ -2583,62 +2729,186 @@ namespace DaggerfallWorkshop.Game.Formulas
         /// Gets a random material based on player level.
         /// Note, this is called by default RandomArmorMaterial function.
         /// </summary>
-        /// <param name="playerLevel">Player level, possibly adjusted.</param>
+        /// <param name="isTownGuard">Town guards don't get material above steel.</param>
+        /// <param name="luckMod">Player's luck when loot or shops, enemy's luck when it's its equipment.</param>
         /// <returns>MaterialTypes value of material selected.</returns>
-        public static MaterialTypes RandomMaterial(int playerLevel)
+        // ProjectN: making the material randomisation unleveled.
+        public static MaterialTypes RandomMaterial(int luck, bool isTownGuard = false, int region = -1, GovernmentType government = GovernmentType.None, DFRegion.LocationTypes location = DFRegion.LocationTypes.None, DFRegion.DungeonTypes dungeon = DFRegion.DungeonTypes.NoDungeon)
         {
-            Func<int, MaterialTypes> del;
-            if (TryGetOverride("RandomMaterial", out del))
-                return del(playerLevel);
+            int luckMod = (luck - 50) / 5;
+            int matRoll = UnityEngine.Random.Range(0, rareMaterial);
+            int matRollModified = matRoll + luckMod;
 
-            int levelModifier = (playerLevel - 10);
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
+            if (region == -1)
+                region = playerGPS.CurrentRegionIndex;
+            government = TextManager.Instance.GetCurrentRegionGovernment(region);
+            if (location == DFRegion.LocationTypes.None)
+                location = playerGPS.CurrentLocationType;
+            if (playerEnterExit.IsPlayerInsideDungeon)
+                dungeon = playerGPS.CurrentLocation.MapTableData.DungeonType;
 
-            if (levelModifier >= 0)
-                levelModifier *= 2;
-            else
-                levelModifier *= 4;
+            matRollModified += GovernmentModifier(government);
+            matRollModified += LocationModifier(location);
+            matRollModified += DungeonModifier(dungeon);
 
-            int randomModifier = UnityEngine.Random.Range(0, 256);
-
-            int combinedModifiers = levelModifier + randomModifier;
-            combinedModifiers = Mathf.Clamp(combinedModifiers, 0, 256);
-
-            int material = 0; // initialize to iron
-
-            // The higher combinedModifiers is, the higher the material
-            while (ItemBuilder.materialsByModifier[material] < combinedModifiers)
+            if (playerEnterExit.IsPlayerInsideOpenShop ||
+               (playerEnterExit.IsPlayerInsideClosedShop))
             {
-                combinedModifiers -= ItemBuilder.materialsByModifier[material++];
+                matRollModified += playerEnterExit.Interior.BuildingData.Quality / 4;
+            }
+            
+            MaterialTypes material;
+            if (matRoll == (rareMaterial - 1)) material = GetRareMaterial(luckMod);
+            else material = GetMaterialType(matRollModified, luckMod);
+
+            if (isTownGuard && material > MaterialTypes.Steel)
+                material = MaterialTypes.Steel;
+
+            Debug.Log("Material randomised: " + material);
+            return material;
+        }
+
+        public static MaterialTypes GetMaterialType(int matRollModified, int luckMod)
+        {
+            MaterialTypes material = MaterialTypes.Iron; // initialize to iron
+
+            if (matRollModified >= rareMaterial)
+                material = GetRareMaterial(luckMod);
+            else if (matRollModified >= (rareMaterial - dwarvenChance))
+                material = MaterialTypes.Dwarven;
+            else if (matRollModified >= (rareMaterial - glassChance))
+                material = MaterialTypes.Glass;
+            else if (matRollModified >= (rareMaterial - elvenChance))
+                material = MaterialTypes.Elven;
+            else if (matRollModified >= (rareMaterial - silverChance))
+                material = MaterialTypes.Silver;
+            else if (matRollModified >= (rareMaterial - steelChance))
+                material = MaterialTypes.Steel;
+
+            return material;
+        }
+
+        public static int GovernmentModifier(GovernmentType government)
+        {
+            switch (government)
+            {
+                case GovernmentType.Fiefdom:
+                    return 1;
+                case GovernmentType.Barony:
+                    return 2;
+                case GovernmentType.County:
+                    return 3;
+                case GovernmentType.March:
+                    return 4;
+                case GovernmentType.Duchy:
+                    return 5;
+                case GovernmentType.Kingdom:
+                    return 6;
+                case GovernmentType.Empire:
+                    return 7;
+                default:
+                    return 0;
+            }
+        }
+
+            public static int LocationModifier(DFRegion.LocationTypes location)
+            {
+                switch (location)
+                {
+                    case DFRegion.LocationTypes.TownCity:
+                    case DFRegion.LocationTypes.DungeonRuin:
+                        return 5;
+                    case DFRegion.LocationTypes.TownHamlet:
+                    case DFRegion.LocationTypes.HomeWealthy:
+                    case DFRegion.LocationTypes.Graveyard:
+                    case DFRegion.LocationTypes.HiddenLocation:
+                        return 3;
+                    case DFRegion.LocationTypes.TownVillage:
+                    case DFRegion.LocationTypes.ReligionCult:
+                        return 1;
+                    case DFRegion.LocationTypes.HomeFarms:
+                    case DFRegion.LocationTypes.ReligionTemple:
+                    case DFRegion.LocationTypes.Tavern:
+                    case DFRegion.LocationTypes.HomePoor:
+                        return 0;
+                    case DFRegion.LocationTypes.DungeonLabyrinth:
+                        return 10;
+                    case DFRegion.LocationTypes.DungeonKeep:
+                    case DFRegion.LocationTypes.Coven:
+                        return 8;
+                    default:
+                        return 0;
+                }
             }
 
-            Debug.Log("material: " + material + ", returning " + (MaterialTypes)(material + 1));
-            return (MaterialTypes)(material + 1);
+            public static int DungeonModifier(DFRegion.DungeonTypes dungeon)
+            {
+                switch (dungeon)
+                {
+                    case DFRegion.DungeonTypes.NaturalCave:
+                    case DFRegion.DungeonTypes.Cemetery:
+                    case DFRegion.DungeonTypes.RuinedCastle:
+                        return 0;                
+                    case DFRegion.DungeonTypes.SpiderNest:
+                    case DFRegion.DungeonTypes.ScorpionNest:
+                    case DFRegion.DungeonTypes.Prison:
+                    case DFRegion.DungeonTypes.Mine:
+                        return 3;
+                    case DFRegion.DungeonTypes.BarbarianStronghold:
+                    case DFRegion.DungeonTypes.OrcStronghold:
+                    case DFRegion.DungeonTypes.HumanStronghold:
+                        return 6;
+                    case DFRegion.DungeonTypes.Crypt:
+                    case DFRegion.DungeonTypes.GiantStronghold:
+                    case DFRegion.DungeonTypes.VampireHaunt:
+                    case DFRegion.DungeonTypes.Laboratory:
+                        return 9;
+                    case DFRegion.DungeonTypes.DragonsDen:
+                    case DFRegion.DungeonTypes.Coven:
+                    case DFRegion.DungeonTypes.DesecratedTemple:
+                    case DFRegion.DungeonTypes.VolcanicCaves:
+                        return 12;
+                    default:
+                        return 0;
+                }
+            }
+
+        public static MaterialTypes GetRareMaterial(int luck)
+        {
+            int matRoll = UnityEngine.Random.Range(0, rareMaterial);
+
+            if (matRoll == (rareMaterial - 1) || matRoll + luck >= rareMaterial)
+                return MaterialTypes.Daedric;
+            else if (matRoll + luck >= (rareMaterial - ebonyChance))
+                return MaterialTypes.Ebony;
+            else if (matRoll + luck >= (rareMaterial - adamantiumChance))
+                return MaterialTypes.Adamantium;
+            else if (matRoll % 2 == 0)
+                return MaterialTypes.Mithril;
+            else return MaterialTypes.Orcish;            
         }
 
         /// <summary>
         /// Gets a random armor material based on player level.
         /// </summary>
-        /// <param name="playerLevel">Player level, possibly adjusted.</param>
         /// <returns>ArmorMaterialTypes value of material selected.</returns>
-        public static ArmorMaterialTypes RandomArmorMaterial(int playerLevel, Armor armor)
+        // ProjectN: player level is no longer a factor in material randomisation.
+        public static ArmorMaterialTypes RandomArmorMaterial(Armor armor, int luck, bool isTownGuard = false)
         {
-            Func<int, ArmorMaterialTypes> del;
-            if (TryGetOverride("RandomArmorMaterial", out del))
-                return del(playerLevel);
-
             // Random armor material
             int roll = Dice100.Roll();
-            MaterialTypes armorMaterial = FormulaHelper.RandomMaterial(playerLevel);
-            int armorValue = (int)armor;
+            MaterialTypes armorMaterial = FormulaHelper.RandomMaterial(luck);
 
-            // TODO: I need to write some formula for armour (and item in general) that have to be harder to find
+            // TODO: I need to write some formula for Armor (and item in general) that have to be harder to find
             // in certain areas of the world. Fur is one of those: it should be easier to find in cold areas, while
-            // very scarce in cold climates. For now I just let it random.
-            if (armorValue >= (int)Armor.Cuirass && armorValue <= (int)Armor.Tower_Shield)
+            // very scarce in warm and hot climates. For now I just let it random.
+            if (armor >= Armor.Cuirass && armor <= Armor.Tower_Shield)
             {
-                if (roll >= 70)
+                if (roll >= 20)
                 {
-                    if (roll >= 90)
+                    if (roll >= 40)
                     {
                         return (ArmorMaterialTypes)(0x0200 + armorMaterial);
                     }
@@ -2652,17 +2922,17 @@ namespace DaggerfallWorkshop.Game.Formulas
                     return ArmorMaterialTypes.Leather;
                 }
             }
-            else if (armorValue >= (int)Armor.Hauberk && armorValue <= (int)Armor.Sollerets)
+            else if (armor >= Armor.Hauberk && armor <= Armor.Sollerets)
             {
-                if (roll >= 70)
+                if (roll >= 20)
                     return (ArmorMaterialTypes)(0x0100 + armorMaterial);
                 else return ArmorMaterialTypes.Chain;
             }
             else // if (armorValue >= Armor.Jerkin && armorValue <= Armor.RightVambrace)
             {
-                if (roll >= 70)
+                if (roll >= 40)
                     return (ArmorMaterialTypes)(0x0000 + armorMaterial);
-                else if (roll >= 40)
+                else if (roll >= 20)
                     return ArmorMaterialTypes.Fur;
                 else return ArmorMaterialTypes.Leather;
             }
@@ -3179,36 +3449,38 @@ namespace DaggerfallWorkshop.Game.Formulas
             // UESP lists regular material power progression in weapon matrix: https://en.uesp.net/wiki/Daggerfall:Enchantment_Power#Weapons
             // Enchantment power values for staves are inaccurate in UESP weapon matrix (confirmed in classic)
             // The below yields correct enchantment power for staves matching classic
+            // ProjectN: modified enchantement multipliers;
+            // TODO: these are the same as Armor modifiers, the two methods should be unified.
             switch(weaponMaterial)
             {
-                default:       
-                case MaterialTypes.Steel:         // Steel uses base enchantment power
-                    return 0f;
-                case MaterialTypes.Iron:          // Iron is -25% from base
+                case MaterialTypes.Iron:           // Iron is -25% from base
                     return -0.25f;
-                case MaterialTypes.Silver:        // Silver is +75% from base
-                    return 0.75f;
-                case MaterialTypes.Elven:         // Elven is +25% from base
+                default:
+                case MaterialTypes.Base:           // Base/Steel/Orcish all use base enchantment power
+                case MaterialTypes.Steel:
+                case MaterialTypes.Orcish:
+                    return 0f;
+                case MaterialTypes.Dwarven:        // Dwarven is +25% from base
                     return 0.25f;
-                case MaterialTypes.Dwarven:       // Dwarven is +50% from base
+                case MaterialTypes.Elven:          // Elven is +50% from base
                     return 0.5f;
-                case MaterialTypes.Mithril:       // Mithril is +25% from base
-                    return 0.25f;
-                case MaterialTypes.Adamantium:    // Adamantium is +75% from base
-                    return 0.75f;
-                case MaterialTypes.Ebony:         // Ebony is +100% from base
+                case MaterialTypes.Silver:         // Silver is +100% from base                
+                case MaterialTypes.Ebony:          // Ebony is +100% from base
+                case MaterialTypes.Daedric:        // Daedric is +100% from base
                     return 1.0f;
-                case MaterialTypes.Orcish:        // Orcish is +150% from base
+                case MaterialTypes.Glass:          // Glass is + 125% from base
+                    return 1.25f;
+                case MaterialTypes.Adamantium:     // Adamantium is +150% from base
                     return 1.5f;
-                case MaterialTypes.Daedric:       // Daedric is +200% from base
+                case MaterialTypes.Mithril:        // Mithril is +200% from base
                     return 2.0f;
             }
         }
 
         public static float GetArmorEnchantmentMultiplier(ArmorMaterialTypes armorMaterial)
         {
-            // UESP lists highly variable material power progression in armour matrix: https://en.uesp.net/wiki/Daggerfall:Enchantment_Power#Armor
-            // This indicates certain armour types don't follow the same general material progression patterns for enchantment point multipliers
+            // UESP lists highly variable material power progression in Armor matrix: https://en.uesp.net/wiki/Daggerfall:Enchantment_Power#Armor
+            // This indicates certain Armor types don't follow the same general material progression patterns for enchantment point multipliers
             // Yet to confirm this in classic - but not entirely confident in accuracy of UESP information here either
             // For now using consistent progression for enchantment point multipliers and can improve later if required
             // ProjectN: modified enchantement multipliers;
@@ -3230,6 +3502,8 @@ namespace DaggerfallWorkshop.Game.Formulas
                 case MaterialTypes.Ebony:          // Ebony is +100% from base
                 case MaterialTypes.Daedric:        // Daedric is +100% from base
                     return 1.0f;
+                case MaterialTypes.Glass:          // Glass is + 125% from base
+                    return 1.25f;
                 case MaterialTypes.Adamantium:     // Adamantium is +150% from base
                     return 1.5f;
                 case MaterialTypes.Mithril:        // Mithril is +200% from base

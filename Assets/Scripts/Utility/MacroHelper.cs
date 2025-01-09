@@ -137,7 +137,7 @@ namespace DaggerfallWorkshop.Utility
             { "%ml", MaxLoan },  // Max loan amount
             { "%mn", MaleName },  // Random male name
             { "%mn2", MaleName }, // Random male name, differs from the previous in classic by using a different seed
-            { "%mod", ArmourMod }, // Modification
+            { "%mod", ArmorMod }, // Modification
             { "%n", Name },   // A random name (comment Nystul: I think it is just a random name - or maybe this is the reason that in vanilla all male mobile npcs have female names...)
             { "%nam", Name }, // A random full name
             { "%nrn", LordOfCurrentRegion }, // Noble of the current region (used in: O0B00Y01)
@@ -339,7 +339,11 @@ namespace DaggerfallWorkshop.Utility
             // Get appropriate nameBankType for this region and a random gender
             NameHelper.BankTypes nameBankType = NameHelper.BankTypes.Breton;
             if (GameManager.Instance.PlayerGPS.CurrentRegionIndex > -1)
+            {
+                int diceRoll = Dice100.Roll();
+                if (diceRoll < 90)
                 nameBankType = (NameHelper.BankTypes)MapsFile.RegionRaces[GameManager.Instance.PlayerGPS.CurrentRegionIndex];
+            }
             Genders gender = (DFRandom.random_range_inclusive(0, 1) == 1) ? Genders.Female : Genders.Male;
 
             return DaggerfallUnity.Instance.NameHelper.FullName(nameBankType, gender);
@@ -350,8 +354,7 @@ namespace DaggerfallWorkshop.Utility
             switch (race)
             {
                 case Races.Breton:
-                default:
-                    return NameHelper.BankTypes.Breton;
+                    return MobilePersonNPC.GetBretonName(true);
                 case Races.Redguard:
                     return NameHelper.BankTypes.Redguard;
                 case Races.Nord:
@@ -364,8 +367,15 @@ namespace DaggerfallWorkshop.Utility
                     return NameHelper.BankTypes.WoodElf;
                 case Races.Khajiit:
                     return NameHelper.BankTypes.Khajiit;
-                case Races.Argonian:
+                case Races.Imperial:
                     return NameHelper.BankTypes.Imperial;
+                case Races.Argonian:
+                    return NameHelper.BankTypes.Argonian;
+                case Races.Orc:
+                    // return NameHelper.BankTypes.Orc;
+                    return NameHelper.BankTypes.Monster1;
+                default:
+                    return NameHelper.BankTypes.Breton;
             }
         }
 
@@ -1339,10 +1349,10 @@ namespace DaggerfallWorkshop.Utility
             return mcp.GetMacroDataSource().WeaponDamage();
         }
 
-        public static string ArmourMod(IMacroContextProvider mcp)
+        public static string ArmorMod(IMacroContextProvider mcp)
         {   // %mod
             if (mcp == null) return null;
-            return mcp.GetMacroDataSource().ArmourMod();
+            return mcp.GetMacroDataSource().ArmorMod();
         }
 
         public static string BookAuthor(IMacroContextProvider mcp)

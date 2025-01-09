@@ -439,11 +439,11 @@ namespace DaggerfallWorkshop.Game
         /// </summary>
         /// <param name="regionIndex">Index of region.</param>
         /// <returns>Government type.</returns>
-        public string GetCurrentRegionGovernment(int regionIndex)
+        public GovernmentType GetCurrentRegionGovernment(int regionIndex)
         {
             string region = MapsFile.ConvertRegionName(WorldData.WorldSetting.RegionNames[regionIndex]);
             FactionFile.FactionData faction = FactionsAtlas.FactionDictionary[FactionsAtlas.FactionToId[region]];
-            return ((GovernmentType)((faction.ruler + 1) / 2)).ToString();
+            return (GovernmentType)((faction.ruler + 1) / 2);
         }
 
         /// <summary>

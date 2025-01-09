@@ -81,7 +81,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             ItemCollection inventory = GameManager.Instance.PlayerEntity.Items;
             bool hasHorse = GameManager.Instance.TransportManager.HasHorse();
             bool hasCart = GameManager.Instance.TransportManager.HasCart();
-            bool hasShip = GameManager.Instance.TransportManager.ShipAvailiable();
+            bool hasShip = GameManager.Instance.TransportManager.ShipAvailable;
 
             // Load all textures
             LoadTextures();

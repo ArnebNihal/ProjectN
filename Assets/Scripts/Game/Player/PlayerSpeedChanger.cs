@@ -59,7 +59,7 @@ namespace DaggerfallWorkshop.Game
         {
             playerMotor = GameManager.Instance.PlayerMotor;
             levitateMotor = GetComponent<LevitateMotor>();
-            CanRun = CanRunUnlessRiding;
+            CanRun = CanRunUnlessRidingCart;
             currentWalkSpeed = GetWalkSpeed(GameManager.Instance.PlayerEntity);
             currentRunSpeed = GetRunSpeed();
         }
@@ -134,9 +134,9 @@ namespace DaggerfallWorkshop.Game
             InputManager.Instance.MaximizeJoystickMovement = isRunning;
         }
 
-        public bool CanRunUnlessRiding()
+        public bool CanRunUnlessRidingCart()
         {
-            return !playerMotor.IsRiding;
+            return GameManager.Instance.TransportManager.TransportMode != TransportModes.Cart;
         }
 
 

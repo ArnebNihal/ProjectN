@@ -465,6 +465,7 @@ namespace DaggerfallWorkshop
         Adamantium,
         Ebony,
         Daedric,
+        Glass
     }
 
     /// <summary>
@@ -502,6 +503,7 @@ namespace DaggerfallWorkshop
         Ebony = 23,
         Orcish = 24,
         Daedric = 25,
+        Glass = 26
     }
 
     /// <summary>

@@ -582,17 +582,18 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (DaggerfallUI.Instance.enableVideos)
             {
                 // Create cinematics
-                DaggerfallVidPlayerWindow cinematic1 = (DaggerfallVidPlayerWindow)UIWindowFactory.GetInstanceWithArgs(UIWindowType.VidPlayer, new object[] { uiManager, newGameCinematic1 });
-                DaggerfallVidPlayerWindow cinematic2 = (DaggerfallVidPlayerWindow)UIWindowFactory.GetInstanceWithArgs(UIWindowType.VidPlayer, new object[] { uiManager, newGameCinematic2 });
-                DaggerfallVidPlayerWindow cinematic3 = (DaggerfallVidPlayerWindow)UIWindowFactory.GetInstanceWithArgs(UIWindowType.VidPlayer, new object[] { uiManager, newGameCinematic3 });
+                // DaggerfallVidPlayerWindow cinematic1 = (DaggerfallVidPlayerWindow)UIWindowFactory.GetInstanceWithArgs(UIWindowType.VidPlayer, new object[] { uiManager, newGameCinematic1 });
+                // DaggerfallVidPlayerWindow cinematic2 = (DaggerfallVidPlayerWindow)UIWindowFactory.GetInstanceWithArgs(UIWindowType.VidPlayer, new object[] { uiManager, newGameCinematic2 });
+                // DaggerfallVidPlayerWindow cinematic3 = (DaggerfallVidPlayerWindow)UIWindowFactory.GetInstanceWithArgs(UIWindowType.VidPlayer, new object[] { uiManager, newGameCinematic3 });
 
                 // End of final cinematic will launch game
-                cinematic3.OnVideoFinished += TriggerGame;
+                // cinematic3.OnVideoFinished += TriggerGame;
 
                 // Push cinematics in reverse order so they play and pop out in correct order
-                uiManager.PushWindow(cinematic3);
-                uiManager.PushWindow(cinematic2);
-                uiManager.PushWindow(cinematic1);
+                // uiManager.PushWindow(cinematic3);
+                // uiManager.PushWindow(cinematic2);
+                // uiManager.PushWindow(cinematic1);
+                TriggerGame();
             }
             else
             {

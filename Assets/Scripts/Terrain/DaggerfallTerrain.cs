@@ -131,7 +131,7 @@ namespace DaggerfallWorkshop
         public void UpdateClimateMaterial(bool init = false)
         {
             // Update atlas texture if world climate changed
-            if (currentWorldClimate != MapData.worldClimate || dfUnity.WorldTime.Now.ActualSeasonValue != season || init)
+            if (currentWorldClimate != MapData.worldClimate || dfUnity.WorldTime.Now.GenericSeasonValue != season || init)
             {
                 currentWorldClimate = MapData.worldClimate;
             }

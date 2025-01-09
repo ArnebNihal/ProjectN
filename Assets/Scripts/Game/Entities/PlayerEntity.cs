@@ -1570,13 +1570,16 @@ namespace DaggerfallWorkshop.Game.Entity
 
         public bool PlayerHasTownMap(ItemCollection items)
         {
-            if (items.Contains(ItemGroups.Maps, 570))
+            if (items.Contains(ItemGroups.Maps, 302))
             {
-                List<DaggerfallUnityItem> inventoryMaps = items.SearchItems(ItemGroups.Maps, 570);
+                List<DaggerfallUnityItem> inventoryMaps = items.SearchItems(ItemGroups.Maps, 302);
+
+                (int, int) tile =  GameManager.Instance.PlayerGPS.CurrentTile;
+                int tileIndex = tile.Item1 + (tile.Item2 * MapsFile.TileX);
                 foreach (DaggerfallUnityItem map in inventoryMaps)
                 {
-                    if (map.shortName.Contains(GameManager.Instance.PlayerGPS.CurrentLocalizedLocationName) &&
-                        map.shortName.Contains(GameManager.Instance.PlayerGPS.CurrentLocalizedRegionName))
+                    if (((map.message / 10000) == tileIndex) &&
+                        ((map.message % 10000) == GameManager.Instance.PlayerGPS.CurrentLocationIndex))
                         return true;
                 }
             }
@@ -2239,7 +2242,7 @@ namespace DaggerfallWorkshop.Game.Entity
         {
             ClampLegalReputations();
 
-            for (int i = 0; i < WorldData.WorldSetting.Regions; ++i)
+            for (int i = 0; i < WorldData.WorldSetting.RegionNames.Length; ++i)
             {
                 if (regionData[i].LegalRep < 0)
                     ++regionData[i].LegalRep;

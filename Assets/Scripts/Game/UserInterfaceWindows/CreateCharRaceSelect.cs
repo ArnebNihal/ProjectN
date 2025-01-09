@@ -96,6 +96,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 return;
 
             int id = racePickerBitmap.Data[offset];
+            Debug.Log("race id: " + id);
             if (raceDict.ContainsKey(id))
             {
                 promptLabel.Enabled = false;

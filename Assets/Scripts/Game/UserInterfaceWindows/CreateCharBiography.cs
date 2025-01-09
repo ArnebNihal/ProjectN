@@ -38,6 +38,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
     public class CreateCharBiography : DaggerfallPopupWindow
     {
         const string nativeImgName = "BIOG00I0.IMG";
+        const string nothingFound = "nothingFound";
         const int questionLines = 2;
         const int questionLineSpace = 11;
         const int questionLeft = 30;
@@ -547,6 +548,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                         startingData.primaryPosition = parentsPlace.Item1;
                         startingData.primaryBuildingIndex = (parentsPlace.Item2, parentsPlace.Item3, parentsPlace.Item4, parentsPlace.Item5);
                         Debug.Log("startingData.primaryPosition: " + startingData.primaryPosition);
+
+                        if (startingData.startsFromPrimary)
+                            startingData.startingHouseData = AcquireBuilding((startingData.primaryPosition, startingData.primaryBuildingIndex.Item1, startingData.primaryBuildingIndex.Item2, startingData.primaryBuildingIndex.Item3, startingData.primaryBuildingIndex.Item4), PoliticData.GetAbsPoliticValue(startingData.primaryPosition.X, startingData.primaryPosition.Y), StartGameBehaviour.StartingHouseNameTypes.Residence);
+                        else startingData.startingHouseData = AcquireBuilding((startingData.secondaryPosition, startingData.secondaryBuildingIndex.Item1, startingData.secondaryBuildingIndex.Item2, startingData.secondaryBuildingIndex.Item3, startingData.secondaryBuildingIndex.Item4), region, StartGameBehaviour.StartingHouseNameTypes.Store);
                         break;
 
                     case 5:    //  "How old were you when you left home?"
@@ -630,8 +635,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                 if (startingData.startsFromPrimary)
                                     startingData.startingHouseData = AcquireBuilding((startingData.primaryPosition, startingData.primaryBuildingIndex.Item1, startingData.primaryBuildingIndex.Item2, startingData.primaryBuildingIndex.Item3, startingData.primaryBuildingIndex.Item4), PoliticData.GetAbsPoliticValue(startingData.primaryPosition.X, startingData.primaryPosition.Y), StartGameBehaviour.StartingHouseNameTypes.Residence);
                                 else startingData.startingHouseData = AcquireBuilding((startingData.secondaryPosition, startingData.secondaryBuildingIndex.Item1, startingData.secondaryBuildingIndex.Item2, startingData.secondaryBuildingIndex.Item3, startingData.secondaryBuildingIndex.Item4), region, StartGameBehaviour.StartingHouseNameTypes.Store);
-                                MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
-                                MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
                                 break;
 
                             case 2:    // "They fled our home persecuted by enemies, taking me with them."
@@ -693,8 +698,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                 startingData.secondaryBuildingIndex = (parentsPlace.Item2, parentsPlace.Item3, parentsPlace.Item4, parentsPlace.Item5);
 
                                 startingData.startingHouseData = AcquireBuilding((startingData.secondaryPosition, startingData.secondaryBuildingIndex.Item1, startingData.secondaryBuildingIndex.Item2, startingData.secondaryBuildingIndex.Item3, startingData.secondaryBuildingIndex.Item4), region, StartGameBehaviour.StartingHouseNameTypes.Residence);
-                                MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
-                                MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
                                 break;
 
                             case 3:     // "I lost my parents and grew up in an orphanage"
@@ -741,8 +746,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                 startingData.secondaryBuildingIndex = (parentsPlace.Item2, parentsPlace.Item3, parentsPlace.Item4, parentsPlace.Item5);
                                 
                                 startingData.startingHouseData = AcquireBuilding((startingData.secondaryPosition, startingData.secondaryBuildingIndex.Item1, startingData.secondaryBuildingIndex.Item2, startingData.secondaryBuildingIndex.Item3, startingData.secondaryBuildingIndex.Item4), region, StartGameBehaviour.StartingHouseNameTypes.None);
-                                MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
-                                MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
                                 break;
 
                             case 4:     // "They sent me to some relatives, for reasons unknown"
@@ -805,8 +810,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                 startingData.secondaryBuildingIndex = (parentsPlace.Item2, parentsPlace.Item3, parentsPlace.Item4, parentsPlace.Item5);
 
                                 startingData.startingHouseData = AcquireBuilding((startingData.secondaryPosition, startingData.secondaryBuildingIndex.Item1, startingData.secondaryBuildingIndex.Item2, startingData.secondaryBuildingIndex.Item3, startingData.secondaryBuildingIndex.Item4), region, StartGameBehaviour.StartingHouseNameTypes.Residence);
-                                MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
-                                MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
                                 break;
 
                             case 5:     // "They sent me abroad to receive a better education"
@@ -867,8 +872,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                 startingData.secondaryBuildingIndex = (parentsPlace.Item2, parentsPlace.Item3, parentsPlace.Item4, parentsPlace.Item5);
 
                                 startingData.startingHouseData = AcquireBuilding((startingData.secondaryPosition, startingData.secondaryBuildingIndex.Item1, startingData.secondaryBuildingIndex.Item2, startingData.secondaryBuildingIndex.Item3, startingData.secondaryBuildingIndex.Item4), region, StartGameBehaviour.StartingHouseNameTypes.None);
-                                MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
-                                MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.primaryPosition, startingData.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)givenAnswers[i], givenAnswers[i] == (int)AgeRanges.OldEnough, (givenAnswers[i]) / 2);
+                                // MapsFile.DiscoverCloseLocations(startingData.secondaryPosition, startingData.areaKnowledge.Item2, (AgeRanges)givenAnswers[i], AgeRanges.OldEnough, givenAnswers[i] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
                                 break;
                                 
                             default:
@@ -882,6 +887,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 }
             }
             Debug.Log("startingData.secondaryPosition: " + startingData.secondaryPosition);
+            StartGameBehaviour.startingState.givenAnswers = givenAnswers;
 
             return startingData;
         }
@@ -916,16 +922,19 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         /// Copypasted from Place.cs and used to select locations with certain buildings
         /// to use as primary/secondary starting locations.
         /// </summary>
-        (DFPosition, int, int, int, DFBlock) PickRemoteTownSite(DFLocation.BuildingTypes requiredBuildingType, int region, out string locName, Dictionary<int, List<int>> suitableLoc = null, int subBuilding = -1)
+        public (DFPosition, int, int, int, DFBlock) PickRemoteTownSite(DFLocation.BuildingTypes requiredBuildingType, int region, out string locName, Dictionary<int, List<int>> suitableLoc = null, int subBuilding = -1)
         {
             DFRegion regionData = new DFRegion();
             List<(DFPosition, int, int, int, DFBlock, string)> foundSites = new List<(DFPosition, int, int, int, DFBlock, string)>();
 
-            const int maxAttemptsBeforeFallback = 250;
-            const int maxAttemptsBeforeFailure = 500;
-
             // Get region to be used
             List<int> tileIndex = WorldMaps.regionTiles[region];
+
+            locName = nothingFound;
+
+            // const int maxAttemptsBeforeFallback = 250;
+            // const int maxAttemptsBeforeFailure = 500;
+
 
             foreach (int tile in tileIndex)
             {
@@ -937,71 +946,72 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 if (regionData.LocationCount == 0)
                     continue;
 
-                // Find random town containing building
-                int attempts = 0;
-                bool found = false;
-
-                while (!found)
+                // If suitable locations weren't already filtered
+                if (suitableLoc == null)
                 {
-                    // Increment attempts and do some fallback
-                    if (++attempts >= maxAttemptsBeforeFallback &&
-                        requiredBuildingType >= DFLocation.BuildingTypes.House1 &&
-                        requiredBuildingType <= DFLocation.BuildingTypes.House6)
-                        requiredBuildingType = DFLocation.BuildingTypes.AnyHouse;
-
-                    if (attempts >= maxAttemptsBeforeFailure)
+                    for (int locationIndex = 0; locationIndex < regionData.LocationCount; locationIndex++)
                     {
-                        Debug.LogWarningFormat("Could not find remote town site with building type {0} within {1} attempts in tile {2}", requiredBuildingType.ToString(), attempts, tile);
-                        break;
-                    }
+                        // Discard all dungeon location types
+                        if (regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.DungeonLabyrinth ||
+                            regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.DungeonKeep ||
+                            regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.DungeonRuin ||
+                            regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.Graveyard)
+                            continue;
 
-                    // Get a random location index (from the list, if it has been passed)
-                    int locationIndex = -1;
-                    if (suitableLoc == null)
-                        locationIndex = UnityEngine.Random.Range(0, (int)regionData.LocationCount);
-                    else if (suitableLoc[tile].Count > 0)
-                        locationIndex = suitableLoc[tile][UnityEngine.Random.Range(0, suitableLoc[tile].Count)];
-                    else
-                    {
-                        Debug.Log("Breaking out");
-                        break;
-                    }
+                        // Get location data for town
+                        DFLocation location = WorldMaps.GetLocation(tile.ToString("00000"), regionData.MapNames[locationIndex]);
 
-                    // Discard all dungeon location types
-                    if (regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.DungeonLabyrinth ||
-                        regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.DungeonKeep ||
-                        regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.DungeonRuin ||
-                        regionData.MapTable[locationIndex].LocationType == DFRegion.LocationTypes.Graveyard)
-                        continue;
-
-                    // Get location data for town
-                    DFLocation location = WorldMaps.GetLocation(tile.ToString("00000"), regionData.MapNames[locationIndex]);
-                    // if (!location.Loaded)
-                    //     continue;
-
-                    // Get list of valid sites
-                    DFBlock[] blocks = RMBLayout.GetLocationBuildingData(location);
-                    for (int block = 0; block < blocks.Length; block++)
-                    {
-                        for (int bld = 0; bld < blocks[block].RmbBlock.FldHeader.NumBlockDataRecords; bld++)
+                        // Get list of valid sites
+                        DFBlock[] blocks = RMBLayout.GetLocationBuildingData(location);
+                        for (int block = 0; block < blocks.Length; block++)
                         {
-                            Debug.Log("requiredBuildingType: " + requiredBuildingType + ", block: " + block + " - " + blocks[block].Name + ", bld: " + bld);
-                            if (CheckBuildingCompatibility(requiredBuildingType, blocks[block].RmbBlock.FldHeader.BuildingDataList[bld], subBuilding))
+                            for (int bld = 0; bld < blocks[block].RmbBlock.FldHeader.NumBlockDataRecords; bld++)
                             {
-                                int width = location.Exterior.ExteriorData.Width;
-                                int x = block % location.Exterior.ExteriorData.Width;
-                                int y = block / location.Exterior.ExteriorData.Width;
-                                int bldKey = BuildingDirectory.MakeBuildingKey((byte)x, (byte)y, (byte)bld);
-                                Debug.Log("bldKey: " + bldKey);
-                                foundSites.Add((MapsFile.GetPixelFromPixelID(location.MapTableData.MapId), bldKey, bld, locationIndex, blocks[block], location.Name));
-                                found = true;
+                                Debug.Log("requiredBuildingType: " + requiredBuildingType + ", block: " + block + " - " + blocks[block].Name + ", bld: " + bld);
+                                if (CheckBuildingCompatibility(requiredBuildingType, blocks[block].RmbBlock.FldHeader.BuildingDataList[bld], subBuilding))
+                                {
+                                    int width = location.Exterior.ExteriorData.Width;
+                                    int x = block % location.Exterior.ExteriorData.Width;
+                                    int y = block / location.Exterior.ExteriorData.Width;
+                                    int bldKey = BuildingDirectory.MakeBuildingKey((byte)x, (byte)y, (byte)bld);
+                                    Debug.Log("bldKey: " + bldKey);
+                                    foundSites.Add((MapsFile.GetPixelFromPixelID(location.MapTableData.MapId), bldKey, bld, locationIndex, blocks[block], location.Name));
+                                }
                             }
                         }
-                    }                    
+                    }
                 }
-            }
+                else
+                {
+                    for (int index = 0; index < suitableLoc[tile].Count; index++)
+                    {
+                        // Get location data for town
+                        DFLocation location = WorldMaps.GetLocation(tile.ToString("00000"), regionData.MapNames[suitableLoc[tile][index]]);
+
+                        DFBlock[] blocks = RMBLayout.GetLocationBuildingData(location);
+                        for (int block = 0; block < blocks.Length; block++)
+                        {
+                            for (int bld = 0; bld < blocks[block].RmbBlock.FldHeader.NumBlockDataRecords; bld++)
+                            {
+                                Debug.Log("requiredBuildingType: " + requiredBuildingType + ", block: " + block + " - " + blocks[block].Name + ", bld: " + bld);
+                                if (CheckBuildingCompatibility(requiredBuildingType, blocks[block].RmbBlock.FldHeader.BuildingDataList[bld], subBuilding))
+                                {
+                                    int width = location.Exterior.ExteriorData.Width;
+                                    int x = block % location.Exterior.ExteriorData.Width;
+                                    int y = block / location.Exterior.ExteriorData.Width;
+                                    int bldKey = BuildingDirectory.MakeBuildingKey((byte)x, (byte)y, (byte)bld);
+                                    Debug.Log("bldKey: " + bldKey);
+                                    foundSites.Add((MapsFile.GetPixelFromPixelID(location.MapTableData.MapId), bldKey, bld, index, blocks[block], location.Name));
+                                }
+                            }
+                        }
+                    }
+                }
+            }            
 
             Debug.Log("foundSites.Count: " + foundSites.Count);
+            if (foundSites.Count <= 0)
+                return (new DFPosition(), -1, -1, -1, new DFBlock());
             (DFPosition, int, int, int, DFBlock, string) building = foundSites[UnityEngine.Random.Range(0, foundSites.Count)];
             locName = building.Item6;
 

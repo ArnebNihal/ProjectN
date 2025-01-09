@@ -182,7 +182,7 @@ namespace MapEditor
                 // "High Rock", all naming functions use a global array of 62 fixed race values, one for each region.
                 // As with %lp, we choose to fix the original bug in DFU and use this array, meaning that
                 // all shops in Hammerfell now use Redguard names.
-                NameHelper.BankTypes nameBank = (NameHelper.BankTypes)MapsFile.RegionRaces[GameManager.Instance.PlayerGPS.CurrentRegionIndex];
+                NameHelper.BankTypes nameBank = MobilePersonNPC.ConvertRaceToBankType(MobilePersonNPC.GetEntityRace());
                 string firstName = DaggerfallUnity.Instance.NameHelper.FirstName(nameBank, DaggerfallWorkshop.Game.Entity.Genders.Male);
                 a = a.Replace(firstNameTitleVar, firstName);
             }

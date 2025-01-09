@@ -40,6 +40,7 @@ namespace DaggerfallWorkshop.Game.Entity
         public DFCareer.EffectFlags LowToleranceFlags;          // Racial low tolerance
         public DFCareer.EffectFlags CriticalWeaknessFlags;      // Racial critical weakness
         public DFCareer.SpecialAbilityFlags SpecialAbilities;   // Racial special abilities
+        public int[,] StatModifier;                             // Racial Stat modifiers
 
         /// <summary>
         /// Clones this race template.
@@ -86,6 +87,9 @@ namespace DaggerfallWorkshop.Game.Entity
             WoodElf woodElf = new WoodElf();
             Khajiit khajiit = new Khajiit();
             Argonian argonian = new Argonian();
+            Imperial imperial = new Imperial();
+            Orc orc = new Orc();
+
 
             // Populate dictionary
             raceDict.Add(breton.ID, breton);
@@ -96,6 +100,8 @@ namespace DaggerfallWorkshop.Game.Entity
             raceDict.Add(woodElf.ID, woodElf);
             raceDict.Add(khajiit.ID, khajiit);
             raceDict.Add(argonian.ID, argonian);
+            raceDict.Add(imperial.ID, imperial);
+            raceDict.Add(orc.ID, orc);
 
             return raceDict;
         }
@@ -121,7 +127,6 @@ namespace DaggerfallWorkshop.Game.Entity
                 case FactionFile.FactionRaces.Breton:
                     return Races.Breton;
                 case FactionFile.FactionRaces.Argonian:
-                case FactionFile.FactionRaces.Imperial:
                     return Races.Argonian;
                 case FactionFile.FactionRaces.WoodElf:
                     return Races.WoodElf;
@@ -129,6 +134,10 @@ namespace DaggerfallWorkshop.Game.Entity
                     return Races.HighElf;
                 case FactionFile.FactionRaces.DarkElf:
                     return Races.DarkElf;
+                case FactionFile.FactionRaces.Imperial:
+                    return Races.Imperial;
+                case FactionFile.FactionRaces.Orc:
+                    return Races.Orc;
             }
 
             return Races.None;
@@ -162,6 +171,10 @@ namespace DaggerfallWorkshop.Game.Entity
                     return FactionFile.FactionRaces.HighElf;
                 case Races.DarkElf:
                     return FactionFile.FactionRaces.DarkElf;
+                case Races.Imperial:
+                    return FactionFile.FactionRaces.Imperial;
+                case Races.Orc:
+                    return FactionFile.FactionRaces.Orc;
             }
 
             return FactionFile.FactionRaces.None;
@@ -339,6 +352,48 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE07I0.CIF";
             PaperDollHeadsFemale = "FACE17I0.CIF";
+        }
+    }
+
+    public class Imperial : RaceTemplate
+    {
+        public Imperial()
+        {
+            ID = (int)Races.Imperial;
+            Name = TextManager.Instance.GetLocalizedText("imperial");
+            DescriptionID = 2008;
+            ClipID = 216;
+
+            PaperDollBackground = "SCBG08I0.IMG";
+
+            PaperDollBodyMaleUnclothed = "BODY08I0.IMG";
+            PaperDollBodyMaleClothed = "BODY08I1.IMG";
+            PaperDollBodyFemaleUnclothed = "BODY18I0.IMG";
+            PaperDollBodyFemaleClothed = "BODY18I1.IMG";
+
+            PaperDollHeadsMale = "FACE08I0.CIF";
+            PaperDollHeadsFemale = "FACE18I0.CIF";
+        }
+    }
+
+    public class Orc : RaceTemplate
+    {
+        public Orc()
+        {
+            ID = (int)Races.Orc;
+            Name = TextManager.Instance.GetLocalizedText("orc");
+            DescriptionID = 2009;
+            ClipID = 216;
+
+            PaperDollBackground = "SCBG09I0.IMG";
+
+            PaperDollBodyMaleUnclothed = "BODY09I0.IMG";
+            PaperDollBodyMaleClothed = "BODY09I1.IMG";
+            PaperDollBodyFemaleUnclothed = "BODY19I0.IMG";
+            PaperDollBodyFemaleClothed = "BODY19I1.IMG";
+
+            PaperDollHeadsMale = "FACE09I0.CIF";
+            PaperDollHeadsFemale = "FACE19I0.CIF";
         }
     }
 

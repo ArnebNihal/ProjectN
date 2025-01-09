@@ -1812,6 +1812,23 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 else
                     DaggerfallUI.MessageBox(TextManager.Instance.GetLocalizedText("lightFull"), false, lantern);
             }
+            else if (item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Bandage) && collection != null)
+            {
+                if (playerEntity.CurrentHealth < playerEntity.MaxHealth)
+                {
+                    int medical = playerEntity.Skills.GetLiveSkillValue(DFCareer.Skills.Medical);
+                    int heal = (int)Mathf.Min(medical / 3, playerEntity.MaxHealth * 0.4f);
+                    collection.RemoveOne(item);
+                    playerEntity.IncreaseHealth(heal);
+                    playerEntity.TallySkill(DFCareer.Skills.Medical, 1);
+#if UNITY_EDITOR
+                Debug.LogFormat("RRI Applied a Bandage and healed {0} health.", heal);
+#endif
+                }
+                else{
+                    DaggerfallUI.MessageBox(TextManager.Instance.GetLocalizedText("bandageHealthFull"));
+                }
+            }
             else
             {
                 NextVariant(item);

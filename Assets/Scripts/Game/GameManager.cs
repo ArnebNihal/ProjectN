@@ -81,7 +81,9 @@ namespace DaggerfallWorkshop.Game
         ClimbingMotor climbingMotor = null;
         PlayerSpeedChanger speedChanger = null;
         FrictionMotor frictionMotor = null;
+        EnhancedRiding enhancedRiding = null;
         FloatingOrigin floatingOrigin = null;
+        ClimateCalories climateCalories = null;
         FPSWeapon[] playerWeapons = new FPSWeapon[2];
         FPSSpellCasting playerSpellCasting = null;
         PlayerActivate playerActivate = null;
@@ -301,10 +303,22 @@ namespace DaggerfallWorkshop.Game
             set { frictionMotor = value; }
         }
 
+        public EnhancedRiding EnhancedRiding
+        {
+            get { return (enhancedRiding) ? enhancedRiding : enhancedRiding = GetComponentFromObject<EnhancedRiding>(PlayerObject); }
+            set { enhancedRiding = value; }
+        }
+
         public FloatingOrigin FloatingOrigin
         {
             get { return (floatingOrigin) ? floatingOrigin :  floatingOrigin = GetMonoBehaviour<FloatingOrigin>(); }
             set { floatingOrigin = value; }
+        }
+
+        public ClimateCalories ClimateCalories
+        {
+            get { return (climateCalories) ? climateCalories : climateCalories = GetComponentFromObject<ClimateCalories>(PlayerObject); }
+            set { climateCalories = value; }
         }
 
         //public FPSWeapon LeftHandWeapon

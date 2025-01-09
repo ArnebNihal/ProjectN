@@ -94,6 +94,7 @@ namespace DaggerfallWorkshop.Game.Serialization
         public SceneCache_v1 sceneCache;
         public TravelMapSaveData travelMapData;
         public AdvancedClimbingData_v1 advancedClimbingState;
+        public ClimateCaloriesSaveData climateCaloriesSaveData;
         public ModInfo_v1[] modInfoData;
     }
 

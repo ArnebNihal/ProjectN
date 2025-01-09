@@ -45,14 +45,14 @@ namespace DaggerfallWorkshop.Game.Items
 
         // Weight multipliers by material type. Iron through Daedric. Weight is baseWeight * value / 4.
         // ProjectN: modified every value - still to playtest intensively.
-        static readonly short[] weightMultipliersByMaterial = { 0, 5, 4, 4, 2, 3, 7, 3, 6, 2, 12 };
+        static readonly short[] weightMultipliersByMaterial = { 0, 5, 4, 4, 2, 3, 7, 3, 6, 2, 12, 1 };
 
         // Value multipliers by material type. Iron through Daedric. Value is baseValue * ( 3 * value).
-        static readonly short[] valueMultipliersByMaterial = { 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512 };
+        static readonly short[] valueMultipliersByMaterial = { 0, 1, 2, 4, 8, 16, 32, 64, 128, 256, 512, 20 };
 
         // Condition multipliers by material type. Iron through Daedric. MaxCondition is baseMaxCondition * value / 4.
         // ProjectN: modifiied every value - still to playtest intensively.
-        static readonly short[] conditionMultipliersByMaterial = { 0, 4, 6, 4, 6, 12, 16, 7, 20, 12, 16 };
+        static readonly short[] conditionMultipliersByMaterial = { 0, 4, 6, 4, 6, 12, 16, 7, 20, 12, 16, 5 };
 
         // Enchantment point/gold value data for item powers
         static readonly int[] extraSpellPtsEnchantPts = { 0x1F4, 0x1F4, 0x1F4, 0x1F4, 0xC8, 0xC8, 0xC8, 0x2BC, 0x320, 0x384, 0x3E8 };
@@ -132,7 +132,7 @@ namespace DaggerfallWorkshop.Game.Items
 
         /// <summary>
         /// Super generic item creator: the less is passed, the more random the generation gets.
-        /// I added some bool to limit the creation to functional items (e.g.: no fornitures, horses, etc.)
+        /// I added some bool to limit the creation to functional items (e.g.: no furnitures, horses, etc.)
         /// </summary>
         public static DaggerfallUnityItem CreateRandomItem(ItemGroups itemGroup = ItemGroups.None, int minTempIndex = -1, int maxTempIndex = -1, bool filterCrazyStuff = true)
         {
@@ -408,9 +408,8 @@ namespace DaggerfallWorkshop.Game.Items
         /// <summary>
         /// Creates random weapon.
         /// </summary>
-        /// <param name="playerLevel">Player level for material type.</param>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem CreateRandomWeapon(int playerLevel)
+        public static DaggerfallUnityItem CreateRandomWeapon(int luck, bool isTownGuard = false)
         {
             // Create a random weapon type, including any custom items registered as weapons
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
@@ -425,7 +424,7 @@ namespace DaggerfallWorkshop.Game.Items
                 newItem = CreateItem(ItemGroups.Weapons, customItemTemplates[groupIndex - enumArray.Length]);
  
             // Random weapon material
-            MaterialTypes material = FormulaHelper.RandomMaterial(playerLevel);
+            MaterialTypes material = FormulaHelper.RandomMaterial(luck, isTownGuard);
 
             if (groupIndex == 18)
             {   // Handle arrows
@@ -442,12 +441,15 @@ namespace DaggerfallWorkshop.Game.Items
         public static void ApplyWeaponMaterial(DaggerfallUnityItem weapon, MaterialTypes material)
         {
             weapon.nativeMaterialValue = (int)material;
-            weapon = SetItemPropertiesByMaterial(weapon, (ArmorMaterialTypes)((int)material));
+            weapon = SetItemPropertiesByMaterial(weapon, (int)material);
             weapon.dyeColor = DaggerfallUnity.Instance.ItemHelper.GetWeaponDyeColor(material);
 
             // Female characters use archive - 1 (i.e. 233 rather than 234) for weapons
             if (GameManager.Instance.PlayerEntity.Gender == Genders.Female)
-                weapon.PlayerTextureArchive -= 1;
+            {
+                if (!GameManager.Instance.ItemHelper.IsNewWeapon(weapon))
+                    weapon.PlayerTextureArchive -= 1;
+            }                
         }
 
         /// <summary>
@@ -475,28 +477,49 @@ namespace DaggerfallWorkshop.Game.Items
         /// <summary>
         /// Creates random armor.
         /// </summary>
-        /// <param name="playerLevel">Player level for material type.</param>
+        /// <param name="luck">Luck stat for material type.</param>
         /// <param name="gender">Gender armor is created for.</param>
         /// <param name="race">Race armor is created for.</param>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem CreateRandomArmor(int playerLevel, Genders gender, Races race)
+        public static DaggerfallUnityItem CreateRandomArmor(int luck, Genders gender, Races race, bool isTownGuard = false)
         {
             // Create a random armor type, including any custom items registered as armor
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
             Array enumArray = itemHelper.GetEnumArray(ItemGroups.Armor);
-            int[] customItemTemplates = itemHelper.GetCustomItemsForGroup(ItemGroups.Armor);
+            // int[] customItemTemplates = itemHelper.GetCustomItemsForGroup(ItemGroups.Armor);
 
-            int groupIndex = UnityEngine.Random.Range(0, enumArray.Length + customItemTemplates.Length);
-            Debug.Log("enumArray.Length: " + enumArray.Length + ", customItemTemplates.Length: " + customItemTemplates.Length + ", groupIndex: " + groupIndex);
+            int groupIndex = GetArmorIndex(enumArray.Length);
+            Debug.Log("enumArray.Length: " + enumArray.Length + ", groupIndex: " + groupIndex);
             DaggerfallUnityItem newItem;
-            if (groupIndex < enumArray.Length)
-                newItem = new DaggerfallUnityItem(ItemGroups.Armor, groupIndex);
-            else
-                newItem = CreateItem(ItemGroups.Armor, customItemTemplates[groupIndex - enumArray.Length]);
+            // if (groupIndex < enumArray.Length)
+            newItem = new DaggerfallUnityItem(ItemGroups.Armor, groupIndex);
+            // else
+            //     newItem = CreateItem(ItemGroups.Armor, customItemTemplates[groupIndex - enumArray.Length]);
 
-            ApplyArmorSettings(newItem, gender, race, FormulaHelper.RandomArmorMaterial(playerLevel, (Armor)enumArray.GetValue(groupIndex)));
+            ApplyArmorSettings(newItem, gender, race, FormulaHelper.RandomArmorMaterial((Armor)enumArray.GetValue(groupIndex), luck, isTownGuard));
 
             return newItem;
+        }
+
+        // Here we try to keep vanilla armor type proportions (Plate 1/10, Chain 2/10, Leather 7/10)
+        // despite the new armor types. Works in tandem with chances in RandomArmorMaterial.
+        public static int GetArmorIndex(int arrayLength)
+        {
+            int diceRoll = UnityEngine.Random.Range(0, 245);
+            if (diceRoll < 35)
+                return diceRoll % 7;
+            if (diceRoll < 70)
+                return diceRoll % 5 + 11;
+            if (diceRoll < 210)
+                return diceRoll % 7 + 16;
+            // Shields
+            if (diceRoll < 228)
+                return 7;
+            if (diceRoll < 238)
+                return 8;
+            if (diceRoll < 243)
+                return 9;
+            else return 10;
         }
 
         /// <summary>Set gender, body morphology and material of armor</summary>
@@ -562,7 +585,7 @@ namespace DaggerfallWorkshop.Game.Items
             if (GetArmorMaterialType((int)material) >= MaterialTypes.Iron)
             {
                 Debug.Log("Armor material type:  + " + GetArmorMaterialType((int)material));
-                armor = SetItemPropertiesByMaterial(armor, material);
+                armor = SetItemPropertiesByMaterial(armor, (int)material);
             }
 
             Debug.Log("armor.PlayerTextureArchive: " + armor.PlayerTextureArchive);
@@ -586,21 +609,21 @@ namespace DaggerfallWorkshop.Game.Items
         /// Creates random magic item in same manner as classic.
         /// </summary>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem CreateRandomMagicItem(int playerLevel, Genders gender, Races race)
+        public static DaggerfallUnityItem CreateRandomMagicItem(int playerLuck, Genders gender, Races race)
         {
-            return CreateRegularMagicItem(chooseAtRandom, playerLevel, gender, race);
+            return CreateRegularMagicItem(chooseAtRandom, playerLuck, gender, race);
         }
 
         /// <summary>
         /// Create a regular non-artifact magic item.
         /// </summary>
         /// <param name="chosenItem">An integer index of the item to create, or -1 for a random one.</param>
-        /// <param name="playerLevel">The player level to create an item for.</param>
+        /// <param name="playerLuck">The player luck live stat.</param>
         /// <param name="gender">The gender to create an item for.</param>
         /// <param name="race">The race to create an item for.</param>
         /// <returns>DaggerfallUnityItem</returns>
         /// <exception cref="Exception">When a base item cannot be created.</exception>
-        public static DaggerfallUnityItem CreateRegularMagicItem(int chosenItem, int playerLevel, Genders gender, Races race)
+        public static DaggerfallUnityItem CreateRegularMagicItem(int chosenItem, int playerLuck, Genders gender, Races race)
         {
             byte[] itemGroups0 = { 2, 3, 6, 10, 12, 14, 25 };
             byte[] itemGroups1 = { 2, 3, 6, 12, 25 };
@@ -636,14 +659,14 @@ namespace DaggerfallWorkshop.Game.Items
             // Create the base item
             if (group == ItemGroups.Weapons)
             {
-                newItem = CreateRandomWeapon(playerLevel);
+                newItem = CreateRandomWeapon(playerLuck);
 
                 // No arrows as enchanted items
                 while (newItem.GroupIndex == 18)
-                    newItem = CreateRandomWeapon(playerLevel);
+                    newItem = CreateRandomWeapon(playerLuck);
             }
             else if (group == ItemGroups.Armor)
-                newItem = CreateRandomArmor(playerLevel, gender, race);
+                newItem = CreateRandomArmor(playerLuck, gender, race);
             else if (group == ItemGroups.MensClothing || group == ItemGroups.WomensClothing)
                 newItem = CreateRandomClothing(gender, race);
             else if (group == ItemGroups.ReligiousItems)
@@ -716,29 +739,40 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="item">Item to have its properties modified.</param>
         /// <param name="material">Material to use to apply properties.</param>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem SetItemPropertiesByMaterial(DaggerfallUnityItem item, ArmorMaterialTypes material)
+        public static DaggerfallUnityItem SetItemPropertiesByMaterial(DaggerfallUnityItem item, int nativeMaterialValue)
         {
             int multiplier = 1;
+            MaterialTypes material = MaterialTypes.Iron;
 
-            ArmorTypes armor = GetArmorType((int)material);
-            switch (armor)
+            if (item.ItemGroup == ItemGroups.Weapons)
             {
-                case ArmorTypes.Leather:    // or a weapon
-                    multiplier = 1;
-                    break;
-                case ArmorTypes.Chain:
-                    multiplier = 2;
-                    break;
-                case ArmorTypes.Plate:
-                    multiplier = 3;
-                    break;
-                default:
-                    break;
+                multiplier = 4;
+                material = (MaterialTypes)nativeMaterialValue;
+            }
+
+            else
+            {
+                ArmorTypes armor = GetArmorType(nativeMaterialValue);
+                material = GetArmorMaterialType(nativeMaterialValue);
+                switch (armor)
+                {
+                    case ArmorTypes.Leather:
+                        multiplier = 2;
+                        break;
+                    case ArmorTypes.Chain:
+                        multiplier = 6;
+                        break;
+                    case ArmorTypes.Plate:
+                        multiplier = 10;
+                        break;
+                    default:
+                        break;
+                }
             }
 
             Debug.Log("(int)GetArmorMaterialType(item.nativeMaterialValue): " + (int)GetArmorMaterialType((int)material));
             item.value *= multiplier * valueMultipliersByMaterial[(int)GetArmorMaterialType((int)material)];
-            item.weightInKg += (CalculateWeightForMaterial(item, GetArmorMaterialType((int)material)) - item.weightInKg) * multiplier / 3;
+            item.weightInKg += (CalculateWeightForMaterial(item, GetArmorMaterialType((int)material)) - item.weightInKg) * multiplier / 6;
             item.maxCondition = item.maxCondition * conditionMultipliersByMaterial[(int)GetArmorMaterialType((int)material)] / 4;
             item.currentCondition = item.maxCondition;
 
@@ -968,9 +1002,9 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="anyRegion">If a random map can be created of locations in other regions in this province.</param>
         /// <param name="anyProvince">If a random map can be created of locations in other provinces in this continent.</param>
         /// <param name="anyContinent">If a random map can be created of locations in other continents (on this planet).</param>
-        public static DaggerfallUnityItem CreateTownMap(DFLocation location = new DFLocation(), int exoticism = 100, bool anyRegion = false, bool anyProvince = false, bool anyContinent = false)
+        public static DaggerfallUnityItem CreateTownMap(int exoticism = 100, bool anyRegion = false, bool anyProvince = false, bool anyContinent = false, DFLocation location = new DFLocation())
         {
-            DaggerfallUnityItem townMap = new DaggerfallUnityItem(ItemGroups.Maps, (int)Maps.TownMap);
+            DaggerfallUnityItem townMap = new DaggerfallUnityItem(ItemGroups.Maps, 1);
             int diceRoll = Dice100.Roll();
 
             if (location.Exterior.ExteriorData.BlockNames == null && diceRoll < exoticism)
@@ -1035,6 +1069,8 @@ namespace DaggerfallWorkshop.Game.Items
 
                 int locIndex = UnityEngine.Random.Range(0, locIdxs.Count);
                 MapSummary locSummary;
+                if (locIdxs.Count < 1)
+                    return null;
                 DFRegion finalTile = WorldMaps.ConvertWorldMapsToDFRegion(locIdxs[locIndex].Item1, true);
                 DFPosition pos = MapsFile.GetPixelFromPixelID(finalTile.MapTable[locIdxs[locIndex].Item2].MapId);
                 townMap.message = locIdxs[locIndex].Item1 * 10000 + locIdxs[locIndex].Item2;
@@ -1044,14 +1080,17 @@ namespace DaggerfallWorkshop.Game.Items
                 townMap.message = location.AbsTileIndex * 10000 + location.LocationIndex;
                 townMap.shortName = townMap.shortName + " " + location.Name + " (" + location.RegionName + ")";
             }
+            Debug.Log("townMap.ItemName: " + townMap.ItemName);
+
             return townMap;
         }
 
-        public static DaggerfallUnityItem CreateLocationMap(DFLocation location = new DFLocation(), DFRegion.LocationTypes locType = DFRegion.LocationTypes.None, int exoticism = 100, bool anyRegion = false, bool anyProvince = false, bool anyContinent = false)
+        public static DaggerfallUnityItem CreateLocationMap(int exoticism = 100, bool anyRegion = false, bool anyProvince = false, bool anyContinent = false, DFLocation location = new DFLocation(), DFRegion.LocationTypes locType = DFRegion.LocationTypes.None)
         {
-            DaggerfallUnityItem locationMap = new DaggerfallUnityItem(ItemGroups.Maps, (int)Maps.Map);
+            DaggerfallUnityItem locationMap = new DaggerfallUnityItem(ItemGroups.Maps, 0);
+            int variant = 0;
 
-            if (location.Exterior.ExteriorData.BlockNames.Length < 1)
+            if (location.Exterior.ExteriorData.BlockNames == null)
             {
                 int diceRoll;
                 PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
@@ -1080,6 +1119,29 @@ namespace DaggerfallWorkshop.Game.Items
                         locType = DFRegion.LocationTypes.ReligionCult;
                     else if (diceRoll <= 100)
                         locType = DFRegion.LocationTypes.Coven;
+                }
+
+                switch (locType)
+                {
+                    case DFRegion.LocationTypes.DungeonRuin:
+                    case DFRegion.LocationTypes.DungeonKeep:
+                    case DFRegion.LocationTypes.DungeonLabyrinth:
+                        locationMap.value *= (10 - (int)locType);
+                        variant = 3;
+                        break;
+                    case DFRegion.LocationTypes.ReligionTemple:
+                    case DFRegion.LocationTypes.ReligionCult:
+                        locationMap.value /= 2;
+                        variant = 1;
+                        break;
+                    case DFRegion.LocationTypes.Coven:
+                        locationMap.value *= 100000;
+                        variant = 2;
+                        break;
+                    case DFRegion.LocationTypes.TownCity:
+                    case DFRegion.LocationTypes.TownHamlet:
+                    default:
+                        break;
                 }
 
                 diceRoll = Dice100.Roll();
@@ -1133,7 +1195,7 @@ namespace DaggerfallWorkshop.Game.Items
                 if (locIdxs.Count == 0)
                 {
                     Debug.Log("No suitable location found.");
-                    return new DaggerfallUnityItem();
+                    return null;
                 }
 
                 int locIndex = UnityEngine.Random.Range(0, locIdxs.Count);
@@ -1146,8 +1208,9 @@ namespace DaggerfallWorkshop.Game.Items
             else
             {
                 locationMap.message = location.AbsTileIndex * 10000 + location.LocationIndex;
-                locationMap.shortName = locationMap.shortName + " of " + location.Name + " (" + location.RegionName + ")";
+                locationMap.shortName = locationMap.shortName + " " + location.Name + " (" + location.RegionName + ")";
             }
+            SetVariant(locationMap, variant);
             return locationMap;            
         }
 
@@ -1187,7 +1250,7 @@ namespace DaggerfallWorkshop.Game.Items
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Jerkin))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
-                    variant = 11;
+                    variant = 12;
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
@@ -1207,7 +1270,7 @@ namespace DaggerfallWorkshop.Game.Items
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Cuisse))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
-                    variant = 11;
+                    variant = 12;
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
@@ -1227,7 +1290,7 @@ namespace DaggerfallWorkshop.Game.Items
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Left_Vambrace) || item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Right_Vambrace))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
-                    variant = 11;
+                    variant = 12;
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
@@ -1241,7 +1304,7 @@ namespace DaggerfallWorkshop.Game.Items
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Gloves))
             {
                if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
-                    variant = 11;
+                    variant = 12;
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
@@ -1259,19 +1322,18 @@ namespace DaggerfallWorkshop.Game.Items
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Light_Boots))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
-                    variant = 11;
+                    variant = 12;
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
             else if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Helmet))
             {
                 if (item.nativeMaterialValue == (int)ArmorMaterialTypes.Fur)
-                    variant = 11;
+                    variant = 12;
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
             // Store variant
-            Debug.Log("variant selected: " + variant);
             item.CurrentVariant = variant;
         }
 
@@ -1290,6 +1352,8 @@ namespace DaggerfallWorkshop.Game.Items
                 case Races.Breton:
                 case Races.Nord:
                 case Races.Redguard:
+                case Races.Imperial:
+                case Races.Orc:
                     return BodyMorphology.Human;
 
                 case Races.Khajiit:
@@ -1302,7 +1366,6 @@ namespace DaggerfallWorkshop.Game.Items
 
         public static ArmorTypes GetArmorType(int nativeMaterialValue)
         {
-            Debug.Log("nativeMaterialValue: " + nativeMaterialValue + ", Armor Type: " + (ArmorTypes)(nativeMaterialValue / 0x0100 * 0x0100));
             return (ArmorTypes)(nativeMaterialValue / 0x0100 * 0x0100);
         }
 

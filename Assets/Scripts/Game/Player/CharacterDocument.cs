@@ -110,6 +110,10 @@ namespace DaggerfallWorkshop.Game.Player
                     return new Khajiit();
                 case Races.Argonian:
                     return new Argonian();
+                case Races.Imperial:
+                    return new Imperial();
+                case Races.Orc:
+                    return new Orc();
             }
         }
 

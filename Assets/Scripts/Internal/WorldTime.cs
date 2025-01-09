@@ -85,13 +85,13 @@ namespace DaggerfallWorkshop
         void RaiseEvents()
         {
             // Dawn event
-            if (lastDailyMinute != DaggerfallDateTime.DawnHour && DaggerfallDateTime.Minute == DaggerfallDateTime.DawnHour)
+            if (lastDailyMinute != DaggerfallDateTime.DawnHour && DaggerfallDateTime.MinuteOfDay == DaggerfallDateTime.DawnHour)
             {
                 RaiseOnDawnEvent();
             }
 
             // Dusk event
-            if (lastDailyMinute != DaggerfallDateTime.DuskHour && DaggerfallDateTime.Minute == DaggerfallDateTime.DuskHour)
+            if (lastDailyMinute != DaggerfallDateTime.DuskHour && DaggerfallDateTime.MinuteOfDay == DaggerfallDateTime.DuskHour)
             {
                 RaiseOnDuskEvent();
             }

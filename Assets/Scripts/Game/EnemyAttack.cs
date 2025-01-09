@@ -137,7 +137,7 @@ namespace DaggerfallWorkshop.Game
                 return;
 
             EnemyEntity entity = entityBehaviour.Entity as EnemyEntity;
-            Items.DaggerfallUnityItem arrow = Items.ItemBuilder.CreateWeapon(Items.Weapons.Arrow, FormulaHelper.RandomMaterial(entity.Level));
+            Items.DaggerfallUnityItem arrow = Items.ItemBuilder.CreateWeapon(Items.Weapons.Arrow, FormulaHelper.RandomMaterial(entity.Stats.GetLiveStatValue(DFCareer.Stats.Luck)));
 
             if (senses.Target == GameManager.Instance.PlayerEntityBehaviour)
                 damage = ApplyDamageToPlayer(entity.ItemEquipTable.GetItem(Items.EquipSlots.RightHand), arrow);

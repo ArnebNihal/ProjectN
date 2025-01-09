@@ -120,11 +120,11 @@ namespace DaggerfallWorkshop
             if (dfUnity.Option_AutomateTextureSwaps)
             {
                 // Only process if climate, season, day/night, or weather changed
-                if (lastSeason != dfUnity.WorldTime.Now.ActualSeasonValue ||
+                if (lastSeason != dfUnity.WorldTime.Now.GenericSeasonValue ||
                     lastCityLightsFlag != dfUnity.WorldTime.Now.IsCityLightsOn)
                 {
                     ApplyTimeAndSpace();
-                    lastSeason = dfUnity.WorldTime.Now.ActualSeasonValue;
+                    lastSeason = dfUnity.WorldTime.Now.GenericSeasonValue;
                     lastCityLightsFlag = dfUnity.WorldTime.Now.IsCityLightsOn;
                 }
             }
@@ -133,7 +133,7 @@ namespace DaggerfallWorkshop
         private void ApplyTimeAndSpace()
         {
             // Get season and weather
-            if (dfUnity.WorldTime.Now.ActualSeasonValue == DaggerfallDateTime.Seasons.Winter)
+            if (dfUnity.WorldTime.Now.GenericSeasonValue == DaggerfallDateTime.Seasons.Winter)
                 CurrentSeason = ClimateSeason.Winter;
             else
                 CurrentSeason = ClimateSeason.Summer;

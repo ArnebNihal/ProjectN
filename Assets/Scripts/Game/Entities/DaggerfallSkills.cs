@@ -67,9 +67,9 @@ namespace DaggerfallWorkshop.Game.Entity
         [SerializeField] short BluntWeapon;
         [SerializeField] short Archery;
         [SerializeField] short CriticalStrike;
-        [SerializeField] short LightArmour;
-        [SerializeField] short MediumArmour;
-        [SerializeField] short HeavyArmour;
+        [SerializeField] short LightArmor;
+        [SerializeField] short MediumArmor;
+        [SerializeField] short HeavyArmor;
         [SerializeField] short Block;
         [SerializeField] short Disguise;
 
@@ -253,12 +253,12 @@ namespace DaggerfallWorkshop.Game.Entity
                     return Archery;
                 case DFCareer.Skills.CriticalStrike:
                     return CriticalStrike;
-                case DFCareer.Skills.LightArmour:
-                    return LightArmour;
-                case DFCareer.Skills.MediumArmour:
-                    return MediumArmour;
-                case DFCareer.Skills.HeavyArmour:
-                    return HeavyArmour;
+                case DFCareer.Skills.LightArmor:
+                    return LightArmor;
+                case DFCareer.Skills.MediumArmor:
+                    return MediumArmor;
+                case DFCareer.Skills.HeavyArmor:
+                    return HeavyArmor;
                 case DFCareer.Skills.Block:
                     return Block;
                 case DFCareer.Skills.Disguise:
@@ -386,14 +386,14 @@ namespace DaggerfallWorkshop.Game.Entity
                 case DFCareer.Skills.CriticalStrike:
                     CriticalStrike = value;
                     break;
-                case DFCareer.Skills.LightArmour:
-                    LightArmour= value;
+                case DFCareer.Skills.LightArmor:
+                    LightArmor= value;
                     break;
-                case DFCareer.Skills.MediumArmour:
-                    MediumArmour = value;
+                case DFCareer.Skills.MediumArmor:
+                    MediumArmor = value;
                     break;
-                case DFCareer.Skills.HeavyArmour:
-                    HeavyArmour = value;
+                case DFCareer.Skills.HeavyArmor:
+                    HeavyArmor = value;
                     break;
                 case DFCareer.Skills.Block:
                     Block = value;
@@ -503,11 +503,11 @@ namespace DaggerfallWorkshop.Game.Entity
                     return DFCareer.Stats.Agility;
                 case DFCareer.Skills.CriticalStrike:
                     return DFCareer.Stats.Agility;
-                case DFCareer.Skills.LightArmour:
+                case DFCareer.Skills.LightArmor:
                     return DFCareer.Stats.Agility;
-                case DFCareer.Skills.MediumArmour:
+                case DFCareer.Skills.MediumArmor:
                     return DFCareer.Stats.Endurance;
-                case DFCareer.Skills.HeavyArmour:
+                case DFCareer.Skills.HeavyArmor:
                     return DFCareer.Stats.Endurance;
                 case DFCareer.Skills.Block:
                     return DFCareer.Stats.Agility;
@@ -559,9 +559,9 @@ namespace DaggerfallWorkshop.Game.Entity
                 case DFCareer.Skills.Backstabbing:
                     return 1;
                 case DFCareer.Skills.Dodging:
-                case DFCareer.Skills.LightArmour:
-                case DFCareer.Skills.MediumArmour:
-                case DFCareer.Skills.HeavyArmour:
+                case DFCareer.Skills.LightArmor:
+                case DFCareer.Skills.MediumArmor:
+                case DFCareer.Skills.HeavyArmor:
                 case DFCareer.Skills.Block:
                     return 4;
                 case DFCareer.Skills.Running:

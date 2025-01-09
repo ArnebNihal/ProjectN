@@ -97,6 +97,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 for (int i = 0; i < faceCount; i++)
                 {
                     String filename = raceGender == Genders.Male ? raceTemplate.PaperDollHeadsMale : raceTemplate.PaperDollHeadsFemale;
+                    Debug.Log("Getting face from " + filename);
                     faceTextures[i] = ImageReader.GetImageData(filename, i, 0, true, true);
                 }
             }

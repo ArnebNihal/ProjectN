@@ -1443,6 +1443,7 @@ namespace DaggerfallWorkshop.Game
                 exteriorLayoutTexture = null;
             }
 
+            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
             int xpos = 0;
             int ypos = 0; //locationHeight * blockSizeHeight - blockSizeHeight;
             exteriorLayout = new BlockLayout[locationWidth * locationHeight];
@@ -1499,7 +1500,10 @@ namespace DaggerfallWorkshop.Game
                             // guilds
                             case 12: // guildhall
                             case 15: // temple
-                                colors[o] = DaggerfallUnity.Settings.AutomapTempleColor;
+                            // ProjectN: if character has a TownMap item, buildings will be color coded, else they'll have all the same color
+                                if (playerEntity.PlayerHasTownMap(playerEntity.Items))
+                                    colors[o] = DaggerfallUnity.Settings.AutomapTempleColor;
+                                else colors[o] = DaggerfallUnity.Settings.AutomapHouseColor;
                                 break;
                             // shops
                             case 1: // alchemist
@@ -1512,10 +1516,15 @@ namespace DaggerfallWorkshop.Game
                             case 11: // library
                             case 13: // pawn shop
                             case 14: // weapon smith
-                                colors[o] = DaggerfallUnity.Settings.AutomapShopColor;
+                                if (playerEntity.PlayerHasTownMap(playerEntity.Items))
+                                    colors[o] = DaggerfallUnity.Settings.AutomapShopColor;
+                                else colors[o] = DaggerfallUnity.Settings.AutomapHouseColor;
                                 break;
                             case 16: // tavern
-                                colors[o] = DaggerfallUnity.Settings.AutomapTavernColor;
+                                if (playerEntity.PlayerHasTownMap(playerEntity.Items))
+                                    colors[o] = DaggerfallUnity.Settings.AutomapTavernColor;
+                                else
+                                    colors[o] = DaggerfallUnity.Settings.AutomapHouseColor;
                                 break;
                             // common
                             case 2: // house for sale

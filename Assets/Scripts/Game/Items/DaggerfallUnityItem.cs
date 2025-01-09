@@ -358,6 +358,13 @@ namespace DaggerfallWorkshop.Game.Items
         }
 
         /// <summary>
+        /// Checks if this item is a location map.
+        public bool IsLocationMap
+        {
+            get { return ItemGroup == ItemGroups.Maps && TemplateIndex == (int)Maps.Map; }
+        }
+
+        /// <summary>
         /// Gets/sets the soul trapped in a soul trap.
         /// </summary>
         public MobileTypes TrappedSoulType
@@ -977,6 +984,7 @@ namespace DaggerfallWorkshop.Game.Items
                 case (int)MaterialTypes.Elven:
                     return 1;
                 case (int)MaterialTypes.Dwarven:
+                case (int)MaterialTypes.Glass:
                     return 2;
                 case (int)MaterialTypes.Orcish:
                 case (int)MaterialTypes.Mithril:
@@ -1022,11 +1030,15 @@ namespace DaggerfallWorkshop.Game.Items
                     case (int)ArmorMaterialTypes.ChainSilver:
                         result = 8;
                         break;
+                    case (int)ArmorMaterialTypes.LeatherGlass:
                     case (int)ArmorMaterialTypes.LeatherDwarven:
                     case (int)ArmorMaterialTypes.ChainElven:
                     case (int)ArmorMaterialTypes.PlateSteel:
                     case (int)ArmorMaterialTypes.PlateSilver:
                         result = 9;
+                        break;
+                    case (int)ArmorMaterialTypes.ChainGlass:
+                        result = 10;
                         break;
                     case (int)ArmorMaterialTypes.LeatherOrcish:
                     case (int)ArmorMaterialTypes.LeatherMithril:
@@ -1035,6 +1047,7 @@ namespace DaggerfallWorkshop.Game.Items
                         result = 11;
                         break;
                     case (int)ArmorMaterialTypes.LeatherAdamantium:
+                    case (int)ArmorMaterialTypes.PlateGlass:
                         result = 12;
                         break;
                     case (int)ArmorMaterialTypes.LeatherEbony:
@@ -1100,7 +1113,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// <summary>
         /// Get body parts protected by a shield.
         /// </summary>
-        // TODO: maybe differentiate between round and kite body parts?
+        // ProjectN: differentiated between Round Shield and Kite Shield protected body parts.
         public virtual BodyParts[] GetShieldProtectedBodyParts()
         {
             switch (TemplateIndex)
