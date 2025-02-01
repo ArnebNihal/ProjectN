@@ -53,6 +53,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         PlayerEntity playerEntity;
         TextLabel nameLabel = new TextLabel();
         TextLabel raceLabel = new TextLabel();
+        TextLabel ageLabel = new TextLabel();
         TextLabel classLabel = new TextLabel();
         TextLabel levelLabel = new TextLabel();
         TextLabel goldLabel = new TextLabel();
@@ -113,6 +114,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Setup labels
             nameLabel = DaggerfallUI.AddDefaultShadowedTextLabel(new Vector2(41, 4), NativePanel);
             raceLabel = DaggerfallUI.AddDefaultShadowedTextLabel(new Vector2(41, 14), NativePanel);
+            ageLabel = DaggerfallUI.AddDefaultShadowedTextLabel(new Vector2(106, 14), NativePanel);
             classLabel = DaggerfallUI.AddDefaultShadowedTextLabel(new Vector2(46, 24), NativePanel);
             levelLabel = DaggerfallUI.AddDefaultShadowedTextLabel(new Vector2(45, 34), NativePanel);
             goldLabel = DaggerfallUI.AddDefaultShadowedTextLabel(new Vector2(39, 44), NativePanel);
@@ -134,6 +136,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             Button nameButton = DaggerfallUI.AddButton(new Rect(4, 3, 132, 8), NativePanel);
             nameButton.OnMouseClick += NameButton_OnMouseClick;
             nameButton.Hotkey = DaggerfallShortcut.GetBinding(DaggerfallShortcut.Buttons.CharacterSheetName);
+
+            // Age button
+            Button ageButton = DaggerfallUI.AddButton(new Rect(78, 13, 54, 8), NativePanel);
+            ageButton.OnMouseClick += AgeButton_OnMouseClick;
+            ageButton.Hotkey = DaggerfallShortcut.GetBinding(DaggerfallShortcut.Buttons.CharacterSheetAge);
 
             // Level button
             Button levelButton = DaggerfallUI.AddButton(new Rect(4, 33, 132, 8), NativePanel);
@@ -395,6 +402,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Update main labels
             nameLabel.Text = PlayerEntity.Name;
             raceLabel.Text = PlayerEntity.RaceTemplate.Name;
+            ageLabel.Text = PlayerEntity.Age.ToString();
             classLabel.Text = PlayerEntity.Career.Name;
             levelLabel.Text = PlayerEntity.Level.ToString();
             goldLabel.Text = PlayerEntity.GetGoldAmount().ToString();
@@ -637,7 +645,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     { DFCareer.MaterialFlags.Mithril, TextManager.Instance.GetLocalizedText(HardStrings.mithril) },
                     { DFCareer.MaterialFlags.Orcish, TextManager.Instance.GetLocalizedText(HardStrings.orcish) },
                     { DFCareer.MaterialFlags.Silver, TextManager.Instance.GetLocalizedText(HardStrings.silver) },
-                    { DFCareer.MaterialFlags.Steel, TextManager.Instance.GetLocalizedText(HardStrings.steel) }
+                    { DFCareer.MaterialFlags.Steel, TextManager.Instance.GetLocalizedText(HardStrings.steel) },
+                    { DFCareer.MaterialFlags.Glass, TextManager.Instance.GetLocalizedText(HardStrings.glass) }
                 };
                 foreach (DFCareer.MaterialFlags flag in Enum.GetValues(typeof(DFCareer.MaterialFlags)))
                 {
@@ -846,11 +855,25 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             mb.Show();
         }
 
+        private void AgeButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
+        {
+            DaggerfallUI.Instance.PlayOneShot(SoundClips.ButtonClick);
+            string suffix = "th";
+            (int, int, int, int) birthday;
+            PlayerEntity.ProcessBirthday(playerEntity.Birthday, out birthday.Item1, out birthday.Item2, out birthday.Item3, out birthday.Item4);
+            if (birthday.Item1 % 10 == 1) suffix = "st";
+            else if (birthday.Item1 % 10 == 2) suffix = "nd";
+            else if (birthday.Item1 % 10 == 3) suffix = "rd";
+            DaggerfallUI.MessageBox(TextManager.Instance.GetLocalizedText("birthday") + ": " + birthday.Item1 + suffix + " of " + 
+                                    TextManager.Instance.GetLocalizedTextList("monthNames")[birthday.Item2] + ", " + birthday.Item3.ToString() + "E " + birthday.Item4.ToString() +
+                                    "; Birthsign: " + TextManager.Instance.GetLocalizedTextList("birthSignNames")[birthday.Item2]);
+        }
+
         private void LevelButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
         {
             DaggerfallUI.Instance.PlayOneShot(SoundClips.ButtonClick);
-            float currentLevel = (playerEntity.CurrentLevelUpSkillSum - playerEntity.StartingLevelUpSkillSum + 28f) / 15f;
-            int progress = (int)((currentLevel % 1) * 100);
+            int progress = -1;
+            float currentLevel = FormulaHelper.CalculatePlayerLevel(playerEntity.StartingLevelUpSkillSum, playerEntity.CurrentLevelUpSkillSum, out progress);
             DaggerfallUI.MessageBox(string.Format(TextManager.Instance.GetLocalizedText("levelProgress"), progress));
         }
 

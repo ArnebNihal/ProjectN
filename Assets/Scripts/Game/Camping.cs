@@ -32,10 +32,10 @@ namespace DaggerfallWorkshop.Game
         public static int CampDmg;
         public const int tentModelID = 41606;
         public const int templateIndex_Tent = 515;
-        protected const DaggerfallMessageBox.MessageBoxButtons cancelButton = (DaggerfallMessageBox.MessageBoxButtons)2;
-        protected const DaggerfallMessageBox.MessageBoxButtons cookButton = (DaggerfallMessageBox.MessageBoxButtons)37;
-        protected const DaggerfallMessageBox.MessageBoxButtons restButton = (DaggerfallMessageBox.MessageBoxButtons)35;
-        protected const DaggerfallMessageBox.MessageBoxButtons packButton = (DaggerfallMessageBox.MessageBoxButtons)36;
+        // protected const DaggerfallMessageBox.MessageBoxButtons cancelButton = (DaggerfallMessageBox.MessageBoxButtons)2;
+        // protected const DaggerfallMessageBox.MessageBoxButtons cookButton = (DaggerfallMessageBox.MessageBoxButtons)37;
+        // protected const DaggerfallMessageBox.MessageBoxButtons restButton = (DaggerfallMessageBox.MessageBoxButtons)35;
+        // protected const DaggerfallMessageBox.MessageBoxButtons packButton = (DaggerfallMessageBox.MessageBoxButtons)36;
         public static bool ironmanOptionsCamp = false;
         static UserInterfaceManager uiManager = DaggerfallUI.Instance.UserInterfaceManager;
         private static List<DaggerfallUnityItem> rawFood;
@@ -145,10 +145,10 @@ namespace DaggerfallWorkshop.Game
                 string[] message = { "Do you wish to rest, cook or pack?" };
                 campPopUp.SetText(message);
                 campPopUp.OnButtonClick += CampPopUp_OnButtonClick;
-                campPopUp.AddButton(restButton);
-                campPopUp.AddButton(cookButton);
-                campPopUp.AddButton(packButton);
-                campPopUp.AddButton(cancelButton);
+                campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Rest);
+                campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Cook);
+                campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Pack);
+                campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Cancel);
                 campPopUp.Show();
             }
             else
@@ -165,12 +165,12 @@ namespace DaggerfallWorkshop.Game
             }
             else
             {
-                if (!GameManager.Instance.AreEnemiesNearby(true) && ironmanOptionsCamp)
-                {
-                    Debug.Log("[Climates&Calories] Sending mod message to Ironman Options.");
+                // if (!GameManager.Instance.AreEnemiesNearby(true) && ironmanOptionsCamp)
+                // {
+                //     Debug.Log("[Climates&Calories] Sending mod message to Ironman Options.");
 
-                    ModManager.Instance.SendModMessage("Ironman Options", "campSave");
-                }
+                //     ModManager.Instance.SendModMessage("Ironman Options", "campSave");
+                // }
                 DaggerfallMessageBox campPopUp = new DaggerfallMessageBox(DaggerfallUI.UIManager, DaggerfallUI.UIManager.TopWindow);
                 if (Fire != null)
                 {
@@ -179,10 +179,10 @@ namespace DaggerfallWorkshop.Game
                         string[] message = { "Do you wish to rest, cook or pack?" };
                         campPopUp.SetText(message);
                         campPopUp.OnButtonClick += CampPopUp_OnButtonClick;
-                        campPopUp.AddButton(restButton);
-                        campPopUp.AddButton(cookButton);
-                        campPopUp.AddButton(packButton);
-                        campPopUp.AddButton(cancelButton);
+                        campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Rest);
+                        campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Cook);
+                        campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Pack);
+                        campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Cancel);
                         campPopUp.Show();
                     }
                     else
@@ -198,9 +198,9 @@ namespace DaggerfallWorkshop.Game
                         string[] message = { "Do you wish to rest or cook?" };
                         campPopUp.SetText(message);
                         campPopUp.OnButtonClick += CampPopUp_OnButtonClick;
-                        campPopUp.AddButton(restButton);
-                        campPopUp.AddButton(cookButton);
-                        campPopUp.AddButton(cancelButton);
+                        campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Rest);
+                        campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Cook);
+                        campPopUp.AddButton(DaggerfallMessageBox.MessageBoxButtons.Cancel);
                         campPopUp.Show();
                     }
                     else
@@ -216,7 +216,7 @@ namespace DaggerfallWorkshop.Game
         private static void CampPopUp_OnButtonClick(DaggerfallMessageBox sender, DaggerfallMessageBox.MessageBoxButtons messageBoxButton)
         {
 
-            if (messageBoxButton == restButton)
+            if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Rest)
             {
                 sender.CloseWindow();
                 IUserInterfaceManager uiManager = DaggerfallUI.UIManager;
@@ -224,7 +224,7 @@ namespace DaggerfallWorkshop.Game
                 ClimateCalories.cooking = false;
                 uiManager.PushWindow(new DaggerfallRestWindow(uiManager, true));
             }
-            else if (messageBoxButton == cookButton)
+            else if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Cook)
             {
                 List<DaggerfallUnityItem> skillets = GameManager.Instance.PlayerEntity.Items.SearchItems(ItemGroups.UselessItems2, (int)UselessItems2.Skillet);
                 if (skillets.Count >= 1)
@@ -250,7 +250,7 @@ namespace DaggerfallWorkshop.Game
                     DaggerfallUI.MessageBox("You have nothing to cook.");
  
             }
-            else if (messageBoxButton == packButton)
+            else if (messageBoxButton == DaggerfallMessageBox.MessageBoxButtons.Pack)
             {
                 ClimateCalories.cooking = false;
                 DaggerfallUnityItem CampEquip = ItemBuilder.CreateItem(ItemGroups.UselessItems2, (int)UselessItems2.CampingEquipment);
@@ -289,20 +289,20 @@ namespace DaggerfallWorkshop.Game
             DaggerfallUnity.Instance.WorldTime.Now.RaiseTime(DaggerfallDateTime.SecondsPerMinute * cookTime);
 
             GameManager.Instance.PlayerEntity.Items.RemoveItem(rawItem);
-            switch ((rawItem as AbstractItemFood).FoodStatus)
+            switch (rawItem.message)
             {
-                case AbstractItemFood.StatusFresh:
-                case AbstractItemFood.StatusStale:
+                case (int)FoodStatus.Fresh:
+                case (int)FoodStatus.Stale:
                 default:
                     break;
-                case AbstractItemFood.StatusMouldy:
+                case (int)FoodStatus.Mouldy:
                     (cookedItem as AbstractItemFood).RotFood();
                     break;
-                case AbstractItemFood.StatusRotten:
+                case (int)FoodStatus.Rotten:
                     (cookedItem as AbstractItemFood).RotFood();
                     (cookedItem as AbstractItemFood).RotFood();
                     break;
-                case AbstractItemFood.StatusPutrid:
+                case (int)FoodStatus.Putrid:
                     (cookedItem as AbstractItemFood).RotFood();
                     (cookedItem as AbstractItemFood).RotFood();
                     (cookedItem as AbstractItemFood).RotFood();

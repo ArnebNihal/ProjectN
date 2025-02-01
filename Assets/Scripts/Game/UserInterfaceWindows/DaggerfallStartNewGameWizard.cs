@@ -22,6 +22,8 @@ using DaggerfallWorkshop;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.Player;
 using DaggerfallWorkshop.Game.Utility;
+using DaggerfallWorkshop.Game.Formulas;
+using DaggerfallWorkshop.Game.Entity;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -33,6 +35,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         const string newGameCinematic1 = "ANIM0000.VID";
         const string newGameCinematic2 = "ANIM0011.VID";
         const string newGameCinematic3 = "DAG2.VID";
+
+        public const int startingLevelUpSkillsSum = 60;
 
         WizardStages wizardStage;
         CharacterDocument characterDocument = new CharacterDocument();
@@ -224,18 +228,26 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         void SetAddBonusStatsWindow()
         {
+            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
             if (createCharAddBonusStatsWindow == null)
             {
                 createCharAddBonusStatsWindow = new CreateCharAddBonusStats(uiManager);
                 createCharAddBonusStatsWindow.OnClose += AddBonusStatsWindow_OnClose;
                 createCharAddBonusStatsWindow.DFClass = characterDocument.career;
+                createCharAddBonusStatsWindow.Race = characterDocument.raceTemplate;
+                createCharAddBonusStatsWindow.CharacterGender = characterDocument.gender;
+                createCharAddBonusStatsWindow.Age = characterDocument.age;
                 createCharAddBonusStatsWindow.Reroll();
             }
 
-            // Update class and reroll if player changed class selection
-            if (createCharAddBonusStatsWindow.DFClass != characterDocument.career)
+            // Update class and reroll if player changed class, race or gender selection
+            if (createCharAddBonusStatsWindow.DFClass != characterDocument.career ||
+                createCharAddBonusStatsWindow.Race != characterDocument.raceTemplate ||
+                createCharAddBonusStatsWindow.CharacterGender != characterDocument.gender)
             {
                 createCharAddBonusStatsWindow.DFClass = characterDocument.career;
+                createCharAddBonusStatsWindow.Race = characterDocument.raceTemplate;
+                createCharAddBonusStatsWindow.CharacterGender = characterDocument.gender;
                 createCharAddBonusStatsWindow.Reroll();
             }
 
@@ -249,13 +261,16 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             {
                 createCharAddBonusSkillsWindow = new CreateCharAddBonusSkills(uiManager);
                 createCharAddBonusSkillsWindow.OnClose += AddBonusSkillsWindow_OnClose;
+                createCharAddBonusSkillsWindow.Age = characterDocument.age;
                 createCharAddBonusSkillsWindow.DFClass = characterDocument.career;
                 createCharAddBonusSkillsWindow.SkillBonuses = BiogFile.GetSkillEffects(characterDocument.biographyEffects);
             }
 
             // Update class if player changes class selection
-            if (createCharAddBonusSkillsWindow.DFClass != characterDocument.career)
+            if (createCharAddBonusSkillsWindow.DFClass != characterDocument.career ||
+                createCharAddBonusSkillsWindow.Age != characterDocument.age)
             {
+                createCharAddBonusSkillsWindow.Age = characterDocument.age;
                 createCharAddBonusSkillsWindow.DFClass = characterDocument.career;
             }
 
@@ -312,11 +327,39 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             if (!createCharGenderSelectWindow.Cancelled)
             {
                 characterDocument.gender = createCharGenderSelectWindow.SelectedGender;
-                SetChooseClassGenWindow();
+                SetNameSelectWindow();
             }
             else
             {
                 SetRaceSelectWindow();
+            }
+        }
+
+        void NameSelectWindow_OnClose()
+        {
+            if (!createCharNameSelectWindow.Cancelled)
+            {
+                characterDocument.age = createCharNameSelectWindow.CharacterAge;
+                characterDocument.birthday = createCharNameSelectWindow.CharacterBirthday;
+                characterDocument.name = createCharNameSelectWindow.CharacterName;
+                SetFaceSelectWindow();
+            }
+            else
+            {
+                SetRaceSelectWindow();
+            }
+        }
+
+        void FaceSelectWindow_OnClose()
+        {
+            if (!createCharFaceSelectWindow.Cancelled)
+            {
+                characterDocument.faceIndex = createCharFaceSelectWindow.FaceIndex;
+                SetChooseClassGenWindow();
+            }
+            else
+            {
+                SetNameSelectWindow();
             }
         }
 
@@ -372,7 +415,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             }
             else
             {
-                SetRaceSelectWindow();
+                SetFaceSelectWindow();
             }
         }
 
@@ -424,10 +467,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
                 // For now, we choose at random between all available ones
                 // Maybe eventually, have a window for selecting a biography template when more than 1 is available?
-                int biogCount = biogMatches.Count();
-                int selectedBio = UnityEngine.Random.Range(0, biogCount);
-                Match selectedMatch = biogMatches.ElementAt(selectedBio);
-                characterDocument.biographyIndex = int.Parse(selectedMatch.Groups[1].Value);
+                // int biogCount = biogMatches.Count();
+                // int selectedBio = UnityEngine.Random.Range(0, biogCount);
+                // Match selectedMatch = biogMatches.ElementAt(selectedBio);
+                // characterDocument.biographyIndex = int.Parse(selectedMatch.Groups[1].Value);
 
                 if (!createCharChooseBioWindow.ChoseQuestions)
                 {
@@ -468,7 +511,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         private void ReputationBox_OnClose()
         {
-            SetNameSelectWindow();
+            SetAddBonusStatsWindow();
         }
 
         void CreateCharBiographyWindow_OnClose()
@@ -477,37 +520,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             {
                 characterDocument.backStory = createCharBiographyWindow.BackStory;
                 characterDocument.biographyEffects = createCharBiographyWindow.PlayerEffects;
-                SetNameSelectWindow();
-            }
-            else
-            {
-                SetChooseBioWindow();
-            }
-        }
-
-        void NameSelectWindow_OnClose()
-        {
-            if (!createCharNameSelectWindow.Cancelled)
-            {
-                characterDocument.name = createCharNameSelectWindow.CharacterName;
-                SetFaceSelectWindow();
-            }
-            else
-            {
-                SetChooseBioWindow();
-            }
-        }
-
-        void FaceSelectWindow_OnClose()
-        {
-            if (!createCharFaceSelectWindow.Cancelled)
-            {
-                characterDocument.faceIndex = createCharFaceSelectWindow.FaceIndex;
                 SetAddBonusStatsWindow();
             }
             else
             {
-                SetNameSelectWindow();
+                SetChooseBioWindow();
             }
         }
 
@@ -521,7 +538,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             }
             else
             {
-                SetFaceSelectWindow();
+                SetChooseBioWindow();
             }
         }
 

@@ -66,6 +66,8 @@ namespace DaggerfallConnect.Save
             doc.gender = parsedData.gender;
             doc.career = parsedData.career;
             doc.name = parsedData.characterName;
+            doc.age = parsedData.age;
+            doc.birthday = parsedData.birthday;
             doc.faceIndex = parsedData.faceIndex;
             doc.workingStats = parsedData.currentStats;
             doc.workingSkills = parsedData.skills;
@@ -381,6 +383,8 @@ namespace DaggerfallConnect.Save
             public byte transportationFlags;
             public byte minMetalToHit;
             public Races race;
+            public int age;
+            public int birthday;
             public sbyte[] armorValues;
             public UInt32 skillsRaisedThisLevel1; // Flags for skills 0 through 31.
             public UInt32 skillsRaisedThisLevel2; // Flags for skills 32 through 34.

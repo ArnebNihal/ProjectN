@@ -573,7 +573,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
         /// <returns>True if game version is satisfied, false if is not, null if unknown.</returns>
         internal bool? IsGameVersionSatisfied()
         {
-            return ModManager.IsVersionLowerOrEqual(ModInfo.DFUnity_Version, VersionInfo.DaggerfallUnityVersion);
+            return ModManager.IsVersionLowerOrEqual(ModInfo.DFUnity_Version, VersionInfo.ProjectNVersion);
         }
 
         /// <summary>

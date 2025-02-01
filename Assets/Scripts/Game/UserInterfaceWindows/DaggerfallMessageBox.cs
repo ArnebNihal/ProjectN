@@ -11,6 +11,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
 using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Utility;
@@ -87,6 +88,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             Lie = 18,
             Anchor = 19,
             Teleport = 20,
+            Rest = 35,
+            Pack = 36,
+            Cook = 37
         }
 
         public enum CommonMessageBoxButtons
@@ -136,6 +140,12 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     return DaggerfallShortcut.Buttons.Anchor;
                 case MessageBoxButtons.Teleport:
                     return DaggerfallShortcut.Buttons.Teleport;
+                case MessageBoxButtons.Rest:
+                    return DaggerfallShortcut.Buttons.Rest;
+                case MessageBoxButtons.Pack:
+                    return DaggerfallShortcut.Buttons.Pack;
+                case MessageBoxButtons.Cook:
+                    return DaggerfallShortcut.Buttons.Cook;
                 default:
                     Debug.Log("No shortcut for MessageBoxButton " + button);
                     return DaggerfallShortcut.Buttons.None;
@@ -366,7 +376,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     b.DefaultButton = false;
             }
 
-            Texture2D background = DaggerfallUI.GetTextureFromCifRci(buttonsFilename, (int)messageBoxButton);
+            Texture2D background = new Texture2D(1, 1);
+            if ((int)messageBoxButton <= (int)MessageBoxButtons.Teleport) 
+                background = DaggerfallUI.GetTextureFromCifRci(buttonsFilename, (int)messageBoxButton);
+            else {
+                ImageConversion.LoadImage(background, File.ReadAllBytes(Path.Combine(WorldMaps.texturePath, "Buttons", Enum.GetName(typeof(MessageBoxButtons), messageBoxButton) + ".png")));
+                background.filterMode = DaggerfallUI.Instance.GlobalFilterMode;
+            }
             Button button = DaggerfallUI.AddButton(Vector2.zero, 
                 TextureReplacement.GetSize(background, buttonsFilename, (int)messageBoxButton), buttonPanel);
             button.BackgroundTexture = background;

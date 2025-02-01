@@ -656,20 +656,20 @@ namespace DaggerfallWorkshop.Game.Questing
 
             UnityEngine.Random.InitState(internalSeed.Next());
 
-            try
-            {
+            // try
+            // {
                 // Parse quest
                 Parser parser = new Parser();
                 Quest quest = parser.Parse(questSource, factionId, partialParse);
 
                 return quest;
-            }
-            catch (Exception ex)
-            {
-                LogFormat("Parsing quest {0} FAILED!\r\n{1}", questName, ex.Message);
+            // }
+            // catch (Exception ex)
+            // {
+            //     LogFormat("Parsing quest {0} FAILED!\r\n{1}", questName, ex.Message);
 
-                return null;
-            }
+            //     return null;
+            // }
         }
 
         /// <summary>
@@ -1652,8 +1652,8 @@ namespace DaggerfallWorkshop.Game.Questing
             string text = string.Format(
                 "Starting new quest log {0} {1}\r\n{2} version {3}\r\n\r\n",
                 DateTime.Now.ToShortDateString(), DateTime.Now.ToShortTimeString(),
-                VersionInfo.DaggerfallUnityProductName,
-                VersionInfo.DaggerfallUnityVersion);
+                VersionInfo.ProjectNProductName,
+                VersionInfo.ProjectNVersion);
 
             File.WriteAllText(LogPath, text);
         }

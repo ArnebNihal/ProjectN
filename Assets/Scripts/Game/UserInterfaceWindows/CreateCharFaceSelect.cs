@@ -31,6 +31,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         const string nativeImgName = "CHAR01I0.IMG";
 
         Texture2D nativeTexture;
+        string nativeTexturePath;
         Button okButton;
         FacePicker facePicker = new FacePicker();
 
@@ -47,9 +48,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         protected override void Setup()
         {
             // Load native texture
-            nativeTexture = DaggerfallUI.GetTextureFromImg(nativeImgName);
+            // nativeTexture = DaggerfallUI.GetTextureFromImg(nativeImgName);
+            nativeTexture = new Texture2D(1, 1);
+            nativeTexturePath = Path.Combine(WorldMaps.texturePath, "Img", nativeImgName + ".png");
+            ImageConversion.LoadImage(nativeTexture, File.ReadAllBytes(nativeTexturePath));
             if (!nativeTexture)
-                throw new Exception("CreateCharFaceSelect: Could not load native texture.");
+                throw new Exception("CreateCharSummary: Could not load native texture.");
+            nativeTexture.filterMode = FilterMode.Point;
 
             // Setup native panel background
             NativePanel.BackgroundTexture = nativeTexture;

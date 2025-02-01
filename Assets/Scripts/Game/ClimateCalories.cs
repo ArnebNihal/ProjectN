@@ -146,7 +146,6 @@ namespace DaggerfallWorkshop.Game
         static public int txtIntervals = 5;
         static bool txtSeverity = true;
         static bool clothDmg = true;
-        static bool encumbranceRPR = false;
         static bool tediousTravel = false;
         static bool climatesCloaksOld = false;
         static bool fillingFoodOld = false;
@@ -252,17 +251,17 @@ namespace DaggerfallWorkshop.Game
             isExhausted = true;
         }
 
-        private static void WaterSourceActivation(RaycastHit hit)
+        public static void WaterSourceActivation(RaycastHit hit)
         {
             RefillWater(100);
         }
 
-        private static void NPCWaterSourceActivation(RaycastHit hit)
+        public static void NPCWaterSourceActivation(RaycastHit hit)
         {
             RefillWater(100, true);
         }
 
-        private static void DryWaterSourceActivation(RaycastHit hit)
+        public static void DryWaterSourceActivation(RaycastHit hit)
         {
             DaggerfallUI.AddHUDText("This fountain is dry as dust.");
         }
@@ -300,8 +299,6 @@ namespace DaggerfallWorkshop.Game
 
         void Awake()
         {
-            
-
             // Debug.Log("[Climates&Calories] Checking for other mods.");
             // Mod rr = ModManager.Instance.GetMod("RoleplayRealism");
             // Mod tt = ModManager.Instance.GetMod("TediousTravel");
@@ -513,7 +510,7 @@ namespace DaggerfallWorkshop.Game
             if (DaggerfallUI.UIManager.WindowCount == 2 && AdviceText.statusClosed)
             {
                 Climates.TemperatureCalculator();
-                AdviceText.AdviceBuilder(encumbranceRPR);
+                AdviceText.AdviceBuilder();
             }
         }
 
@@ -1041,7 +1038,6 @@ namespace DaggerfallWorkshop.Game
                         DaggerfallUI.AddHUDText("All your waterskins are already full.");
                 }
             }
-
 
             thirst = 0;
         }

@@ -20,11 +20,14 @@ namespace DaggerfallWorkshop.Game.Player
     /// </summary>
     public class CharacterDocument
     {
+        public int level;
         public RaceTemplate raceTemplate;
         public Genders gender;
         public DFCareer career;
         public string name;
         public int faceIndex;
+        public int age;
+        public int birthday;
         public DaggerfallStats startingStats = new DaggerfallStats();
         public DaggerfallStats workingStats = new DaggerfallStats();
         public DaggerfallSkills startingSkills = new DaggerfallSkills();
@@ -85,7 +88,7 @@ namespace DaggerfallWorkshop.Game.Player
             skillsRaisedThisLevel2 = 0;
             for (int i = 0; i < armorValues.Length; i++)
             {
-                armorValues[i] = 100;
+                armorValues[i] = 0;
             }
         }
 

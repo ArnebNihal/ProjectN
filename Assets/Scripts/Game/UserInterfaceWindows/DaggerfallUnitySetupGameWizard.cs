@@ -28,7 +28,6 @@ using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallWorkshop.Utility.AssetInjection;
-using ProjectN;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -242,7 +241,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             versionLabel.HorizontalAlignment = HorizontalAlignment.Right;
             versionLabel.ShadowPosition = Vector2.zero;
             versionLabel.TextColor = secondaryTextColor;
-            versionLabel.Text = VersionInfo.DaggerfallUnityVersion;
+            versionLabel.Text = VersionInfo.ProjectNVersion;
             browserPanel.Components.Add(versionLabel);
 
             // Add help text
@@ -261,6 +260,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             List<string> blocks = new List<string>(Directory.EnumerateFiles(mapPath + "/RMB"));
             int index = UnityEngine.Random.Range(0, blocks.Count);
             startingBlock = blocks[index].Substring(blocks[index].Count() - 17, 12);
+            if (startingBlock.Contains("/"))
+            {
+                int slashIndex = startingBlock.LastIndexOf("/");
+                startingBlock = startingBlock.Substring(slashIndex + 1);
+            }
             Debug.Log("Using " + startingBlock + " as backgorund");
             // Add a block into the scene
             GameObjectHelper.CreateRMBBlockGameObject(startingBlock, 0, 0, 0, 0);
@@ -516,7 +520,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             // Add version text
             TextLabel versionLabel = new TextLabel(DaggerfallUI.DefaultFont);
-            versionLabel.Text = string.Format("{0} v{1}", char.ToUpper(VersionInfo.DaggerfallUnityStatus[0]) + VersionInfo.DaggerfallUnityStatus.Substring(1), VersionInfo.DaggerfallUnityVersion);
+            versionLabel.Text = string.Format("{0} v{1}", char.ToUpper(VersionInfo.ProjectNStatus[0]) + VersionInfo.ProjectNStatus.Substring(1), VersionInfo.ProjectNVersion);
             versionLabel.Position = new Vector2(0, 40);
             versionLabel.TextScale = 1.0f;
             versionLabel.HorizontalAlignment = HorizontalAlignment.Center;

@@ -24,7 +24,6 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game;
 using UnityEditor.Build.Pipeline.Utilities;
 using System.Text;
-using ProjectN;
 
 namespace MapEditor
 {

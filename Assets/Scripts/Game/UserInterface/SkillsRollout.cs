@@ -48,6 +48,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         DaggerfallSkills startingSkills = new DaggerfallSkills();
         DaggerfallSkills workingSkills = new DaggerfallSkills();
+        // int startingSkillSum = 0;
 
         DFCareer.Skills[] primarySkills = new DFCareer.Skills[DaggerfallSkills.PrimarySkillsCount];
         DFCareer.Skills[] majorSkills = new DFCareer.Skills[DaggerfallSkills.MajorSkillsCount];
@@ -81,72 +82,74 @@ namespace DaggerfallWorkshop.Game.UserInterface
             set { skillBonuses = value; UpdateSkillValueLabels(); }
         }
 
-        public int PrimarySkillBonusPoints
-        {
-            get { return primarySkillSpinner.Value; }
-            set { primarySkillSpinner.Value = value; }
-        }
+        // public int PrimarySkillBonusPoints
+        // {
+        //     get { return primarySkillSpinner.Value; }
+        //     set { primarySkillSpinner.Value = value; }
+        // }
 
-        public int MajorSkillBonusPoints
-        {
-            get { return majorSkillSpinner.Value; }
-            set { majorSkillSpinner.Value = value; }
-        }
+        // public int MajorSkillBonusPoints
+        // {
+        //     get { return majorSkillSpinner.Value; }
+        //     set { majorSkillSpinner.Value = value; }
+        // }
 
-        public int MinorSkillBonusPoints
-        {
-            get { return minorSkillSpinner.Value; }
-            set { minorSkillSpinner.Value = value; }
-        }
+        // public int MinorSkillBonusPoints
+        // {
+        //     get { return minorSkillSpinner.Value; }
+        //     set { minorSkillSpinner.Value = value; }
+        // }
 
-        public SkillsRollout()
+        public SkillsRollout(bool isSummary = true) // Disabling skill modification for now.
             : base()
         {
             font = DaggerfallUI.DefaultFont;
-            SetupControls();
+            SetupControls(isSummary);
         }
 
         #region Public Methods
 
-        public void Reroll()
+        public void Reroll(int age)
         {
             // Set skills to all defaults
             startingSkills.SetDefaults();
 
-            // Roll primary skills
             for (int i = 0; i < DaggerfallSkills.PrimarySkillsCount; i++)
             {
-                int value = minPrimarySkill + UnityEngine.Random.Range(minPrimaryBonusRoll, maxPrimaryBonusRoll + 1);
+                int value = startingSkills.GetPermanentSkillValue(primarySkills[i]) + (age - 10);
+                // int value = minPrimarySkill + UnityEngine.Random.Range(minPrimaryBonusRoll, maxPrimaryBonusRoll + 1);
                 startingSkills.SetPermanentSkillValue(primarySkills[i], (short)value);
-            }
+            }            
 
-            // Roll major skills
             for (int i = 0; i < DaggerfallSkills.MajorSkillsCount; i++)
             {
-                int value = minMajorSkill + UnityEngine.Random.Range(minMajorBonusRoll, maxMajorBonusRoll + 1);
+                int value = startingSkills.GetPermanentSkillValue(majorSkills[i]) + ((age - 10) * 2 / 3);
+                // int value = minMajorSkill + UnityEngine.Random.Range(minMajorBonusRoll, maxMajorBonusRoll + 1);
                 startingSkills.SetPermanentSkillValue(majorSkills[i], (short)value);
-            }
+            }            
 
-            // Roll minor skills
             for (int i = 0; i < DaggerfallSkills.MinorSkillsCount; i++)
             {
-                int value = minMinorSkill + UnityEngine.Random.Range(minMinorBonusRoll, maxMinorBonusRoll + 1);
+                int value = startingSkills.GetPermanentSkillValue(minorSkills[i]) + ((age - 10) / 3);
+                // int value = minMinorSkill + UnityEngine.Random.Range(minMinorBonusRoll, maxMinorBonusRoll + 1);
                 startingSkills.SetPermanentSkillValue(minorSkills[i], (short)value);
             }
+
+            GameManager.Instance.PlayerEntity.SetCurrentLevelUpSkillSum(false);
 
             // Copy to working skills
             workingSkills.Copy(startingSkills);
 
             // Reset bonus pool values
-            primarySkillSpinner.Value = bonusPoolPerSkillGroup;
-            majorSkillSpinner.Value = bonusPoolPerSkillGroup;
-            minorSkillSpinner.Value = bonusPoolPerSkillGroup;
+            // primarySkillSpinner.Value = bonusPoolPerSkillGroup;
+            // majorSkillSpinner.Value = bonusPoolPerSkillGroup;
+            // minorSkillSpinner.Value = bonusPoolPerSkillGroup;
 
             // Update value labels
             UpdateSkillValueLabels();
         }
 
-        public void SetClassSkills(DFCareer dfClass)
+        public void SetClassSkills(DFCareer dfClass, ref int age)
         {
             // Set primary, major, minor skills from class template
             primarySkills[0] = dfClass.PrimarySkill1;
@@ -163,14 +166,14 @@ namespace DaggerfallWorkshop.Game.UserInterface
             minorSkills[5] = dfClass.MinorSkill6;
 
             UpdateSkillLabels();
-            Reroll();
+            Reroll(age);
         }
 
         #endregion
 
         #region Private Methods
 
-        void SetupControls()
+        void SetupControls(bool isSummary = false)
         {
             // Add primary skill labels
             Vector2 skillLabelPos = new Vector2(68, 32);
@@ -230,29 +233,32 @@ namespace DaggerfallWorkshop.Game.UserInterface
                 skillValueLabelPos.y += 10;
             }
 
-            // Add primary skill spinner
-            primarySkillSpinner = new LeftRightSpinner();
-            this.Components.Add(primarySkillSpinner);
-            primarySkillSpinner.OnLeftButtonClicked += PrimarySkillSpinner_OnLeftButtonClicked;
-            primarySkillSpinner.OnRightButtonClicked += PrimarySkillSpinner_OnRightButtonClicked;
-            primarySkillSpinner.Value = bonusPoolPerSkillGroup;
-            SelectPrimarySkill(0);
+            if (!isSummary)
+            {
+                // Add primary skill spinner
+                primarySkillSpinner = new LeftRightSpinner();
+                this.Components.Add(primarySkillSpinner);
+                primarySkillSpinner.OnLeftButtonClicked += PrimarySkillSpinner_OnLeftButtonClicked;
+                primarySkillSpinner.OnRightButtonClicked += PrimarySkillSpinner_OnRightButtonClicked;
+                primarySkillSpinner.Value = bonusPoolPerSkillGroup;
+                SelectPrimarySkill(0);
 
-            // Add major skill spinner
-            majorSkillSpinner = new LeftRightSpinner();
-            this.Components.Add(majorSkillSpinner);
-            majorSkillSpinner.OnLeftButtonClicked += MajorSkillSpinner_OnLeftButtonClicked;
-            majorSkillSpinner.OnRightButtonClicked += MajorSkillSpinner_OnRightButtonClicked;
-            majorSkillSpinner.Value = bonusPoolPerSkillGroup;
-            SelectMajorSkill(0);
+                // Add major skill spinner
+                majorSkillSpinner = new LeftRightSpinner();
+                this.Components.Add(majorSkillSpinner);
+                majorSkillSpinner.OnLeftButtonClicked += MajorSkillSpinner_OnLeftButtonClicked;
+                majorSkillSpinner.OnRightButtonClicked += MajorSkillSpinner_OnRightButtonClicked;
+                majorSkillSpinner.Value = bonusPoolPerSkillGroup;
+                SelectMajorSkill(0);
 
-            // Add minor skill spinner
-            minorSkillSpinner = new LeftRightSpinner();
-            this.Components.Add(minorSkillSpinner);
-            minorSkillSpinner.OnLeftButtonClicked += MinorSkillSpinner_OnLeftButtonClicked;
-            minorSkillSpinner.OnRightButtonClicked += MinorSkillSpinner_OnRightButtonClicked;
-            minorSkillSpinner.Value = bonusPoolPerSkillGroup;
-            SelectMinorSkill(0);
+                // Add minor skill spinner
+                minorSkillSpinner = new LeftRightSpinner();
+                this.Components.Add(minorSkillSpinner);
+                minorSkillSpinner.OnLeftButtonClicked += MinorSkillSpinner_OnLeftButtonClicked;
+                minorSkillSpinner.OnRightButtonClicked += MinorSkillSpinner_OnRightButtonClicked;
+                minorSkillSpinner.Value = bonusPoolPerSkillGroup;
+                SelectMinorSkill(0);
+            }
         }
 
         void UpdateSkillLabels()

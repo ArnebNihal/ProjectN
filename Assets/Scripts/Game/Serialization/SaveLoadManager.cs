@@ -1057,7 +1057,7 @@ namespace DaggerfallWorkshop.Game.Serialization
             saveInfo.saveName = saveName;
             saveInfo.characterName = saveData.playerData.playerEntity.name;
             saveInfo.dateAndTime = saveData.dateAndTime;
-            saveInfo.dfuVersion = VersionInfo.DaggerfallUnityVersion;
+            saveInfo.dfuVersion = VersionInfo.ProjectNVersion;
 
             // Build faction data
             FactionData_v2 factionData = stateManager.GetPlayerFactionData();

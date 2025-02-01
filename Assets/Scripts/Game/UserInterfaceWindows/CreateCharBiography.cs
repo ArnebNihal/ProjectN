@@ -73,6 +73,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         int questionIndex = 0;
         int multipageIndex = 0;
         bool generalQuestionEnded = false;
+        bool usingSDFFont = DaggerfallUnity.Settings.SDFFontRendering;
+        char space;
+        char newLine;
+        float leftAnsMargin = 21.0f;
         public static List<int> answers = new List<int>();
         Texture2D nativeTexture;
         TextLabel[] questionLabels = new TextLabel[questionLines];
@@ -124,6 +128,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             biogFile = new BiogFile(Document);
             sLQuestions = JsonConvert.DeserializeObject<StartLocQuestions>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "StartingLocationQuestions.json")));
 
+            SetSpaceNewLine();
+
             // Set background
             NativePanel.BackgroundTexture = nativeTexture;
 
@@ -148,11 +154,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 answerButtons[i].Tag = i;
                 answerButtons[i].OnMouseClick += AnswerButton_OnMouseClick;
                 answerLabels[i] = DaggerfallUI.AddTextLabel(DaggerfallUI.DefaultFont,
-                                                            new Vector2(21f, 5f),
+                                                            new Vector2(leftAnsMargin, 5f),
                                                             string.Empty,
                                                             answerButtons[i]);
                 answerLabelsBis[i] = DaggerfallUI.AddTextLabel(DaggerfallUI.DefaultFont,
-                                                            new Vector2(21f, 15f),
+                                                            new Vector2(leftAnsMargin, 15f),
                                                             string.Empty,
                                                             answerButtons[i]);
             }
@@ -164,12 +170,28 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             IsSetup = true;
         }
 
+        private void SetSpaceNewLine()
+        {
+            if (usingSDFFont)
+            {
+                space = '$'; newLine = '*';
+            }
+            else
+            {
+                space = '*'; newLine = '$';
+                leftAnsMargin = 18.0f;
+            }
+        }
+
         private void PopulateControls(int generalQuestionIndex)
         {
-            if (!sLQuestions.Questions[generalQuestionIndex].Contains('*'))
+            sLQuestions.Questions[generalQuestionIndex] = sLQuestions.Questions[generalQuestionIndex].Replace(space, ' ');
+            if (!sLQuestions.Questions[generalQuestionIndex].Contains(newLine)){
                 questionLabels[0].Text = sLQuestions.Questions[generalQuestionIndex];
+                questionLabels[1].Text = string.Empty;
+            }
             else{
-                string[] splitQuestion = sLQuestions.Questions[generalQuestionIndex].Split('*');
+                string[] splitQuestion = sLQuestions.Questions[generalQuestionIndex].Split(newLine);
                 for (int h = 0; h < questionLines; h++)
                     questionLabels[h].Text = splitQuestion[h];
             }
@@ -189,14 +211,15 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                             answerLabelsBis[i].Text = string.Empty;
                         }
                         else
-                        {
-                            if (!sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Contains('*'))
+                        {   
+                            sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]] = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Replace(space, ' ');
+                            if (!sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Contains(newLine))
                             {
                                 answerLabels[i].Text = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]];
                                 answerLabelsBis[i].Text = string.Empty;
                             }
                             else{
-                                string[] splitAnswer = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Split('*');
+                                string[] splitAnswer = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Split(newLine);
                                 answerLabels[i].Text = splitAnswer[0];
                                 answerLabelsBis[i].Text = splitAnswer[1];
                             }
@@ -213,7 +236,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                             answerLabels[i].Text = sLQuestions.Answers[0];
                         else{
                             answerLabels[i].Text = Enum.GetName(typeof(ProvinceNames), i);
-                            Debug.Log("answerLabels[i].Text: " + answerLabels[i].Text);
+                            answerLabelsBis[i].Text = string.Empty;
                         }
                     }
                     break;
@@ -270,14 +293,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                         }
                         else
                         {
-                            if (!sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Contains('*'))
+                            sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]] = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Replace(space, ' ');
+                            if (!sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Contains(newLine))
                             {
                                 answerLabels[i].Text = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]];
                                 answerLabelsBis[i].Text = string.Empty;
                             }
-                            else
-                            {
-                                string[] splitAnswer = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Split('*');
+                            else{
+                                string[] splitAnswer = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Split(newLine);
                                 answerLabels[i].Text = splitAnswer[0];
                                 answerLabelsBis[i].Text = splitAnswer[1];
                             }
@@ -324,6 +347,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 if (excludedAnswers.Length > 0 && excludedAnswers.Contains(i))
                     continue;
 
+                question.Answers[i].Text = question.Answers[i].Text.Replace(space, ' ');
                 if (question.Answers[i].Text.Contains('&'))
                 {
                     string[] multiAnswer = question.Answers[i].Text.Split('&');
@@ -331,9 +355,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     answerLabelsBis[iMod].Text = string.Empty;
                 }
 
-                if (question.Answers[i].Text.Contains('*'))
+                if (question.Answers[i].Text.Contains(newLine))
                 {
-                    string[] splitAnswer = question.Answers[i].Text.Split('*');
+                    string[] splitAnswer = question.Answers[i].Text.Split(newLine);
                     answerLabels[iMod].Text = splitAnswer[0];
                     answerLabelsBis[iMod].Text = splitAnswer[1];
                 }
@@ -463,6 +487,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         StartGameBehaviour.StartLocation GenerateStartingState(List<int> givenAnswers)
         {
             StartGameBehaviour.StartLocation startingData = new StartGameBehaviour.StartLocation();
+            startingData.givenAnswers = givenAnswers;
             List<int> regions = new List<int>();
             Dictionary<int, List<int>> locationsSelected = new Dictionary<int, List<int>>();
             List<int> locationsList = new List<int>();
@@ -887,7 +912,6 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 }
             }
             Debug.Log("startingData.secondaryPosition: " + startingData.secondaryPosition);
-            StartGameBehaviour.startingState.givenAnswers = givenAnswers;
 
             return startingData;
         }

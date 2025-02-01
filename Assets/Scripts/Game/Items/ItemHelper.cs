@@ -487,9 +487,12 @@ namespace DaggerfallWorkshop.Game.Items
 
             // }
             // else 
-            if (!TextureReplacement.TryImportCustomTexture(archive, record, 0, item.dyeColor, TextureMap.Mask, out maskTexture))
-            {}
-                // ImageReader.UpdateMaskTexture(ref data);
+            if (!TextureReplacement.TryImportCustomTexture(archive, record, 0, item.dyeColor, TextureMap.Mask, out maskTexture) &&
+                !IsNewWeapon(item))
+            {
+                Debug.Log("archive: " + archive);
+                ImageReader.UpdateMaskTexture(ref data);
+            }
             else
                 data.maskTexture = maskTexture;
 
@@ -1010,6 +1013,8 @@ namespace DaggerfallWorkshop.Game.Items
                         return MetalTypes.Silver;
                     case MaterialTypes.Elven:
                         return MetalTypes.Elven;
+                    case MaterialTypes.Glass:
+                        return MetalTypes.Glass;
                     case MaterialTypes.Dwarven:
                         return MetalTypes.Dwarven;
                     case MaterialTypes.Orcish:
@@ -1022,8 +1027,6 @@ namespace DaggerfallWorkshop.Game.Items
                         return MetalTypes.Ebony;
                     case MaterialTypes.Daedric:
                         return MetalTypes.Daedric;
-                    case MaterialTypes.Glass:
-                        return MetalTypes.Glass;
                     default:
                         return MetalTypes.None;
                 }

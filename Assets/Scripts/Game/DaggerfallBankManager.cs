@@ -457,6 +457,7 @@ namespace DaggerfallWorkshop.Game.Banking
             // }
 
             HouseData_v1 houseData = new HouseData_v1();
+            Debug.Log("AllocateRemoteHouseToPlayer -> position: " + position.X + ", " + position.Y);
             DFLocation location = WorldMaps.GetLocation(WorldMaps.GetAbsoluteTile(position).ToString("00000"), locationIndex);
             ulong mapID = location.MapTableData.MapId;
             houseData.location = location.Name;

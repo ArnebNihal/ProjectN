@@ -81,6 +81,11 @@ namespace DaggerfallWorkshop.Game.Utility
             public (int, int, int, DFBlock) secondaryBuildingIndex;
             public StartingHouseData startingHouseData;
             public List<int> givenAnswers;
+
+            public StartLocation()
+            {
+                primaryPosition = new DFPosition(-1, -1);
+            }
         }
 
         public static StartLocation startingState = new StartLocation();
@@ -484,6 +489,9 @@ namespace DaggerfallWorkshop.Game.Utility
             BiogFile.ApplyEffects(characterDocument.biographyEffects, playerEntity);
 
             // Discover initial locations
+            // Debug.Log("startingState.primaryPosition: " + startingState.primaryPosition);
+            // Debug.Log("startingState.areaKnowledge.Item1: " + startingState.areaKnowledge.Item1);
+            // Debug.Log("(startingState.givenAnswers[5]) / 2: " + ((startingState.givenAnswers[startingState.givenAnswers.Count - 1]) / 2));
             MapsFile.DiscoverCloseLocations(startingState.primaryPosition, startingState.areaKnowledge.Item1, AgeRanges.Infant, (AgeRanges)startingState.givenAnswers[5], startingState.givenAnswers[5] == (int)AgeRanges.OldEnough, (startingState.givenAnswers[5]) / 2);
             MapsFile.DiscoverCloseLocations(startingState.secondaryPosition, startingState.areaKnowledge.Item2, (AgeRanges)startingState.givenAnswers[5], AgeRanges.OldEnough, startingState.givenAnswers[5] < (int)AgeRanges.Child, (int)AgeRanges.OldEnough / 2);
 
@@ -495,7 +503,7 @@ namespace DaggerfallWorkshop.Game.Utility
 
             // Assign starting level up skill sum
             playerEntity.SetCurrentLevelUpSkillSum();
-            playerEntity.StartingLevelUpSkillSum = playerEntity.CurrentLevelUpSkillSum;
+            // playerEntity.StartingLevelUpSkillSum = playerEntity.CurrentLevelUpSkillSum;
 
             // Setup bank accounts and houses
             Banking.DaggerfallBankManager.SetupAccounts();

@@ -331,6 +331,8 @@ namespace DaggerfallWorkshop.Game
                     return NameHelper.BankTypes.Redguard;
                 case Races.WoodElf:
                     return NameHelper.BankTypes.WoodElf;
+                case Races.Orc:
+                    return NameHelper.BankTypes.Orc;
                 default:
                     return NameHelper.BankTypes.Breton;
             }

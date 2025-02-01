@@ -498,7 +498,7 @@ namespace DaggerfallWorkshop.Game
             PauseGame(true);
 
             // Log welcome message
-            Debug.Log("Welcome to Daggerfall Unity " + VersionInfo.DaggerfallUnityVersion);
+            Debug.Log("Welcome to Daggerfall Unity/ProjectN " + VersionInfo.ProjectNVersion);
         }
 
         void FixedUpdate()

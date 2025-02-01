@@ -542,6 +542,12 @@ namespace DaggerfallWorkshop.Utility
                     return TextManager.Instance.GetLocalizedText("block");
                 case DFCareer.Skills.Disguise:
                     return TextManager.Instance.GetLocalizedText("disguise");
+                case DFCareer.Skills.Conjuration:
+                    return TextManager.Instance.GetLocalizedText("conjuration");
+                case DFCareer.Skills.Enchant:
+                    return TextManager.Instance.GetLocalizedText("enchant");
+                case DFCareer.Skills.Alchemy:
+                    return TextManager.Instance.GetLocalizedText("alchemy");
                 default:
                     return string.Empty;
             }

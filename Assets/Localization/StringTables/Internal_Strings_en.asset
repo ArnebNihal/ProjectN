@@ -3960,6 +3960,30 @@ MonoBehaviour:
     m_Localized: Orc
     m_Metadata:
       m_Items: []
+  - m_Id: 894
+    m_Localized: Conjuration
+    m_Metadata:
+      m_Items: []
+  - m_Id: 895
+    m_Localized: Enchant
+    m_Metadata:
+      m_Items: []
+  - m_Id: 896
+    m_Localized: Alchemy
+    m_Metadata:
+      m_Items: []
+  - m_Id: 897
+    m_Localized: Please select your race...
+    m_Metadata:
+      m_Items: []
+  - m_Id: 898
+    m_Localized: Age
+    m_Metadata:
+      m_Items: []
+  - m_Id: 899
+    m_Localized: Birthday
+    m_Metadata:
+      m_Items: []
   - m_Id: 29516644352
     m_Localized: temple
     m_Metadata:
@@ -5010,7 +5034,9 @@ MonoBehaviour:
 
       The Atronach
 
-      The Thief'
+      The Thief
+      
+      The Serpent'
     m_Metadata:
       m_Items: []
   - m_Id: 318180720735940608

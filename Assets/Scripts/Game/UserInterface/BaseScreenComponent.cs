@@ -812,7 +812,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
                             BackgroundCroppedRect.width / backgroundTexture.width,
                             BackgroundCroppedRect.height / backgroundTexture.height));
                         break;
-                }
+                }       
             }
 
             // Draw tooltip on mouse hover

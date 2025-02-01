@@ -44,6 +44,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         StatsRollout statsRollout;
 
         DFCareer dfClass;
+        RaceTemplate race;
+        Genders characterGender;
+        int startingLevel;
+        int age;
         bool rollSaved = false;
         DaggerfallStats savedRolledStats = new DaggerfallStats();
         DaggerfallStats savedWorkingStats = new DaggerfallStats();
@@ -53,6 +57,30 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         {
             get { return dfClass; }
             set { dfClass = value; }
+        }
+
+        public RaceTemplate Race
+        {
+            get { return race; }
+            set { race = value; }
+        }
+
+        public Genders CharacterGender
+        {
+            get { return characterGender; }
+            set { characterGender = value; }
+        }
+
+        public int Age
+        {
+            get { return age; }
+            set { SetAge(value); }
+        }
+
+        public int StartingLevel
+        {
+            get { return startingLevel; }
+            set { startingLevel = value; }
         }
 
         public DaggerfallStats StartingStats
@@ -142,7 +170,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public void Reroll()
         {
             Setup();
-            statsRollout.Reroll(dfClass);
+            statsRollout.Reroll(dfClass, race, characterGender, startingLevel);
             UpdateSecondaryStatLabels();
         }
 
@@ -202,6 +230,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         void StatsRollout_OnStatChanged()
         {
             UpdateSecondaryStatLabels();
+        }
+
+        void SetAge(int age)
+        {
+            this.age = age;
         }
 
         #endregion

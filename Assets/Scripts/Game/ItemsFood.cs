@@ -19,37 +19,30 @@ namespace DaggerfallWorkshop.Game
     /// </summary>
     public abstract class AbstractItemFood : DaggerfallUnityItem
     {
-        // In leu of a real enum.
-        public const int StatusFresh = 0;
-        public const int StatusStale = 1;
-        public const int StatusMouldy = 2;
-        public const int StatusRotten = 3;
-        public const int StatusPutrid = 4;
-
         public AbstractItemFood(ItemGroups itemGroup, int templateIndex) : base(itemGroup, templateIndex)
         {
-            message = StatusFresh;
+            message = (int)FoodStatus.Fresh;
         }
 
         public abstract uint GetCalories();
 
-        public int FoodStatus
-        {
-            get { return message; }
-            set { message = value; }
-        }
+        // public int FoodStatus
+        // {
+        //     get { return message; }
+        //     set { message = value; }
+        // }
 
         public virtual string GetFoodStatus()
         {
-            switch (FoodStatus)
+            switch (message)
             {
-                case StatusStale:
+                case (int)FoodStatus.Stale:
                     return "Smelly ";
-                case StatusMouldy:
+                case (int)FoodStatus.Mouldy:
                     return "Mouldy ";
-                case StatusRotten:
+                case (int)FoodStatus.Rotten:
                     return "Rotten ";
-                case StatusPutrid:
+                case (int)FoodStatus.Putrid:
                     return "Putrid ";
                 default:
                     return "";
@@ -61,7 +54,7 @@ namespace DaggerfallWorkshop.Game
         {
             get
             {
-                if (FoodStatus == StatusFresh || FoodStatus == StatusStale)
+                if (message == (int)FoodStatus.Fresh || message == (int)FoodStatus.Stale)
                     return WorldTextureArchive;
                 else
                     return InventoryTextureArchive;
@@ -73,17 +66,17 @@ namespace DaggerfallWorkshop.Game
         {
             get
             {
-                switch (FoodStatus)
+                switch (message)
                 {
-                    case StatusFresh:
-                    case StatusStale:
+                    case (int)FoodStatus.Fresh:
+                    case (int)FoodStatus.Stale:
                     default:
                         return WorldTextureRecord;
-                    case StatusMouldy:
+                    case (int)FoodStatus.Mouldy:
                         return 0;
-                    case StatusRotten:
+                    case (int)FoodStatus.Rotten:
                         return 1;
-                    case StatusPutrid:
+                    case (int)FoodStatus.Putrid:
                         return 1;
                 }
             }
@@ -91,9 +84,9 @@ namespace DaggerfallWorkshop.Game
 
         public bool RotFood()
         {
-            if (FoodStatus < StatusPutrid)
+            if (message < (int)FoodStatus.Putrid)
             {
-                FoodStatus++;
+                message++;
                 shortName = GetFoodStatus() + ItemTemplate.name;
                 value = 0;
                 return false;
@@ -106,10 +99,10 @@ namespace DaggerfallWorkshop.Game
             PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
             uint gameMinutes = DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.ToClassicDaggerfallTime();
             uint hunger = gameMinutes - playerEntity.LastTimePlayerAteOrDrankAtTavern;
-            uint cals = GetCalories() / ((uint)FoodStatus + 1);
+            uint cals = GetCalories() / ((uint)message + 1);
             string feel = "invigorated";
 
-            if (FoodStatus == StatusPutrid)
+            if (message == (int)FoodStatus.Putrid)
             {
                 DaggerfallUI.MessageBox(string.Format("This {0} is too disgusting to force down.", shortName));
             }
@@ -124,7 +117,7 @@ namespace DaggerfallWorkshop.Game
                 collection.RemoveItem(this);
                 DaggerfallUI.MessageBox(string.Format("You eat the {0}.", shortName));
 
-                if (FoodStatus > StatusStale || (TemplateIndex == ItemRawMeat.templateIndex || TemplateIndex == ItemRawFish.templateIndex))
+                if (message > (int)FoodStatus.Stale || (TemplateIndex == ItemRawMeat.templateIndex || TemplateIndex == ItemRawFish.templateIndex))
                 {
                     feel = TemplateIndex == ItemRawMeat.templateIndex ? "nauseated" : "invigorated";
                     bool unlucky = Dice100.SuccessRoll(playerEntity.Stats.LiveLuck);
@@ -133,7 +126,7 @@ namespace DaggerfallWorkshop.Game
                         feel = "disgusted";
                         Diseases[] diseaseListA = { Diseases.StomachRot };
                         Diseases[] diseaseListB = { Diseases.StomachRot, Diseases.SwampRot, Diseases.BloodRot, Diseases.Cholera, Diseases.YellowFever };
-                        if (FoodStatus > StatusMouldy)
+                        if (message > (int)FoodStatus.Mouldy)
                             FormulaHelper.InflictDisease(playerEntity as DaggerfallEntity, playerEntity as DaggerfallEntity, diseaseListB);
                         else
                             FormulaHelper.InflictDisease(playerEntity as DaggerfallEntity, playerEntity as DaggerfallEntity, diseaseListA);
@@ -179,9 +172,9 @@ namespace DaggerfallWorkshop.Game
 
         public override string GetFoodStatus()
         {
-            switch (FoodStatus)
+            switch (message)
             {
-                case StatusStale:
+                case (int)FoodStatus.Stale:
                     return "Soft ";
                 default:
                     return base.GetFoodStatus();
@@ -212,9 +205,9 @@ namespace DaggerfallWorkshop.Game
 
         public override string GetFoodStatus()
         {
-            switch (FoodStatus)
+            switch (message)
             {
-                case StatusStale:
+                case (int)FoodStatus.Stale:
                     return "Soft ";
                 default:
                     return base.GetFoodStatus();
@@ -245,9 +238,9 @@ namespace DaggerfallWorkshop.Game
 
         public override string GetFoodStatus()
         {
-            switch (FoodStatus)
+            switch (message)
             {
-                case StatusStale:
+                case (int)FoodStatus.Stale:
                     return "Stale ";
                 default:
                     return base.GetFoodStatus();

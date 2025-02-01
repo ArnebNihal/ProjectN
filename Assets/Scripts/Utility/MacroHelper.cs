@@ -307,7 +307,7 @@ namespace DaggerfallWorkshop.Utility
         public static NameHelper.BankTypes GetRandomNameBank()
         {
             DFRandom.Seed = (uint)random.Next();
-            Races race = (Races)DFRandom.random_range_inclusive(1, 8);
+            Races race = (Races)DFRandom.random_range_inclusive(1, 10);
             return GetNameBank(race);
         }
 
@@ -372,8 +372,7 @@ namespace DaggerfallWorkshop.Utility
                 case Races.Argonian:
                     return NameHelper.BankTypes.Argonian;
                 case Races.Orc:
-                    // return NameHelper.BankTypes.Orc;
-                    return NameHelper.BankTypes.Monster1;
+                    return NameHelper.BankTypes.Orc;
                 default:
                     return NameHelper.BankTypes.Breton;
             }
@@ -1127,7 +1126,7 @@ namespace DaggerfallWorkshop.Utility
 
         private static string LastName(IMacroContextProvider mcp)
         {   // %ln
-            return DaggerfallUnity.Instance.NameHelper.Surname(GetRandomNameBank());
+            return DaggerfallUnity.Instance.NameHelper.Surname(GetRandomNameBank(), UnityEngine.Random.Range(0, 2));
         }
 
         private static string FemaleName(IMacroContextProvider mcp)

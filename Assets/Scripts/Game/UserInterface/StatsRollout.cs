@@ -35,8 +35,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
         const int minWorkingValue = 0;
         const int minBonusRoll = 0;         // The minimum number of points added to each base class stat
         const int maxBonusRoll = 10;        // The maximum number of points added to each base class stat
-        const int minBonusPool = 6;         // The minimum number of free points to allocate
-        const int maxBonusPool = 14;        // The maximum number of free points to allocate
+        const int minBonusPool = 4;         // The minimum number of free points to allocate
+        const int maxBonusPool = 6;        // The maximum number of free points to allocate
 
         DaggerfallFont font;
         UpDownSpinner spinner;
@@ -143,22 +143,28 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         #region Public Methods
 
-        public void Reroll(DFCareer dfClass)
+        public void Reroll(DFCareer dfClass, RaceTemplate race, Genders gender, int startingLevel)
         {
+            Debug.Log("startingLevel: " + startingLevel);
+            
             // Assign base stats from class template
             DaggerfallStats rolledStats = CharacterDocument.GetClassBaseStats(dfClass);
+            int[] statModifier = new int[8];
+            if (gender == Genders.Female)
+                statModifier = race.StatModifierFemale;
+            else statModifier = race.StatModifierMale;
 
             // Roll bonus value for each base stat
             // Using maxBonusRoll + 1 as Unity's Random.Range(int,int) is exclusive
             // of maximum value and we want to be inclusive of maximum value
-            int strength = rolledStats.PermanentStrength + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
-            int intelligence = rolledStats.PermanentIntelligence + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
-            int willpower = rolledStats.PermanentWillpower + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
-            int agility = rolledStats.PermanentAgility + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
-            int endurance = rolledStats.PermanentEndurance + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
-            int personality = rolledStats.PermanentPersonality + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
-            int speed = rolledStats.PermanentSpeed + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
-            int luck = rolledStats.PermanentLuck + UnityEngine.Random.Range(minBonusRoll, maxBonusRoll + 1);
+            int strength = rolledStats.PermanentStrength + statModifier[(int)DFCareer.Stats.Strength] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
+            int intelligence = rolledStats.PermanentIntelligence + statModifier[(int)DFCareer.Stats.Intelligence] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
+            int willpower = rolledStats.PermanentWillpower + statModifier[(int)DFCareer.Stats.Willpower] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
+            int agility = rolledStats.PermanentAgility + statModifier[(int)DFCareer.Stats.Agility] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
+            int endurance = rolledStats.PermanentEndurance + statModifier[(int)DFCareer.Stats.Speed] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
+            int personality = rolledStats.PermanentPersonality + statModifier[(int)DFCareer.Stats.Endurance] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
+            int speed = rolledStats.PermanentSpeed + statModifier[(int)DFCareer.Stats.Personality] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
+            int luck = rolledStats.PermanentLuck + statModifier[(int)DFCareer.Stats.Luck] + UnityEngine.Random.Range(minBonusRoll, (maxBonusRoll + 1));
             rolledStats.SetPermanentStatValue(DFCareer.Stats.Strength, strength);
             rolledStats.SetPermanentStatValue(DFCareer.Stats.Intelligence, intelligence);
             rolledStats.SetPermanentStatValue(DFCareer.Stats.Willpower, willpower);
@@ -171,7 +177,8 @@ namespace DaggerfallWorkshop.Game.UserInterface
             // Roll bonus pool for player to distribute
             // Using maxBonusPool + 1 for inclusive range as above
             int bonusPool = 0;
-            // int bonusPool = UnityEngine.Random.Range(minBonusPool, maxBonusPool + 1);
+            for (int lvl = 2; lvl <= startingLevel; lvl++)
+                bonusPool += UnityEngine.Random.Range(minBonusPool, maxBonusPool + 1);
 
             // Apply stats to control
             SetStats(rolledStats, rolledStats, bonusPool);

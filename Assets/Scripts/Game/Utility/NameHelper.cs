@@ -55,6 +55,7 @@ namespace DaggerfallWorkshop.Game.Utility
             Monster3,
             Argonian,
             BretonModern,
+            Orc
         }
 
         /// <summary>
@@ -97,7 +98,7 @@ namespace DaggerfallWorkshop.Game.Utility
         {
             // Get parts
             string firstName = FirstName(type, gender);
-            string lastName = Surname(type);
+            string lastName = Surname(type, (int)gender);
 
             // Compose full name
             string fullName = firstName;
@@ -109,7 +110,7 @@ namespace DaggerfallWorkshop.Game.Utility
 
         /// <summary>
         /// Gets random first name for an NPC.
-        /// Supports Breton, Redguard, Nord, DarkElf, HighElf, WoodElf, Khajiit, Imperial.
+        /// Supports Breton, Redguard, Nord, DarkElf, HighElf, WoodElf, Khajiit, Imperial, Argonian.
         /// </summary>
         public string FirstName(BankTypes type, Genders gender)
         {
@@ -130,6 +131,7 @@ namespace DaggerfallWorkshop.Game.Utility
                 case BankTypes.Khajiit:
                 case BankTypes.Imperial:
                 case BankTypes.BretonModern:
+                case BankTypes.Orc:
                     firstName = GetRandomFirstName(nameBank, gender);
                     break;
 
@@ -149,7 +151,7 @@ namespace DaggerfallWorkshop.Game.Utility
         /// Gets random surname for an NPC.
         /// Supports Breton, Nord, DarkElf, HighElf, WoodElf, Khajiit, Imperial.
         /// </summary>
-        public string Surname(BankTypes type)
+        public string Surname(BankTypes type, int gender = 0)
         {
             // Bank dictionary must be ready
             if (bankDict == null)
@@ -173,6 +175,10 @@ namespace DaggerfallWorkshop.Game.Utility
 
                 case BankTypes.Nord:
                     lastName = GetRandomNordSurname(nameBank);
+                    break;
+
+                case BankTypes.Orc:
+                    lastName = GetRandomOrcSurname(nameBank, (Genders)gender);
                     break;
             }
 
@@ -255,6 +261,40 @@ namespace DaggerfallWorkshop.Game.Utility
             string stringB = partsB[index];
 
             return stringA + stringB + "sen";
+        }
+
+        string GetRandomOrcSurname(NameBank nameBank, Genders gender)
+        {
+            // Get set parts
+            string[] partsA, partsB;
+            partsA = nameBank.sets[0].parts;
+            partsB = nameBank.sets[1].parts;
+
+            // Generate strings
+            uint index = DFRandom.rand() % (uint)partsA.Length;
+            string stringA = partsA[index];
+
+            index = DFRandom.rand() % (uint)partsB.Length;
+            string stringB = partsB[index];
+
+            string stringC = "gra-";
+            string stringD = "gro-";
+            string stringE = "gor-";
+
+            if (gender == Genders.Male)
+            {
+                stringC = "gro-";
+                stringD = "gra-";
+            }
+
+            int randomRoll = UnityEngine.Random.Range(0, 100);
+            if (randomRoll < 85)
+                return stringC + stringA + stringB;
+            if (randomRoll < 90)
+                return stringD + stringA + stringB;
+            if (randomRoll < 95)
+                return stringE + stringA + stringB;
+            return stringA + stringB;
         }
 
         // Gets random Redguard name which follows 0+1+2+3(75%) (male), 0+1+2+4 (female) pattern

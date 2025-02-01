@@ -427,6 +427,12 @@ namespace DaggerfallWorkshop.Game
                     ActivateLaddersAndShelves(hit);
                     ActivateBed(hit);
 
+                    // Check for other flat hits
+                    CheckBillboardActivation(hit);
+
+                    // Check for other model hits
+                    CheckModelActivation(hit);
+
                     // Invoke any matched custom flat / model activations registered by mods.
                     string flatModelName = hit.transform.gameObject.name;
                     int pos = flatModelName.IndexOf(']');
@@ -538,7 +544,7 @@ namespace DaggerfallWorkshop.Game
                             // Attempt to unlock building
                             Random.InitState(Time.frameCount);
                             player.TallySkill(DFCareer.Skills.Lockpicking, 1);
-                            int chance = FormulaHelper.CalculateExteriorLockpickingChance(buildingLockValue, skillValue);
+                            int chance = FormulaHelper.CalculateExteriorLockpickingChance(buildingLockValue, player);
                             int roll = Random.Range(1, 101);
                             Debug.LogFormat("Attempting pick against lock strength {0}. Chance={1}, Roll={2}.", buildingLockValue, chance, roll);
                             if (chance > roll)
@@ -863,10 +869,112 @@ namespace DaggerfallWorkshop.Game
                     DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youAreTooFarAway"));
                     return;
                 }
-                if (bed)
+                else
                 {
-                    bed.Rest();
+                    Camping.BedActivation(hit);
                 }
+            }
+        }
+
+        void CheckModelActivation(RaycastHit hit)
+        {
+            DaggerfallMesh model = hit.transform.GetComponent<DaggerfallMesh>();
+            if (model)
+            {
+                if (hit.distance > DefaultActivationDistance)
+                {
+                    // DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youAreTooFarAway"));
+                    return;
+                }
+                else
+                {
+                    string meshName = (hit.transform).ToString();
+                    int modelID = -1;
+                    int.TryParse((meshName).Substring(meshName.IndexOf('[') + 4, 5), out modelID);
+                    ActivateModel(hit, modelID);
+                }
+            }
+        }
+
+        void ActivateModel(RaycastHit hit, int modelID)
+        {
+            switch (modelID)
+            {
+                case 41116:     // Fireplace
+                case 41117:     // Fireplace - corner
+                    Camping.RestOrPackFire(hit);
+                    break;
+
+                case 41220:     // Fountain
+                case 41221:     // Fountain
+                case 41222:     // Fountain
+                    ClimateCalories.WaterSourceActivation(hit);
+                    break;
+
+                case Camping.tentModelID:
+                    Camping.RestOrPackTent(hit);
+                    break;
+
+                default:
+                    break;
+            }
+        }
+
+        void CheckBillboardActivation(RaycastHit hit)
+        {
+            DaggerfallBillboard flat = hit.transform.GetComponent<DaggerfallBillboard>();
+            if (flat)
+            {
+                if (hit.distance > DefaultActivationDistance)
+                {
+                    DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youAreTooFarAway"));
+                    return;
+                }
+                else {
+                    ActivateBillboard(hit, flat.Summary.Archive, flat.Summary.Record);
+                }
+            }
+        }
+
+        void ActivateBillboard(RaycastHit hit, int archive, int record)
+        {
+            int activationKey = archive * 1000 + record;
+
+            switch (activationKey)
+            {
+                case 101000:    // Brazier
+                case 101005:    // Campfire
+                case 210000:    // Brazier
+                case 210001:    // Campfire
+                    Camping.RestOrPackFire(hit);
+                    break;
+
+                case 85000:     // Water tile
+                case 212000:    // Well
+                case 212002:    // Fountain
+                case 212008:    // Water pump
+                case 212009:    // Water pump
+                    ClimateCalories.WaterSourceActivation(hit);
+                    break;
+
+                case 182001:    // Innkeeper
+                case 182002:    // Innkeeper
+                case 182003:    // Innkeeper
+                case 182011:    // Barmaid
+                case 184016:    // Innkeeper
+                case 186001:    // Innkeeper;
+                case 186002:    // Innkeeper
+                case 186003:    // Innkeeper
+                case 197000:    // Innkeeper
+                    ClimateCalories.NPCWaterSourceActivation(hit);
+                    break;
+
+                case 212003:    // Dry fountain
+                    ClimateCalories.DryWaterSourceActivation(hit);
+                    break;
+
+                default:
+                    return;
             }
         }
 
@@ -995,7 +1103,7 @@ namespace DaggerfallWorkshop.Game
                 // but the difficulty text is always based on the exterior function.
                 // DF Unity doesn't have exterior locked doors yet, so the below uses the interior function.
                 // TODO: Implement LookAtExteriorLock variant for exterior doors
-                int chance = FormulaHelper.CalculateInteriorLockpickingChance(lockValue, player.Skills.GetLiveSkillValue(DFCareer.Skills.Lockpicking));
+                int chance = FormulaHelper.CalculateInteriorLockpickingChance(lockValue, player);
 
                 if (chance >= 30)
                     if (chance >= 35)

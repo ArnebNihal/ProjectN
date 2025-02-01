@@ -1518,11 +1518,11 @@ namespace MapEditor
         protected void CreateMapDict()
         {
             string fileDataPath = Path.Combine(Worldmaps.tilesPath, "mapDict.json");
-            Dictionary<int, List<int>> regionTiles = new Dictionary<int, List<int>>();
+            Dictionary<int, List<(int, int)>> regionTiles = new Dictionary<int, List<(int, int)>>();
             int tileIndex;
             int previousTileIndex = -1;
             int[,] jsonTile = new int[MapsFile.TileDim, MapsFile.TileDim];
-            List<int>[] tempLists = new List<int>[WorldData.WorldSetting.RegionNames.Length];
+            List<(int, int)>[] tempLists = new List<(int, int)>[WorldData.WorldSetting.RegionNames.Length];
             for (int x = 0; x < MapsFile.MaxMapPixelX; x++)
             {
                 for (int y = 0; y < MapsFile.MaxMapPixelY; y++)
@@ -1533,10 +1533,16 @@ namespace MapEditor
                     int regionInd = PoliticInfo.ConvertMapPixelToRegionIndex(x, y);
 
                     if (tempLists[regionInd] == null)
-                        tempLists[regionInd] = new List<int>();
+                        tempLists[regionInd] = new List<(int, int)>();
 
-                    if (!tempLists[regionInd].Contains(tileIndex))
-                        tempLists[regionInd].Add(tileIndex);
+                    if (!tempLists[regionInd].Exists(z => z.Item1 == tileIndex))
+                        tempLists[regionInd].Add((tileIndex, 0));
+
+                    if (Worldmaps.HasLocation(x, y))
+                    {
+                        int index = tempLists[regionInd].FindIndex(w => w.Item1 == tileIndex);
+                        tempLists[regionInd][index] = (tempLists[regionInd][index].Item1, (tempLists[regionInd][index].Item2 + 1));
+                    }
                 }
                 Debug.Log("X done: " + x);
             }
@@ -4019,11 +4025,12 @@ namespace MapEditor
             Skyrim,
             Reachmen,
             Morrowind,
-            // SumursetIsle,
-            // Valenwood,
-            // Elsweyr,
-            // BlackMarsh,
-            // Cyrodiil
+            SumursetIsle,
+            Valenwood,
+            Elsweyr,
+            BlackMarsh,
+            Cyrodiil,
+            Orsinium
         }
 
         public enum NameParts

@@ -70,13 +70,13 @@ namespace DaggerfallWorkshop.Game.Items
         Steel       = 0x0002,
         Silver      = 0x0003,
         Elven       = 0x0004,
-        Dwarven     = 0x0005,
-        Orcish      = 0x0006,
-        Mithril     = 0x0007,
-        Adamantium  = 0x0008,
-        Ebony       = 0x0009,
-        Daedric     = 0x000A,
-        Glass       = 0x000B
+        Glass       = 0x0005,
+        Dwarven     = 0x0006,
+        Orcish      = 0x0007,
+        Mithril     = 0x0008,
+        Adamantium  = 0x0009,
+        Ebony       = 0x000A,
+        Daedric     = 0x000B,
     }
 
     /// <summary>
@@ -104,36 +104,37 @@ namespace DaggerfallWorkshop.Game.Items
         LeatherSteel        = 0x0002,
         LeatherSilver       = 0x0003,
         LeatherElven        = 0x0004,
-        LeatherDwarven      = 0x0005,
-        LeatherOrcish       = 0x0006,
-        LeatherMithril      = 0x0007,
-        LeatherAdamantium   = 0x0008,
-        LeatherEbony        = 0x0009,
-        LeatherDaedric      = 0x000A,
-        LeatherGlass        = 0x000B,
+        LeatherGlass        = 0x0005,
+        LeatherDwarven      = 0x0006,
+        LeatherOrcish       = 0x0007,
+        LeatherMithril      = 0x0008,
+        LeatherAdamantium   = 0x0009,
+        LeatherEbony        = 0x000A,
+        LeatherDaedric      = 0x000B,
         Chain               = 0x0100,
         ChainIron           = 0x0101,
         ChainSteel          = 0x0102,
         ChainSilver         = 0x0103,
         ChainElven          = 0x0104,
-        ChainDwarven        = 0x0105,
-        ChainOrcish         = 0x0106,
-        ChainMithril        = 0x0107,
-        ChainAdamantium     = 0x0108,
-        ChainEbony          = 0x0109,
-        ChainDaedric        = 0x010A,
-        ChainGlass          = 0x010B,
+        ChainGlass          = 0x0105,
+        ChainDwarven        = 0x0106,
+        ChainOrcish         = 0x0107,
+        ChainMithril        = 0x0108,
+        ChainAdamantium     = 0x0109,
+        ChainEbony          = 0x010A,
+        ChainDaedric        = 0x010B,
         PlateIron           = 0x0201,
         PlateSteel          = 0x0202,
         PlateSilver         = 0x0203,
         PlateElven          = 0x0204,
-        PlateDwarven        = 0x0205,
-        PlateOrcish         = 0x0206,
-        PlateMithril        = 0x0207,
-        PlateAdamantium     = 0x0208,
-        PlateEbony          = 0x0209,
-        PlateDaedric        = 0x020A,
-        PlateGlass          = 0x020B
+        PlateGlass          = 0x0205,
+        PlateDwarven        = 0x0206,
+        PlateOrcish         = 0x0207,
+        PlateMithril        = 0x0208,
+        PlateAdamantium     = 0x0209,
+        PlateEbony          = 0x020A,
+        PlateDaedric        = 0x020B,
+        
     }
 
     /// <summary>
@@ -186,6 +187,18 @@ namespace DaggerfallWorkshop.Game.Items
         Hands = 4,
         Legs = 5,
         Feet = 6,
+    }
+
+    /// <summary>
+    /// Food item's status.
+    /// </summary>
+    public enum FoodStatus
+    {
+        Fresh = 0,
+        Stale = 1,
+        Mouldy = 2,
+        Rotten = 3,
+        Putrid = 4
     }
 
     /// <summary>

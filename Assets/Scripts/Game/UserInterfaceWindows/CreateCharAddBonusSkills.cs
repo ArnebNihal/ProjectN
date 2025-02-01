@@ -34,12 +34,19 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         Texture2D nativeTexture;
         DFCareer dfClass;
+        int age;
         SkillsRollout skillsRollout;
 
         public DFCareer DFClass
         {
             get { return dfClass; }
             set { SetClass(value); }
+        }
+
+        public int Age
+        {
+            get { return age; }
+            set { SetAge(value); }
         }
 
         public DaggerfallSkills StartingSkills
@@ -104,28 +111,32 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         {
             Setup();
             this.dfClass = dfClass;
-            skillsRollout.SetClassSkills(dfClass);
+            skillsRollout.SetClassSkills(dfClass, ref this.age);
         }
 
+        void SetAge(int age)
+        {
+            this.age = age;
+        }
         #endregion
 
         #region Event Handlers
 
         void OkButton_OnMouseClick(BaseScreenComponent sender, Vector2 position)
         {
-            if (skillsRollout.PrimarySkillBonusPoints > 0 ||
-                skillsRollout.MajorSkillBonusPoints > 0 ||
-                skillsRollout.MinorSkillBonusPoints > 0)
-            {
-                DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this);
-                messageBox.SetTextTokens(strYouMustDistributeYourBonusPoints);
-                messageBox.ClickAnywhereToClose = true;
-                messageBox.Show();
-            }
-            else
-            {
+            // if (skillsRollout.PrimarySkillBonusPoints > 0 ||
+            //     skillsRollout.MajorSkillBonusPoints > 0 ||
+            //     skillsRollout.MinorSkillBonusPoints > 0)
+            // {
+            //     DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this);
+            //     messageBox.SetTextTokens(strYouMustDistributeYourBonusPoints);
+            //     messageBox.ClickAnywhereToClose = true;
+            //     messageBox.Show();
+            // }
+            // else
+            // {
                 CloseWindow();
-            }
+            // }
         }
 
         #endregion

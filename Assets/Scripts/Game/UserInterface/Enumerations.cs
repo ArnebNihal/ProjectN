@@ -89,6 +89,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
         StretchToFill,                  // Texture will stretch to fill parent
         ScaleToFit,                     // Texture will scale to fit parent while maintaining aspect ratio
         Cropped,                        // Texture is cropped and visible part scaled to fit
+        RealSizeTop                     // Texture is left as it is, and put at the top
     }
 
     /// <summary>

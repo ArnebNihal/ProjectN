@@ -128,7 +128,11 @@ namespace DaggerfallWorkshop.Game.Utility
                 }
 
                 int terrainMovementIndex = 0;
-                int terrain = ClimateData.GetClimateValue(playerXMapPixel, playerYMapPixel);
+                int terrain = -1;
+                if (WorldMaps.GetRelativeTile(playerXMapPixel, playerYMapPixel) < 0 ||
+                    WorldMaps.GetRelativeTile(playerXMapPixel, playerYMapPixel) > 8)
+                    terrain = ClimateData.GetClimateValue(playerXMapPixel, playerYMapPixel, true);
+                else terrain = ClimateData.GetClimateValue(playerXMapPixel, playerYMapPixel);
                 if (terrain == (int)MapsFile.Climates.Ocean)
                 {
                     ++pixelsTraveledOnOcean;

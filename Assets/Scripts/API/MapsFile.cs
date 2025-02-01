@@ -864,6 +864,8 @@ namespace DaggerfallConnect.Arena2
             int tile = -1;
             int previousTile = 0;
 
+            Debug.Log("DiscoverCloseLocations - center: " + center.X + ", " + center.Y);
+
             // Discover location in current map pixel, if there's any and it's not discovered.
             if (WorldMaps.HasLocation(center.X, center.Y, out locationFound) && !locationFound.Discovered)
             {
@@ -881,11 +883,12 @@ namespace DaggerfallConnect.Arena2
                 xDir = modifiers[quadrant].Item1 * radius + sector * modifiers[quadrant].Item3;
                 yDir = modifiers[quadrant].Item2 * radius + sector * modifiers[quadrant].Item4;
                 DFPosition positionToCheck = new DFPosition(center.X + xDir, center.Y + yDir);
+                Debug.Log("positionToCheck: " + positionToCheck.X + ", " + positionToCheck.Y);
                 tile = MapPixelToTile(positionToCheck);
+                Debug.Log("tile: " + tile);
 
                 if (tile != previousTile)
                     tileMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(WorldMaps.locationPath, "map" + tile.ToString("00000") + ".json")));
-
 
                 if (WorldMaps.HasLocation(xDir, yDir, out locationFound))
                 {

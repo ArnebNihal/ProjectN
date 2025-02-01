@@ -25,7 +25,8 @@ namespace DaggerfallWorkshop.Game.Entity
         #region Fields
 
         public const int Count = 8;
-        const int defaultValue = 50;
+        // ProjectN: lowered stats default value to 40 (from 50); test required.
+        const int defaultValue = 40;
 
         // Current permanent stat values
         [SerializeField] int Strength;

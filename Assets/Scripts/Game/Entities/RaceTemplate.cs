@@ -40,7 +40,8 @@ namespace DaggerfallWorkshop.Game.Entity
         public DFCareer.EffectFlags LowToleranceFlags;          // Racial low tolerance
         public DFCareer.EffectFlags CriticalWeaknessFlags;      // Racial critical weakness
         public DFCareer.SpecialAbilityFlags SpecialAbilities;   // Racial special abilities
-        public int[,] StatModifier;                             // Racial Stat modifiers
+        public int[] StatModifierMale;                          // Racial Stat modifiers
+        public int[] StatModifierFemale;
 
         /// <summary>
         /// Clones this race template.
@@ -201,6 +202,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE00I0.CIF";
             PaperDollHeadsFemale = "FACE10I0.CIF";
+
+            StatModifierMale = new int[] { -6, +10, +10, -3, -3, -10, 0, 0 };
+            StatModifierFemale = new int[] { -10, +10, +10, -3, 0, -10, 0, 0 };
         }
     }
 
@@ -222,6 +226,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE01I0.CIF";
             PaperDollHeadsFemale = "FACE11I0.CIF";
+
+            StatModifierMale = new int[] { +3, -13, -10, +6, +3, +3, -3, 0 }; 
+            StatModifierFemale = new int[] { -3, -13, -10, +3, +6, +3, 0, 0 };
         }
     }
 
@@ -245,6 +252,9 @@ namespace DaggerfallWorkshop.Game.Entity
             PaperDollHeadsFemale = "FACE12I0.CIF";
 
             ResistanceFlags = DFCareer.EffectFlags.Frost;
+
+            StatModifierMale = new int[] { +10, -13, -6, -6, 0, +13, -3, 0 };  
+            StatModifierFemale = new int[] { +6, -13, 0, -3, 0, +6, -3, 0 };
         }
     }
 
@@ -266,6 +276,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE03I0.CIF";
             PaperDollHeadsFemale = "FACE13I0.CIF";
+
+            StatModifierMale = new int[] { +6, +6, -13, 0, +6, 0, -10, 0 };
+            StatModifierFemale = new int[] { +3, +6, -13, 0, +6, -3, -3, 0 };
         }
     }
 
@@ -289,6 +302,9 @@ namespace DaggerfallWorkshop.Game.Entity
             PaperDollHeadsFemale = "FACE14I0.CIF";
 
             ImmunityFlags = DFCareer.EffectFlags.Paralysis;
+
+            StatModifierMale = new int[] { -13, +10, +6, +3, -3, -6, 0, 0 };
+            StatModifierFemale = new int[] { -13, +10, +3, +3, 0, -10, +3, 0 };
         }
     }
 
@@ -310,6 +326,10 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE05I0.CIF";
             PaperDollHeadsFemale = "FACE15I0.CIF";
+
+
+            StatModifierMale = new int[] { -10, 0, -3, +13, +10, -10, 0, -3 };
+            StatModifierFemale = new int[] { -10, 0, -3, +10, +6, -6, 0, 0 };
         }
     }
 
@@ -331,6 +351,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE06I0.CIF";
             PaperDollHeadsFemale = "FACE16I0.CIF";
+
+            StatModifierMale = new int[] { 0, +3, -6, +3, 0, +3, -3, 0 };
+            StatModifierFemale = new int[] { -3, +3, -10, +6, 0, +3, -3, 0 };
         }
     }
 
@@ -352,6 +375,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE07I0.CIF";
             PaperDollHeadsFemale = "FACE17I0.CIF";
+
+            StatModifierMale = new int[] { 0, +3, -3, +10, +10, -10, -10, 0 };
+            StatModifierFemale = new int[] { +3, +6, 0, +3, +3, -10, -10, 0 };
         }
     }
 
@@ -373,6 +399,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE08I0.CIF";
             PaperDollHeadsFemale = "FACE18I0.CIF";
+
+            StatModifierMale = new int[] { 0, 0, -10, -10, 0, 0, +10, 0 };
+            StatModifierFemale = new int[] { 0, 0, 0, -10, -10, 0, +10, 0 };
         }
     }
 
@@ -394,6 +423,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
             PaperDollHeadsMale = "FACE09I0.CIF";
             PaperDollHeadsFemale = "FACE19I0.CIF";
+
+            StatModifierMale = new int[] { +5, -10, +10, -5, -10, +10, -10, 0 };  
+            StatModifierFemale = new int[] { +5, 0, +5, -5, -10, +10, -15, 0 };
         }
     }
 

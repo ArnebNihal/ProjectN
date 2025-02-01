@@ -39,7 +39,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
         const string nativeImgName = "CUST01I0.IMG";
         const string nativeImgOverlayName = "CUST02I0.IMG";
-        const int maxItems = 7;
+        const int maxItems = 8;
         const int maxLabels = maxItems * 2;
         const int labelSpacing = 8;
         const int tandemLabelSpacing = 6;
@@ -187,7 +187,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             HardStrings.mithril,
             HardStrings.orcish,
             HardStrings.silver,
-            HardStrings.steel
+            HardStrings.steel,
+            HardStrings.glass
         };
         string[] shieldTypeStringKeys = new string[]
         {
@@ -1129,6 +1130,9 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 case HardStrings.steel:
                     advantageData.ForbiddenMaterials = advantageData.ForbiddenMaterials | DFCareer.MaterialFlags.Steel;
                     break;
+                case HardStrings.glass:
+                    advantageData.ForbiddenMaterials = advantageData.ForbiddenMaterials | DFCareer.MaterialFlags.Glass;
+                    break;
                 default:
                     break;
             }
@@ -1288,11 +1292,11 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 { HardStrings.expertiseIn, 2 },
                 { HardStrings.climateSurvival, 6},
                 { HardStrings.immunity, 10 },
-                { HardStrings.increasedMagery + HardStrings.intInSpellPoints, 2 },
-                { HardStrings.increasedMagery + HardStrings.intInSpellPoints15, 4 },
-                { HardStrings.increasedMagery + HardStrings.intInSpellPoints175, 6 },
-                { HardStrings.increasedMagery + HardStrings.intInSpellPoints2, 8 },
-                { HardStrings.increasedMagery + HardStrings.intInSpellPoints3, 10 },
+                { HardStrings.increasedMagery + HardStrings.intInSpellPoints, 6 },
+                { HardStrings.increasedMagery + HardStrings.intInSpellPoints15, 12 },
+                { HardStrings.increasedMagery + HardStrings.intInSpellPoints175, 18 },
+                { HardStrings.increasedMagery + HardStrings.intInSpellPoints2, 24 },
+                { HardStrings.increasedMagery + HardStrings.intInSpellPoints3, 30 },
                 { HardStrings.rapidHealing + HardStrings.general, 4 },
                 { HardStrings.rapidHealing + HardStrings.inDarkness, 3 },
                 { HardStrings.rapidHealing + HardStrings.inLight, 2 },
@@ -1335,9 +1339,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 { HardStrings.forbiddenMaterial + HardStrings.elven, -9 },
                 { HardStrings.forbiddenMaterial + HardStrings.iron, -1 },
                 { HardStrings.forbiddenMaterial + HardStrings.mithril, -6 },
-                { HardStrings.forbiddenMaterial + HardStrings.orcish, -3 },
+                { HardStrings.forbiddenMaterial + HardStrings.orcish, -6 },
                 { HardStrings.forbiddenMaterial + HardStrings.silver, -6 },
                 { HardStrings.forbiddenMaterial + HardStrings.steel, -10 },
+                { HardStrings.forbiddenMaterial + HardStrings.glass, -8 },
                 { HardStrings.forbiddenShieldTypes, -1 },
                 { HardStrings.forbiddenWeaponry, -2 },
                 { HardStrings.inabilityToRegen, -14 },

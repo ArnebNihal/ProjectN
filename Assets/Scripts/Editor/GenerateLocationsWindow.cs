@@ -1364,7 +1364,7 @@ namespace MapEditor
                 case 0:     // The + (sur)name + epithet
                     if (regionalism == (int)LocationNamesList.NameTypes.Hammerfell)
                         surname = DaggerfallUnity.Instance.NameHelper.FirstName(NameHelper.BankTypes.Redguard, (DaggerfallWorkshop.Game.Entity.Genders)gender);
-                    else surname = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType);
+                    else surname = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType, UnityEngine.Random.Range(0, 2));
 
                     resultingName = string.Concat("The ", surname, " ", epithet);
                     break;
@@ -1372,7 +1372,7 @@ namespace MapEditor
                 case 1:     // (sur)name + epithet
                     if (regionalism == (int)LocationNamesList.NameTypes.Hammerfell)
                         surname = DaggerfallUnity.Instance.NameHelper.FirstName(NameHelper.BankTypes.Redguard, (DaggerfallWorkshop.Game.Entity.Genders)gender);
-                    else surname = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType);
+                    else surname = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType, UnityEngine.Random.Range(0, 2));
 
                     resultingName = string.Concat(surname, " ", epithet);
                     break;
@@ -1386,7 +1386,7 @@ namespace MapEditor
                 case 3:     // The Old + (sur)name + epithet
                     if (regionalism == (int)LocationNamesList.NameTypes.Hammerfell)
                         surname = DaggerfallUnity.Instance.NameHelper.FirstName(NameHelper.BankTypes.Redguard, (DaggerfallWorkshop.Game.Entity.Genders)gender);
-                    else surname = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType);
+                    else surname = DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType, UnityEngine.Random.Range(0, 2));
 
                     resultingName = string.Concat("The Old ", surname, " ", epithet);
                     break;
@@ -2514,7 +2514,7 @@ namespace MapEditor
 
                 case 1:
                     if (bankType != (int)NameHelper.BankTypes.Redguard)
-                        return DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType);
+                        return DaggerfallUnity.Instance.NameHelper.Surname((NameHelper.BankTypes)bankType, UnityEngine.Random.Range(0, 2));
                     else return DaggerfallUnity.Instance.NameHelper.FirstName((NameHelper.BankTypes)bankType, (DaggerfallWorkshop.Game.Entity.Genders)(UnityEngine.Random.Range(0, 2)));
 
                 case 2:
@@ -2577,6 +2577,24 @@ namespace MapEditor
 
                 case (int)LocationNamesList.NameTypes.Morrowind:
                     return (int)NameHelper.BankTypes.DarkElf;
+
+                case (int)LocationNamesList.NameTypes.Cyrodiil:
+                    return (int)NameHelper.BankTypes.Imperial;
+
+                case (int)LocationNamesList.NameTypes.SumursetIsle:
+                    return (int)NameHelper.BankTypes.HighElf;
+
+                case (int)LocationNamesList.NameTypes.Valenwood:
+                    return (int)NameHelper.BankTypes.WoodElf;
+
+                case (int)LocationNamesList.NameTypes.Elsweyr:
+                    return (int)NameHelper.BankTypes.Khajiit;
+
+                case (int)LocationNamesList.NameTypes.BlackMarsh:
+                    return (int)NameHelper.BankTypes.Argonian;
+
+                case (int)LocationNamesList.NameTypes.Orsinium:
+                    return (int)NameHelper.BankTypes.Orc;
 
                 default:
                     return (int)NameHelper.BankTypes.Breton;

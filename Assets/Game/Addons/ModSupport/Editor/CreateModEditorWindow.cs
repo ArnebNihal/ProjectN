@@ -84,7 +84,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
 
             documentationGUIContent = new GUIContent(EditorGUIUtility.IconContent("_Help"));
             documentationGUIContent.text = " Mod System Documentation";
-            targetInfoGUIContent = new GUIContent($"{VersionInfo.DaggerfallUnityProductName} {VersionInfo.DaggerfallUnityStatus} {VersionInfo.DaggerfallUnityVersion} (Unity {VersionInfo.BaselineUnityVersion})");
+            targetInfoGUIContent = new GUIContent($"{VersionInfo.ProjectNProductName} {VersionInfo.ProjectNStatus} {VersionInfo.ProjectNVersion} (Unity {VersionInfo.BaselineUnityVersion})");
             isSupportedEditorVersion = IsSupportedEditorVersion();
         }
 
@@ -156,7 +156,7 @@ namespace DaggerfallWorkshop.Game.Utility.ModSupport
                     fileOpen = SaveModFile();
                     if (modInfo != null)
                     {
-                        modInfo.DFUnity_Version = VersionInfo.DaggerfallUnityVersion;
+                        modInfo.DFUnity_Version = VersionInfo.ProjectNVersion;
                     }
                 }
 

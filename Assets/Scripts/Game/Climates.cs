@@ -648,6 +648,7 @@ namespace DaggerfallWorkshop.Game
                 case (int)Races.Nord:
                     return 5;
                 case (int)Races.Breton:
+                case (int)Races.Orc:
                     return 5;
                 case (int)Races.HighElf:
                 case (int)Races.WoodElf:
@@ -656,7 +657,6 @@ namespace DaggerfallWorkshop.Game
                 case (int)Races.Khajiit:
                 case (int)Races.DarkElf:
                 case (int)Races.Redguard:
-                case (int)Races.Orc:
                     return -5;
                 case (int)Races.Argonian:
                     return -10;
@@ -681,7 +681,7 @@ namespace DaggerfallWorkshop.Game
             return temp;
         }
 
-        //Adjust temperature for waterskin ( or barrel of grog when added) in inventory.
+        // Adjust temperature for waterskin ( or barrel of grog when added) in inventory.
         static int ItemTemp(int charNatTemp)
         {
             if (charNatTemp > 9 && gotDrink && !GameManager.Instance.PlayerEffectManager.HasVampirism())
@@ -766,7 +766,7 @@ namespace DaggerfallWorkshop.Game
             return up;
         }
 
-        //If inside dungeon, the temperature effects is decreased.
+        // If inside dungeon, the temperature effects is decreased.
         static public int Dungeon(int natTemp)
         {
             if (playerEnterExit.IsPlayerInsideDungeon || playerEnterExit.IsPlayerInsideDungeonCastle || playerEnterExit.IsPlayerInsideSpecialArea)

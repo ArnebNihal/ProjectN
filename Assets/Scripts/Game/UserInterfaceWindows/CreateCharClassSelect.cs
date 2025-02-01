@@ -28,6 +28,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
     public class CreateCharClassSelect : DaggerfallListPickerWindow
     {
         const int startClassDescriptionID = 2100;
+        const int startNewClassDescriptionID = 2010;
 
         List<DFCareer> classList = new List<DFCareer>();
         DFCareer selectedClass;
@@ -77,8 +78,17 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 selectedClass = classList[index];
                 selectedClassIndex = index;
 
+                // TextFile.Token[] textTokens;
+                // if (index <= 17)
+                // {
+                //     textTokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(startClassDescriptionID + index);
+                // }
+                // else{ 
+                //     textTokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(startNewClassDescriptionID + (index - 18));
+                // }
                 TextFile.Token[] textTokens = DaggerfallUnity.Instance.TextProvider.GetRSCTokens(startClassDescriptionID + index);
                 DaggerfallMessageBox messageBox = new DaggerfallMessageBox(uiManager, this);
+                Debug.Log(textTokens.Length);
                 messageBox.SetTextTokens(textTokens);
                 messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.Yes);
                 Button noButton = messageBox.AddButton(DaggerfallMessageBox.MessageBoxButtons.No);

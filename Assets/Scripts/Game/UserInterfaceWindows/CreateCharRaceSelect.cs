@@ -61,7 +61,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             NativePanel.BackgroundTexture = nativeTexture;
 
             // Add "Please select your home province..." prompt
-            promptLabel = DaggerfallUI.AddTextLabel(DaggerfallUI.DefaultFont, new Vector2(0, 16), TextManager.Instance.GetLocalizedText("pleaseSelectYourHomeProvince"), NativePanel);
+            promptLabel = DaggerfallUI.AddTextLabel(DaggerfallUI.DefaultFont, new Vector2(0, 16), TextManager.Instance.GetLocalizedText("pleaseSelectYourRace"), NativePanel);
             promptLabel.HorizontalAlignment = HorizontalAlignment.Center;
             promptLabel.TextColor = DaggerfallUI.DaggerfallDefaultTextColor;
             promptLabel.ShadowColor = DaggerfallUI.DaggerfallDefaultShadowColor;

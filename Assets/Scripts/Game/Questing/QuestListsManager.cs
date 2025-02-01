@@ -373,14 +373,14 @@ namespace DaggerfallWorkshop.Game.Questing
             if (pool.Count > 0)
             {
                 QuestData questData = pool[UnityEngine.Random.Range(0, pool.Count)];
-                try
-                {
+                // try
+                // {
                     return LoadQuest(questData, factionId);
-                }
-                catch (Exception ex)
-                {   // Log exception
-                    DaggerfallUnity.LogMessage("Exception for quest " + questData.name + " during quest compile: " + ex.Message, true);
-                }
+                // }
+                // catch (Exception ex)
+                // {   // Log exception
+                //     DaggerfallUnity.LogMessage("Exception for quest " + questData.name + " during quest compile: " + ex.Message, true);
+                // }
             }
             return null;
         }

@@ -28,8 +28,8 @@ namespace DaggerfallWorkshop.Game.Entity
         public const int PrimarySkillsCount = 3;
         public const int MajorSkillsCount = 3;
         public const int MinorSkillsCount = 6;
-        const int minDefaultValue = 3;
-        const int maxDefaultValue = 6;
+        const int minDefaultValue = 1;
+        const int maxDefaultValue = 4;
 
         // Current permanent skill values
         [SerializeField] short Medical;
@@ -72,6 +72,9 @@ namespace DaggerfallWorkshop.Game.Entity
         [SerializeField] short HeavyArmor;
         [SerializeField] short Block;
         [SerializeField] short Disguise;
+        [SerializeField] short Conjuration;
+        [SerializeField] short Enchant;
+        [SerializeField] short Alchemy;
 
         // Mods are temporary changes to skill values from effects
         // Default is 0 - effects can raise/lower mod values during their lifecycle
@@ -98,7 +101,28 @@ namespace DaggerfallWorkshop.Game.Entity
         {
             for (int i = 0; i < Count; i++)
             {
-                SetPermanentSkillValue(i, (short)UnityEngine.Random.Range(minDefaultValue, maxDefaultValue + 1));
+                short skillValue = -1;
+                int roll = (short)UnityEngine.Random.Range(0, 10);
+                switch (roll)
+                {
+                    case 9:
+                        skillValue = 4;
+                        break;
+                    case 8:
+                    case 7:
+                        skillValue = 3;
+                        break;
+                    case 6:
+                    case 5:
+                    case 4:
+                        skillValue = 2;
+                        break;
+                    default:
+                        skillValue = 1;
+                        break;
+
+                }
+                SetPermanentSkillValue(i, skillValue);
             }
             Array.Clear(mods, 0, Count);
         }
@@ -107,7 +131,7 @@ namespace DaggerfallWorkshop.Game.Entity
         /// Copy contents of another DaggerfallSkills into this one.
         /// Does not copy active effect mods.
         /// </summary>
-        /// <param name="other">Skilla collection to copy from.</param>
+        /// <param name="other">Skill collection to copy from.</param>
         public void Copy(DaggerfallSkills other)
         {
             for (int i = 0; i < Count; i++)
@@ -263,6 +287,12 @@ namespace DaggerfallWorkshop.Game.Entity
                     return Block;
                 case DFCareer.Skills.Disguise:
                     return Disguise;
+                case DFCareer.Skills.Conjuration:
+                    return Conjuration;
+                case DFCareer.Skills.Enchant:
+                    return Enchant;
+                case DFCareer.Skills.Alchemy:
+                    return Alchemy;
                 default:
                     return 0;
             }
@@ -401,6 +431,15 @@ namespace DaggerfallWorkshop.Game.Entity
                 case DFCareer.Skills.Disguise:
                     Disguise = value;
                     break;
+                case DFCareer.Skills.Conjuration:
+                    Conjuration = value;
+                    break;
+                case DFCareer.Skills.Enchant:
+                    Enchant = value;
+                    break;
+                case DFCareer.Skills.Alchemy:
+                    Alchemy = value;
+                    break;
             }
         }
 
@@ -513,6 +552,12 @@ namespace DaggerfallWorkshop.Game.Entity
                     return DFCareer.Stats.Agility;
                 case DFCareer.Skills.Disguise:
                     return DFCareer.Stats.Personality;
+                case DFCareer.Skills.Conjuration:
+                    return DFCareer.Stats.Intelligence;
+                case DFCareer.Skills.Enchant:
+                    return DFCareer.Stats.Intelligence;
+                case DFCareer.Skills.Alchemy:
+                    return DFCareer.Stats.Intelligence;
                 default:
                     return (DFCareer.Stats)(-1);
             }
@@ -574,8 +619,11 @@ namespace DaggerfallWorkshop.Game.Entity
                 case DFCareer.Skills.Alteration:
                     return 1;
                 case DFCareer.Skills.Thaumaturgy:
+                case DFCareer.Skills.Enchant:
+                case DFCareer.Skills.Alchemy:
                     return 2;
                 case DFCareer.Skills.Mysticism:
+                case DFCareer.Skills.Conjuration:
                     return 1;
                 case DFCareer.Skills.ShortBlade:
                 case DFCareer.Skills.LongBlade:

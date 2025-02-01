@@ -144,7 +144,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             // Set version text
             versionTextLabel = new TextLabel();
-            versionTextLabel.Text = string.Format("{0} {1} {2}", VersionInfo.DaggerfallUnityProductName, VersionInfo.DaggerfallUnityStatus, VersionInfo.DaggerfallUnityVersion);
+            versionTextLabel.Text = string.Format("{0} {1} {2}", VersionInfo.ProjectNProductName, VersionInfo.ProjectNStatus, VersionInfo.ProjectNVersion);
             versionTextLabel.TextColor = versionTextColor;
             versionTextLabel.ShadowColor = versionShadowColor;
             versionTextLabel.ShadowPosition = Vector2.one;

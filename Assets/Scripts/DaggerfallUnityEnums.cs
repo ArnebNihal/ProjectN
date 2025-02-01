@@ -459,13 +459,13 @@ namespace DaggerfallWorkshop
         Steel,
         Silver,
         Elven,
+        Glass,
         Dwarven,
         Orcish,
         Mithril,
         Adamantium,
         Ebony,
-        Daedric,
-        Glass
+        Daedric
     }
 
     /// <summary>
@@ -486,6 +486,8 @@ namespace DaggerfallWorkshop
         Aquamarine = 7,
         Yellow = 8,
         Green = 9,
+        Olive = 10,
+        Amber = 11,
 
         // 10-14 Unknown or not observed
 
@@ -497,13 +499,13 @@ namespace DaggerfallWorkshop
         SilverOrElven = 18, // This enum kept for compatibility with older saves
         Silver = 18,
         Elven = 19,
-        Dwarven = 20,
-        Mithril = 21,
-        Adamantium = 22,
-        Ebony = 23,
-        Orcish = 24,
-        Daedric = 25,
-        Glass = 26
+        Glass = 20,
+        Dwarven = 21,
+        Mithril = 22,
+        Adamantium = 23,
+        Ebony = 24,
+        Orcish = 25,
+        Daedric = 26        
     }
 
     /// <summary>

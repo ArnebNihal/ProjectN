@@ -56,6 +56,8 @@ namespace DaggerfallWorkshop.Game.Entity
         const string testPlayerName = "Nameless";
 
         protected RaceTemplate raceTemplate;
+        protected int age;
+        protected int birthday; // Birthday expressed as DDMMEYYYY
         protected int faceIndex;
         protected PlayerReflexes reflexes;
         protected ItemCollection wagonItems = new ItemCollection();
@@ -151,6 +153,8 @@ namespace DaggerfallWorkshop.Game.Entity
         public Races Race { get { return (Races)RaceTemplate.ID; } }
         public RaceTemplate RaceTemplate { get { return GetLiveRaceTemplate(); } }
         public RaceTemplate BirthRaceTemplate { get { return raceTemplate; } set { raceTemplate = value; } }
+        public int Age { get { return age; } }
+        public int Birthday { get { return birthday; } }
         public int FaceIndex { get { return faceIndex; } set { faceIndex = value; } }
         public PlayerReflexes Reflexes { get { return reflexes; } set { reflexes = value; } }
         public ItemCollection WagonItems { get { return wagonItems; } set { wagonItems.ReplaceAll(value); } }
@@ -831,9 +835,11 @@ namespace DaggerfallWorkshop.Game.Entity
                 return;
             }
 
-            this.level = level;
+            this.level = character.level;
             this.gender = character.gender;
             this.raceTemplate = character.raceTemplate;
+            this.age = character.age;
+            this.birthday = character.birthday;
             this.career = character.career;
             this.name = character.name;
             this.faceIndex = character.faceIndex;
@@ -1176,6 +1182,8 @@ namespace DaggerfallWorkshop.Game.Entity
                 faceIndex = 0;
                 reflexes = PlayerReflexes.Average;
                 gender = Genders.Male;
+                age = 30;
+                birthday = 100375;  // 1st of Morning Star, 3E 375
                 stats.SetPermanentFromCareer(career);
                 level = testPlayerLevel;
                 maxHealth = FormulaHelper.RollMaxHealth(this);
@@ -1435,7 +1443,7 @@ namespace DaggerfallWorkshop.Game.Entity
         /// <summary>
         /// Calculate current sum of skills used for determining player level.
         /// </summary>
-        public void SetCurrentLevelUpSkillSum()
+        public void SetCurrentLevelUpSkillSum(bool isStartingLevelUpSkillSum = false)
         {
             short sum = 0;
             short lowestMajorSkillValue = 0;
@@ -1470,7 +1478,10 @@ namespace DaggerfallWorkshop.Game.Entity
             }
 
             sum += highestMinorSkillValue;
-            currentLevelUpSkillSum = sum;
+
+            if (!isStartingLevelUpSkillSum)
+                currentLevelUpSkillSum = sum;
+            else startingLevelUpSkillSum = sum;
         }
 
         /// <summary>
@@ -1585,6 +1596,16 @@ namespace DaggerfallWorkshop.Game.Entity
             }
 
             return false;
+        }
+
+        /// <summary>
+        /// Convert the DDMMEYYYY value into separate values
+        public static void ProcessBirthday(int birthday, out int day, out int month, out int era, out int year)
+        {
+            day = birthday / 10000000;
+            month = (birthday - (day * 10000000)) / 100000;
+            year = birthday % 10000;
+            era = (birthday % 100000 - year) / 10000;
         }
 
         #endregion

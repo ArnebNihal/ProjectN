@@ -21,6 +21,7 @@ using DaggerfallWorkshop.Utility.AssetInjection;
 using DaggerfallWorkshop.Game.Entity;
 using DaggerfallWorkshop.Game.Player;
 using DaggerfallWorkshop.Utility;
+using DaggerfallWorkshop.Game.UserInterfaceWindows;
 
 namespace DaggerfallWorkshop.Game.UserInterface
 {
@@ -30,9 +31,9 @@ namespace DaggerfallWorkshop.Game.UserInterface
     /// </summary>
     public class FacePicker : Panel
     {
-        const int faceCount = 10;
+        static int faceCount;
         const int minFaceIndex = 0;
-        const int maxFaceIndex = faceCount - 1;
+        static int maxFaceIndex;
 
         RaceTemplate raceTemplate;
         Genders raceGender;
@@ -70,10 +71,10 @@ namespace DaggerfallWorkshop.Game.UserInterface
             nextFaceButton.OnMouseClick += NextFaceButton_OnMouseClick;
 
             // Random face button
-            randomFaceButton = DaggerfallUI.AddButton(new Rect(261, 80, 36, 10), this);
-            randomFaceButton.Label.Text = "Random";
-            randomFaceButton.Label.ShadowColor = Color.black;
-            randomFaceButton.BackgroundColor = new Color(0.5f, 0.5f, 0.5f, 0.75f);
+            randomFaceButton = DaggerfallUI.AddButton(new Rect(222, 24, 21, 18), this);
+            // randomFaceButton.Label.Text = "Random";
+            // randomFaceButton.Label.ShadowColor = Color.black;
+            // randomFaceButton.BackgroundColor = new Color(0.5f, 0.5f, 0.5f, 0.75f);
             randomFaceButton.OnMouseClick += RandomFaceButton_OnMouseClick;
         }
 
@@ -90,14 +91,20 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
         #region Private Methods
 
+        // ProjectN: modified it so any number of face images can be used.
         void UpdateFaceTextures()
         {
             if (raceTemplate != null)
             {
-                for (int i = 0; i < faceCount; i++)
-                {
-                    String filename = raceGender == Genders.Male ? raceTemplate.PaperDollHeadsMale : raceTemplate.PaperDollHeadsFemale;
-                    Debug.Log("Getting face from " + filename);
+                String filename = raceGender == Genders.Male ? raceTemplate.PaperDollHeadsMale : raceTemplate.PaperDollHeadsFemale;
+                int faceCounter = 10;
+                while (File.Exists(Path.Combine(WorldMaps.texturePath, "Races", filename + "_" + faceCounter + "-0.png")))
+                    faceCounter++;
+                faceTextures = new ImageData[faceCounter];
+                faceCount = faceCounter;
+                maxFaceIndex = faceCount -1;
+                for (int i = 0; i < faceCounter; i++)
+                {                    
                     faceTextures[i] = ImageReader.GetImageData(filename, i, 0, true, true);
                 }
             }

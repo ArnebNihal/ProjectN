@@ -99,6 +99,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         public const string orcish = "orcish";
         public const string silver = "silver";
         public const string steel = "steel";
+        public const string glass = "glass";
         public const string buckler = "buckler";
         public const string kiteShield = "kiteShield";
         public const string roundShield = "roundShield";

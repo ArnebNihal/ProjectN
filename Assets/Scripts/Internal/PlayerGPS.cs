@@ -427,8 +427,8 @@ namespace DaggerfallWorkshop
 
         /// <summary>
         /// Gets NameHelper.BankType in player's current region.
-        /// In practice this will always be Redguard/Breton.
-        /// Supporting other name banks for possible diversity later.
+        /// [In practice this will always be Redguard/Breton.]
+        /// [Supporting other name banks for possible diversity later.]
         /// </summary>
         public NameHelper.BankTypes GetNameBankOfCurrentRegion()
         {
@@ -565,6 +565,14 @@ namespace DaggerfallWorkshop
             }
             return (ProvinceNames)0;
         }
+
+        /// <summary>
+        /// Check if passed position is outside the standard 3x3 tile grid
+        /// </summary>
+        // public bool IsOutsideRelativeTiles(DFPosition positionChecked)
+        // {
+        //     (int, int) checkedTile = WorldMaps.GetRelativeTile()
+        // }
 
         /// <summary>
         /// Gets nearby objects matching flags and within maxRange.
@@ -827,7 +835,8 @@ namespace DaggerfallWorkshop
                 isPlayerInLocationRect = check;
                 RaiseOnEnterLocationRectEvent(CurrentLocation);
 
-                if (StartGameBehaviour.startingState != null && startingGame)
+                Debug.Log("StartGameBehaviour.startingState.primaryPosition.X: " + StartGameBehaviour.startingState.primaryPosition.X);
+                if (StartGameBehaviour.startingState.primaryPosition.X != -1 && startingGame)
                     SetStartingStuff();
             }
             else if (!check && isPlayerInLocationRect)

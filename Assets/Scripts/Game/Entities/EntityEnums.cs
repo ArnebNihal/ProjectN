@@ -118,7 +118,10 @@ namespace DaggerfallWorkshop.Game.Entity
         MediumArmor = 36,
         HeavyArmor = 37,
         Block = 38,
-        Disguise = 39
+        Disguise = 39,
+        Conjuration = 40,
+        Enchant = 41,
+        Alchemy = 42
     }
 
     /// <summary>

@@ -1322,8 +1322,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             const int itemBrokenTextId = 29;
             const int forbiddenEquipmentTextId = 1068;
 
-            if (item.ItemGroup == ItemGroups.Weapons && item.TemplateIndex == (int)Weapons.Arrow)
-                return;
+            // if (item.ItemGroup == ItemGroups.Weapons && item.TemplateIndex == (int)Weapons.Arrow)
+            //     return;
 
             if (item.currentCondition < 1)
             {
@@ -1351,8 +1351,13 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     prohibited = true;
 
                 // Check for prohibited material
-                else if (((item.nativeMaterialValue >> 8) == 2)
-                    && (1 << (item.NativeMaterialValue & 0xFF) & (int)playerEntity.Career.ForbiddenMaterials) != 0)
+                // else if (((item.nativeMaterialValue >> 8) == 2)
+                //     && (1 << (item.NativeMaterialValue & 0xFF) & (int)playerEntity.Career.ForbiddenMaterials) != 0)
+                //     prohibited = true;
+
+                // Check for prohibited material
+                else if (((int)Math.Pow(2, (item.nativeMaterialValue % 0x00010) - 1) & (int)playerEntity.Career.ForbiddenMaterials) == Math.Pow(2, (item.nativeMaterialValue % 0x00010) - 1))
+                    // && (1 << (item.NativeMaterialValue & 0xFF) &  != 0)
                     prohibited = true;
             }
             else if (item.ItemGroup == ItemGroups.Weapons)
@@ -1361,7 +1366,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 if ((item.GetWeaponSkillUsed() & (int)playerEntity.Career.ForbiddenProficiencies) != 0)
                     prohibited = true;
                 // Check for prohibited material
-                else if ((1 << item.NativeMaterialValue & (int)playerEntity.Career.ForbiddenMaterials) != 0)
+                // else if ((1 << item.NativeMaterialValue & (int)playerEntity.Career.ForbiddenMaterials) != 0)
+                //     prohibited = true;
+                else if (((int)Math.Pow(2, (item.nativeMaterialValue % 0x00010) - 1) & (int)playerEntity.Career.ForbiddenMaterials) == Math.Pow(2, (item.nativeMaterialValue % 0x00010) - 1))
+                    // && (1 << (item.NativeMaterialValue & 0xFF) &  != 0)
                     prohibited = true;
             }
 
@@ -1829,6 +1837,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     DaggerfallUI.MessageBox(TextManager.Instance.GetLocalizedText("bandageHealthFull"));
                 }
             }
+            else if (item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.CampingEquipment))
+            {
+                Camping.UseCampEquip(item, collection);
+            }
+            else if (item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Waterskin) ||
+                     item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Rations) ||
+                     item.IsOfTemplate(ItemGroups.UselessItems2, (int)UselessItems2.Skillet))
+                ClimateCalories.UseAutoItem(item, collection);
             else
             {
                 NextVariant(item);

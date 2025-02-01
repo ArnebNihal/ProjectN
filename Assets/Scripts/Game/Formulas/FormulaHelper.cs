@@ -57,7 +57,7 @@ namespace DaggerfallWorkshop.Game.Formulas
         public const int weaponArmorMultiplier = 50;
 
         // ProjectN: values for unleveled material generation
-        public const int rareMaterial = 100;    // Is 100 for experimenting with metals. It was 1000 before.
+        public const int rareMaterial = 1000;
         public const int ebonyChance = 10;
         public const int adamantiumChance = ebonyChance + 20;
         public const int mithrilOrcishRelativeChance = 2;
@@ -76,13 +76,31 @@ namespace DaggerfallWorkshop.Game.Formulas
 
         #region Basic Formulas
 
+        // Gives a modifier from -8 to +12 (0-100)
+        public static int BigStatModifier(int stat)
+        {
+            return (int)Mathf.Floor((float)(stat - 40) / 5f);
+        }
+
+        // Gives a modifier from -4 to +6 (0-100)
+        public static int SmallStatModifier(int stat)
+        {
+            return (int)Mathf.Floor((float)(stat - 40) / 10f);
+        }
+
+        // Gives a modifier from -1 to +2 (0-100)
+        public static int MinimumStatModifier(int stat)
+        {
+            return (int)Mathf.Floor((float)(stat - 30) / 30f);
+        }
+
         public static int DamageModifier(int strength)
         {
             Func<int, int> del;
             if (TryGetOverride("DamageModifier", out del))
                 return del(strength);
 
-            return (int)Mathf.Floor((float)(strength - 50) / 5f);
+            return (int)Mathf.Floor((float)(strength - 40) / 5f);
         }
 
         public static int MaxEncumbrance(int strength)
@@ -119,7 +137,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                 return del(agility);
 
             // ProjectN: doubled AGI toHit bonus and malus, DFU was AGI / 10 - 5;
-            return (int)Mathf.Floor((float)agility / 5f) - 5;
+            return (int)Mathf.Floor((float)agility - 40) / 5f;
         }
 
         public static int HitPointsModifier(int endurance)
@@ -128,7 +146,7 @@ namespace DaggerfallWorkshop.Game.Formulas
             if (TryGetOverride("HitPointsModifier", out del))
                 return del(endurance);
 
-            return (int)Mathf.Floor((float)endurance / 10f) - 5;
+            return (int)Mathf.Floor((float)(endurance - 40) / 10f);
         }
 
         public static int HealingRateModifier(int endurance)
@@ -139,7 +157,7 @@ namespace DaggerfallWorkshop.Game.Formulas
 
             // Original Daggerfall seems to have a bug where negative endurance modifiers on healing rate
             // are applied as modifier + 1. Not recreating that here.
-            return (int)Mathf.Floor((float)endurance / 10f) - 5;
+            return (int)Mathf.Floor((float)(endurance - 40) - 5f);
         }
 
         public static int MaxStatValue()
@@ -148,7 +166,7 @@ namespace DaggerfallWorkshop.Game.Formulas
             if (TryGetOverride("MaxStatValue", out del))
                 return del();
             else
-                return 100;
+                return 500;
         }
 
         public static int BonusPool()
@@ -177,10 +195,11 @@ namespace DaggerfallWorkshop.Game.Formulas
             if (TryGetOverride("RollMaxHealth", out del))
                 return del(player);
 
-            const int baseHealth = 25;
-            int maxHealth = baseHealth + player.Career.HitPointsPerLevel;
+            // const int baseHealth = 25;
+            int maxHealth = player.Career.HitPointsPerLevel;
+            maxHealth += HitPointsModifier(player.Stats.PermanentEndurance);
 
-            for (int i = 1; i < player.Level; i++)
+            for (int i = 2; i <= player.Level; i++)
             {
                 maxHealth += CalculateHitPointsPerLevelUp(player);
             }
@@ -244,16 +263,28 @@ namespace DaggerfallWorkshop.Game.Formulas
 
         // Calculate chance of successfully lockpicking a door in an interior (an animating door). If this is higher than a random number between 0 and 100 (inclusive), the lockpicking succeeds.
         // ProjectN: removing player level from the equation. It will be substituted by lockpicking tools.
-        public static int CalculateInteriorLockpickingChance(int lockvalue, int lockpickingSkill)
+        // ProjectN: adding INT small bonus to chance (INT is Lockpicking governing attribute, despite what is written on the manual),
+        // and a sprinkle of LUC.
+        public static int CalculateInteriorLockpickingChance(int lockvalue, PlayerEntity player)
         {
-            int chance = (lockpickingSkill - 5 * lockvalue);
+            int chance = (lockpickingSkill + 
+                          SmallStatModifier(player.Stats.LiveIntelligence) + 
+                          MinimumStatModifier(player.Stats.LiveLuck)) - 
+                         (5 * lockvalue);
+
             return Mathf.Clamp(chance, 5, 95);
         }
 
         // Calculate chance of successfully lockpicking a door in an exterior (a door that leads to an interior). If this is higher than a random number between 0 and 100 (inclusive), the lockpicking succeeds.
-        public static int CalculateExteriorLockpickingChance(int lockvalue, int lockpickingSkill)
+        // ProjectN: adding INT small bonus to chance (INT is Lockpicking governing attribute, despite what is written on the manual),
+        // and a sprinkle of LUC.
+        public static int CalculateExteriorLockpickingChance(int lockvalue, PlayerEntity player)
         {
-            int chance = lockpickingSkill - (5 * lockvalue);
+            int chance = (lockpickingSkill + 
+                          SmallStatModifier(player.Stats.LiveIntelligence) + 
+                          MinimumStatModifier(player.Stats.LiveLuck)) - 
+                         (5 * lockvalue);
+
             return Mathf.Clamp(chance, 5, 95);
         }
 
@@ -261,41 +292,56 @@ namespace DaggerfallWorkshop.Game.Formulas
         // ProjectN: Added LUC and AGI to the calculation, removed player and target level
         public static int CalculatePickpocketingChance(PlayerEntity player, EnemyEntity target)
         {
-            int chance = player.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) + ((player.Stats.LiveLuck / 10 - 5) - (target.Stats.LiveLuck / 10 - 5));
+            int chance = player.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) + BigStatModifier(player.Stats.LiveAgility) + SmallStatModifier(player.Stats.LiveLuck);
             // If target is an enemy mobile, apply level modifier.
             if (target != null)
             {
-                chance += ((player.Stats.LiveAgility - 50) / 5) - ((target.Stats.LiveAgility - 50) / 5);
+                chance -= (BigStatModifier(target.Stats.LiveAgility) + SmallStatModifier(target.Stats.LiveLuck));
             }
             return Mathf.Clamp(chance, 5, 95);
         }
 
         // Calculate chance of being caught shoplifting items
-        // ProjectN: Added LUC to the calculation
+        // ProjectN: Added AGI and LUC to the calculation.
         public static int CalculateShopliftingChance(PlayerEntity player, int shopQuality, int weightAndNumItems)
         {
             Func<PlayerEntity, int, int, int> del;
             if (TryGetOverride("CalculateShopliftingChance", out del))
                 return del(player, shopQuality, weightAndNumItems);
 
-            int chance = 100 - (player.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) + (player.Stats.LiveLuck / 10 - 5));
+            int chance = 100 - (player.Skills.GetLiveSkillValue(DFCareer.Skills.Pickpocket) + 
+                               SmallStatModifier(player.Stats.LiveAgility) + 
+                               MinimumStatModifier(player.Stats.LiveLuck));
             chance += shopQuality + weightAndNumItems;
             return Mathf.Clamp(chance, 5, 95);
         }
         
         // Calculate chance of stealth skill hiding the user.
-        // ProjectN: Added LUC to the calculation
+        // ProjectN: Added AGI and LUC to the calculation
         public static int CalculateStealthChance(float distanceToTarget, DaggerfallEntityBehaviour target)
         {
-            Func<float, DaggerfallEntityBehaviour, int> del;
-            if (TryGetOverride("CalculateStealthChance", out del))
-                return del(distanceToTarget, target);
-
-            int chance = 2 * ((int)(distanceToTarget / MeshReader.GlobalScale) * (target.Entity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth) >> 10) + (target.Entity.Stats.LiveLuck / 10 - 5));
+            int chance = 2 * ((int)(distanceToTarget / MeshReader.GlobalScale) * (target.Entity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth) >> 10) + (SmallStatModifier(target.Entity.Stats.LiveAgility) + MinimumStatModifier(target.Entity.Stats.LiveLuck)));
+            if (!GameManager.Instance.PlayerEntity.ItemEquipTable.IsSlotOpen(EquipSlots.Feet))
+            {
+                DaggerfallUnityItem shoes = GameManager.Instance.PlayerEntity.ItemEquipTable.GetItem(EquipSlots.Feet);
+                if (shoes.IsOfTemplate(ItemGroups.MensClothing, (int)MensClothing.Boots) ||
+                    shoes.IsOfTemplate(ItemGroups.MensClothing, (int)MensClothing.Boots) ||
+                    shoes.IsOfTemplate(ItemGroups.MensClothing, (int)MensClothing.Sandals) ||
+                    shoes.IsOfTemplate(ItemGroups.WomensClothing, (int)WomensClothing.Boots) ||
+                    shoes.IsOfTemplate(ItemGroups.WomensClothing, (int)WomensClothing.Boots) ||
+                    shoes.IsOfTemplate(ItemGroups.WomensClothing, (int)WomensClothing.Sandals))
+                    chance -= 5;
+                else if (shoes.IsOfTemplate(ItemGroups.Armor, (int)Armor.Boots))
+                    chance -= 50;
+                else if (shoes.IsOfTemplate(ItemGroups.Armor, (int)Armor.Light_Boots))
+                    chance -= 15;
+            }
+            chance -= GameManager.Instance.PlayerEntity.EncumbranceLevel * 10;
             return chance;
         }
 
         // Calculate chance of successfully climbing - checked repeatedly while climbing
+        // ProjectN: Adding STR on top of LUC as a modifier to the skill check
         public static int CalculateClimbingChance(PlayerEntity player, int basePercentSuccess)
         {
             // Fail to climb if weapon not sheathed.
@@ -306,6 +352,7 @@ namespace DaggerfallWorkshop.Game.Formulas
             }
 
             int skill = player.Skills.GetLiveSkillValue(DFCareer.Skills.Climbing);
+            int strength = player.Stats.GetLiveStatValue(DFCareer.Stats.Strength);
             int luck = player.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
             if (player.Race == Races.Khajiit)
                 skill += 30;
@@ -316,10 +363,10 @@ namespace DaggerfallWorkshop.Game.Formulas
 
             // Clamp skill range
             skill = Mathf.Clamp(skill, 5, 95);
-            float luckFactor = Mathf.Lerp(0, 10, luck * 0.01f);
+            // float luckFactor = Mathf.Lerp(0, 10, luck * 0.01f);
 
             // Skill Check
-            int chance = (int) (Mathf.Lerp(basePercentSuccess, 100, skill * .01f) + luckFactor);
+            int chance = (int) (Mathf.Lerp(basePercentSuccess, 100, skill * .01f) + (SmallStatModifier(player.Stats.LiveStrength) + MinimumStatModifier(player.Stats.LiveLuck)));
 
             return chance;
         }
@@ -346,11 +393,43 @@ namespace DaggerfallWorkshop.Game.Formulas
         // Calculate player level.
         public static int CalculatePlayerLevel(int startingLevelUpSkillsSum, int currentLevelUpSkillsSum)
         {
-            Func<int, int, int> del;
-            if (TryGetOverride("CalculatePlayerLevel", out del))
-                return del(startingLevelUpSkillsSum, currentLevelUpSkillsSum);
+            Debug.Log("startingLevelUpSkillsSum: " + startingLevelUpSkillsSum + ", currentLevelUpSkillsSum: " + currentLevelUpSkillsSum);
+            // Func<int, int, int> del;
+            // if (TryGetOverride("CalculatePlayerLevel", out del))
+            //     return del(startingLevelUpSkillsSum, currentLevelUpSkillsSum);
+            int level = 1;
+            int skillDifference = currentLevelUpSkillsSum - startingLevelUpSkillsSum;
 
-            return (int)Mathf.Floor((currentLevelUpSkillsSum - startingLevelUpSkillsSum + 28) / 15);
+            while (skillDifference > 0)
+            {
+                skillDifference -= (9 + level);
+                if (skillDifference >= 0)
+                    level++;
+            }
+
+            return level;
+        }
+
+        public static int CalculatePlayerLevel(int startingLevelUpSkillsSum, int currentLevelUpSkillsSum, out int progress)
+        {
+            Debug.Log("startingLevelUpSkillsSum: " + startingLevelUpSkillsSum + ", currentLevelUpSkillsSum: " + currentLevelUpSkillsSum);
+            // Func<int, int, int> del;
+            // if (TryGetOverride("CalculatePlayerLevel", out del))
+            //     return del(startingLevelUpSkillsSum, currentLevelUpSkillsSum);
+            int level = 1;
+            int skillDifference = currentLevelUpSkillsSum - startingLevelUpSkillsSum;
+
+            while (skillDifference > 0)
+            {
+                skillDifference -= (9 + level);
+                if (skillDifference >= 0)
+                    level++;
+            }
+
+            skillDifference += (9 + level);
+            progress = 100 * skillDifference / (9 + level);
+
+            return level;
         }
 
         // Calculate hit points player gains per level.
@@ -381,13 +460,14 @@ namespace DaggerfallWorkshop.Game.Formulas
             if (languageSkill == DFCareer.Skills.Etiquette ||
                 languageSkill == DFCareer.Skills.Streetwise)
             {
-                chance += player.Skills.GetLiveSkillValue(languageSkill) / 10;
-                chance += player.Stats.LivePersonality / 5;
+                chance += player.Skills.GetLiveSkillValue(languageSkill) / 5;
+                chance += BigStatModifier(player.Stats.LivePersonality);
             }
             else
             {
                 chance += player.Skills.GetLiveSkillValue(languageSkill);
-                chance += player.Stats.LivePersonality / 10;
+                // chance += player.Stats.LivePersonality / 10;
+                chance += BigStatModifier(player.Stats.LivePersonality);
             }
             chance += GameManager.Instance.WeaponManager.Sheathed ? 10 : -25;
 
@@ -604,7 +684,7 @@ namespace DaggerfallWorkshop.Game.Formulas
             {
                 // If the attacker is using a weapon, check if the material is high enough to damage the target
                 // ProjectN: if material is below the minimum requirement to hurt a monster, damage is divided by the
-                // distance between material used and reqired material; silver halves this penalty (this could be modified later on).
+                // distance between material used and required material; silver halves this penalty (this could be modified later on).
                 // ProjectN: when attacking with a bow, it's the arrow metal that set the attacking material, not the bow's.
                 if (arrow != null)
                 {
@@ -1758,11 +1838,11 @@ namespace DaggerfallWorkshop.Game.Formulas
             int chanceToHitMod = 0;
 
             // Apply luck modifier.
-            chanceToHitMod += (attacker.Stats.LiveLuck - target.Stats.LiveLuck) / 10;
+            chanceToHitMod += (SmallStatModifier(attacker.Stats.LiveLuck) - SmallStatModifier(target.Stats.LiveLuck));
 
             // Apply agility modifier.
             // ProjectN: doubling AGI bonus/malus here, 'cos I think it should have more importance.
-            chanceToHitMod += (attacker.Stats.LiveAgility - target.Stats.LiveAgility) / 5;  // And not "/ 10" as it was before.
+            chanceToHitMod += (BigStatModifier(attacker.Stats.LiveAgility) - BigStatModifier(target.Stats.LiveAgility));
 
             return chanceToHitMod;
         }

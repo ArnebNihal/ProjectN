@@ -64,9 +64,10 @@ namespace DaggerfallConnect.Arena2
 
         public static WorldMap[] WorldMap;
         public static Dictionary<ulong, MapSummary> mapDict;
-        public static string mapPath =  "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps";
-        public static string tilesPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/Tiles";
-        public static string locationPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/Locations";
+        public static string mapPath =  Path.Combine(DaggerfallUnity.Instance.Arena2Path, "Maps");
+        public static string tilesPath = Path.Combine(DaggerfallUnity.Instance.Arena2Path, "Maps/Tiles");
+        public static string locationPath = Path.Combine(DaggerfallUnity.Instance.Arena2Path, "Maps/Locations");
+        public static string texturePath = Path.Combine(DaggerfallUnity.Instance.Arena2Path, "Maps/Textures");
 
         static WorldMaps()
         {
@@ -197,6 +198,7 @@ namespace DaggerfallConnect.Arena2
 
         /// <summary>
         /// Gets relative tile (0-8) given absolute x, y coordinates.
+        /// I think it can get used to check if x, y are outside the norm grid. Test required.
         /// </summary>
         public static int GetRelativeTile(int x, int y)
         {
@@ -291,6 +293,7 @@ namespace DaggerfallConnect.Arena2
         /// <returns>DFLocation.</returns>
         public static DFLocation GetLocation(string tileName, string locationName)
         {
+            Debug.Log("tileName: " + tileName + ", locationName: " + locationName);
             // Load tile
             WorldMap wMap = new WorldMap();
             wMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(locationPath , "map" + tileName + ".json")));
@@ -302,19 +305,48 @@ namespace DaggerfallConnect.Arena2
             // Get location index
             int location = Array.IndexOf(wMap.MapNames, locationName);
 
-            return wMap.Locations[location];
+            DFLocation dfLocation = new DFLocation();
+            dfLocation = wMap.Locations[location];
+
+            // Store indices
+            dfLocation.RegionIndex = dfLocation.Politic - 128;
+            Debug.Log("dfLocation.RegionIndex: " + dfLocation.RegionIndex);
+            // dfLocation.RelTileIndex = relTile;
+            dfLocation.AbsTileIndex = MapsFile.MapPixelToTile(MapsFile.GetPixelFromPixelID(dfLocation.Exterior.ExteriorData.MapId));
+            dfLocation.LocationIndex = location;
+
+            return dfLocation;
         }
 
+        /// <summary>
+        /// Gets DFLocation representation of a location from a tile ABSOLUTE name.
+        /// </summary>
+        /// <param name="tileName">Name of region.</param>
+        /// <param name="locationIndex">Index of location.</param>
+        /// <returns>DFLocation.</returns>
         public static DFLocation GetLocation(string tileName, int locationIndex)
         {
             WorldMap wMap = new WorldMap();
-            wMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(locationPath , "map" + tileName + ".json")));
+            int tileNumber = -1;
+            int.TryParse(tileName, out tileNumber);
+            Debug.Log("Deserialising tile " + tileNumber);
+            wMap = JsonConvert.DeserializeObject<WorldMap>(File.ReadAllText(Path.Combine(locationPath , "map" + tileNumber.ToString("00000") + ".json")));
 
             // Check location exists
             if (wMap.MapNames.Length <= locationIndex)
                 return new DFLocation();
 
-            return wMap.Locations[locationIndex];
+            DFLocation dfLocation = new DFLocation();
+            dfLocation = wMap.Locations[locationIndex];
+
+            // Store indices
+            dfLocation.RegionIndex = dfLocation.Politic - 128;
+            Debug.Log("dfLocation.RegionIndex: " + dfLocation.RegionIndex);
+            // dfLocation.RelTileIndex = relTile;
+            dfLocation.AbsTileIndex = MapsFile.MapPixelToTile(MapsFile.GetPixelFromPixelID(dfLocation.Exterior.ExteriorData.MapId));
+            dfLocation.LocationIndex = locationIndex;
+
+            return dfLocation;
         }
 
         /// <summary>
@@ -596,7 +628,7 @@ namespace DaggerfallConnect.Arena2
 
         #endregion
 
-        public static int GetClimateValue(int mapPixelX, int mapPixelY)
+        public static int GetClimateValue(int mapPixelX, int mapPixelY, bool isAbsolute = false)
         {
             // Clamp X
             if (mapPixelX < 0) mapPixelX = 0;
@@ -606,12 +638,24 @@ namespace DaggerfallConnect.Arena2
             if (mapPixelY < 0) mapPixelY = 0;
             if (mapPixelY >= MapsFile.WorldHeight) mapPixelY = MapsFile.WorldHeight - 1;
 
-            // Convert to relative coordinates
-            DFPosition currentMP = MapsFile.ConvertToRelative(mapPixelX, mapPixelY);
-            mapPixelX = currentMP.X;
-            mapPixelY = currentMP.Y;
+            if (!isAbsolute)
+            {
+                // Convert to relative coordinates
+                DFPosition currentMP = MapsFile.ConvertToRelative(mapPixelX, mapPixelY);
+                mapPixelX = currentMP.X;
+                mapPixelY = currentMP.Y;
 
-            return ClimateData.Climate[mapPixelX, mapPixelY];
+                return ClimateData.Climate[mapPixelX, mapPixelY];
+            }
+            else
+            {
+                Texture2D textureTiles = new Texture2D(MapsFile.TileDim, MapsFile.TileDim);
+                ImageConversion.LoadImage(textureTiles, File.ReadAllBytes(Path.Combine(WorldMaps.tilesPath, "climate_" + (mapPixelX / MapsFile.TileDim) + "_" + (mapPixelY / MapsFile.TileDim) + ".png")));
+                int[,] climate = new int[MapsFile.TileDim, MapsFile.TileDim];
+                PoliticData.ConvertToMatrix(textureTiles, out climate);
+
+                return climate[mapPixelX % MapsFile.TileDim, mapPixelY % MapsFile.TileDim];
+            }
         }
 
         public static void ConvertToMatrix(Texture2D imageToTranslate, out int[,] matrix, bool isTrail = false)
@@ -774,7 +818,6 @@ namespace DaggerfallConnect.Arena2
 
         public static int GetAbsPoliticValue(int x, int y)
         {
-            int tile = WorldMaps.GetAbsoluteTile(new DFPosition(x, y));
             Texture2D textureTiles = new Texture2D(MapsFile.TileDim, MapsFile.TileDim);
             ImageConversion.LoadImage(textureTiles, File.ReadAllBytes(Path.Combine(WorldMaps.tilesPath, "politic_" + (x / MapsFile.TileDim) + "_" + (y / MapsFile.TileDim) + ".png")));
             int[,] politic = new int[MapsFile.TileDim, MapsFile.TileDim];

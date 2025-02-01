@@ -206,6 +206,7 @@ namespace DaggerfallConnect
             // bytes [13-15]
             // Bitfield controlling weapon proficiencies, forbidden armor, forbidden shields
             // 24-bits of data read into a UInt32
+            // Note to self: byte 13 is probably proficiencies, 14 is forbidden weapon + armor up to chain included, 15 is plate + shields.
             public UInt32 WeaponArmorShieldsBitfield;
 
             // bytes [16-18]
@@ -556,7 +557,10 @@ namespace DaggerfallConnect
             MediumArmor = 36,
             HeavyArmor = 37,
             Block = 38,
-            Disguise = 39
+            Disguise = 39,
+            Conjuration = 40,
+            Enchant = 41,
+            Alchemy = 42
         }
 
         /// <summary>
@@ -585,6 +589,7 @@ namespace DaggerfallConnect
             Alteration = 25,
             Thaumaturgy = 26,
             Mysticism = 27,
+            Conjuration = 40
         }
 
         /// <summary>

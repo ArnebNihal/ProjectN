@@ -110,7 +110,6 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             // Load all textures
             Texture2D tex;
             TextureReplacement.TryImportTexture(baseTextureName, true, out tex);
-            Debug.Log("Texture is:" + tex.ToString());
             baseTexture = tex;
 
             // Create interface panel

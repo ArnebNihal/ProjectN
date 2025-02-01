@@ -62,7 +62,7 @@ namespace DaggerfallWorkshop.Game.Questing
         DaggerfallDateTime questTombstoneTime;
 
         QuestSmallerDungeonsState smallerDungeonsState = QuestSmallerDungeonsState.NotSet;
-        string compiledByVersion = VersionInfo.DaggerfallUnityVersion;
+        string compiledByVersion = VersionInfo.ProjectNVersion;
 
         Place lastPlaceReferenced = null;
         QuestResource lastResourceReferenced = null;

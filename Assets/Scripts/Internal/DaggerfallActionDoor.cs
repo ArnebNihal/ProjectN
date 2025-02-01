@@ -160,7 +160,7 @@ namespace DaggerfallWorkshop
             {
                 int chance = 0;
                 player.TallySkill(DFCareer.Skills.Lockpicking, 1);
-                chance = FormulaHelper.CalculateInteriorLockpickingChance(CurrentLockValue, player.Skills.GetLiveSkillValue(DFCareer.Skills.Lockpicking));
+                chance = FormulaHelper.CalculateInteriorLockpickingChance(CurrentLockValue, player);
 
                 if (Dice100.FailedRoll(chance))
                 {

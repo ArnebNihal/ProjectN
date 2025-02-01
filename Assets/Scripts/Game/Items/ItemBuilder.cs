@@ -1,4 +1,4 @@
-// Project:         Daggerfall Unity
+    // Project:         Daggerfall Unity
 // Copyright:       Copyright (C) 2009-2022 Daggerfall Workshop
 // Web Site:        http://www.dfworkshop.net
 // License:         MIT License (http://www.opensource.org/licenses/mit-license.php)
@@ -88,6 +88,8 @@ namespace DaggerfallWorkshop.Game.Items
             DyeColors.Aquamarine,
             DyeColors.Yellow,
             DyeColors.Green,
+            DyeColors.Olive,
+            DyeColors.Amber
         };
 
         #endregion
@@ -1333,6 +1335,81 @@ namespace DaggerfallWorkshop.Game.Items
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
+            else if (item.IsOfTemplate(ItemGroups.WomensClothing, (int)WomensClothing.Formal_brassier))
+            {
+                if (variant == 1)   // Spiked "Metal" Formal Brasserie
+                {
+                    int metalTypes = Enum.GetNames(typeof(MetalTypes)).Length;
+                    int randomRoll = UnityEngine.Random.Range(0, 66 + 100);
+                    int chances = 0;
+                    for (int metal = 0; metal < metalTypes; metal++)
+                    {
+                        chances += metal;
+                        if (randomRoll < chances)
+                        {
+                            item.shortName = "Metal-Hued " + item.shortName;
+                            item.dyeColor = DaggerfallUnity.Instance.ItemHelper.GetWeaponDyeColor((MaterialTypes)(metalTypes - metal));
+                            item.value *= (metalTypes - metal) * (metalTypes - metal) + 1;
+                            item.maxCondition *= (metalTypes - metal);
+                            item.enchantmentPoints *= (metalTypes - metal);
+                        }
+                    }                    
+                }
+                else if (variant == 2) // "Coconuts" Formal Brasserie
+                {
+                    int randomRoll = UnityEngine.Random.Range(0, 100);
+                    if (randomRoll < 90)
+                        item.dyeColor = DyeColors.DarkBrown;
+                    else{
+                        item.shortName = "Fancy " + item.shortName;
+                        while (item.dyeColor == DyeColors.DarkBrown)
+                        {
+                            item.dyeColor = RandomClothingDye();
+                        }
+                        item.value *= 5;
+                        item.maxCondition *= 2;
+                        item.enchantmentPoints *= 5;
+                    }
+                }
+            }
+            if (item.IsOfTemplate(ItemGroups.WomensClothing, (int)WomensClothing.Eodoric))
+            {
+                int randomRoll = UnityEngine.Random.Range(0, 100);
+                if (randomRoll == 99)
+                {
+                    int metalTypes = Enum.GetNames(typeof(MetalTypes)).Length;
+                    int randRoll = UnityEngine.Random.Range(0, 66);
+                    int chances = 0;
+                    for (int metal = 0; metal < metalTypes; metal++)
+                    {
+                        chances += metal;
+                        if (randRoll < chances)
+                        {
+                            item.shortName = "Metal-Hued " + item.shortName;
+                            item.dyeColor = DaggerfallUnity.Instance.ItemHelper.GetWeaponDyeColor((MaterialTypes)(metalTypes - metal));
+                            item.value *= (metalTypes - metal) * (metalTypes - metal) + 1;
+                            item.maxCondition *= (metalTypes - metal);
+                            item.enchantmentPoints *= (metalTypes - metal);
+                        }
+                    }
+                }
+                if (randomRoll >= 90)
+                {
+                    item.dyeColor = DyeColors.Yellow;
+                    item.value *= 5;
+                    item.maxCondition *= 2;
+                    item.enchantmentPoints *= 5;
+                }
+                else
+                {
+                    item.shortName = "Cheap " + item.shortName;
+                    while (item.dyeColor == DyeColors.Yellow)
+                    {
+                        item.dyeColor = RandomClothingDye();
+                    }
+                }
+            }
+
             // Store variant
             item.CurrentVariant = variant;
         }

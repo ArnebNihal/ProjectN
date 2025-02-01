@@ -172,8 +172,16 @@ namespace DaggerfallConnect.Arena2
             string fileName = "BiogQuestions.json";
             biogText = JsonConvert.DeserializeObject<BiogText>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "BiogText.json")));
             biogQuestions = JsonConvert.DeserializeObject<BiogQuestions[]>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, fileName)));
-            // FileProxy txtFile = new FileProxy(Path.Combine(BiogFile.BIOGSourceFolder, fileName), FileUsage.UseDisk, true);
-            // questionsStr = System.Text.Encoding.UTF8.GetString(txtFile.GetBytes());
+            
+            // Set formatting variables (I don't know what it means, but it sounded cool)
+            char space, newLine;
+            if (DaggerfallUnity.Settings.SDFFontRendering)
+            {
+                space = '$'; newLine = '*';
+            }
+            else{
+                space = '*'; newLine = '$';
+            }
 
             int[] questionTypes = CountQuestionTypes(this.characterDocument);
 
@@ -226,13 +234,15 @@ namespace DaggerfallConnect.Arena2
                     }
                 }
 
-                if (!currentQuestion.Question[subQuestionIndex].Contains('*'))
+                currentQuestion.Question[subQuestionIndex] = currentQuestion.Question[subQuestionIndex].Replace(space, ' ');
+
+                if (!currentQuestion.Question[subQuestionIndex].Contains(newLine))
                 {
                     questions[i].text[0] = currentQuestion.Question[subQuestionIndex];
                     questions[i].text[1] = string.Empty;
                 }
                 else{
-                    questions[i].text = currentQuestion.Question[subQuestionIndex].Split('*');
+                    questions[i].text = currentQuestion.Question[subQuestionIndex].Split(newLine);
                 }
 
                 Answer ans = new Answer();
@@ -477,8 +487,11 @@ namespace DaggerfallConnect.Arena2
                     return (int)BiogQuestType.Generic;
                     break;
 
+                case DFCareer.Skills.Alchemy:
                 case DFCareer.Skills.Alteration:
+                case DFCareer.Skills.Conjuration:
                 case DFCareer.Skills.Destruction:
+                case DFCareer.Skills.Enchant:
                 case DFCareer.Skills.Illusion:
                 case DFCareer.Skills.Mysticism:
                 case DFCareer.Skills.Restoration:
@@ -1177,21 +1190,26 @@ namespace DaggerfallConnect.Arena2
             if (effects == null)
                 return null;
 
+            int parseResult;
             int skillCount = Enum.GetNames(typeof(DFCareer.Skills)).Length;
             int[] skills = new int[skillCount];
 
             // Apply only skill effects
-            foreach(string effect in effects)
+            foreach (string effect in effects)
             {
-                string[] tokens = effect.Split(null);
-                int parseResult;
-
-                // Skill modifier effect
-                if (int.TryParse(tokens[0], out parseResult) && parseResult >= 0 && parseResult < skillCount)
+                if (effect.StartsWith(((int)BiogAnswerEffect.Skill).ToString()))
                 {
-                    short modValue;
-                    if (short.TryParse(tokens[1], out modValue))
+                    string[] tokens = effect.Split('*');
+                    if (!int.TryParse(tokens[1], out parseResult))
                     {
+                        Debug.LogError("CreateCharBiography: SKILL - invalid argument.");
+                        continue;
+                    }
+                    short modValue;
+                    DFCareer.Skills skill = (DFCareer.Skills)parseResult;
+                    if (short.TryParse(tokens[2], out modValue))
+                    {
+                        // short startValue = playerEntity.Skills.GetPermanentSkillValue(skill);
                         skills[parseResult] += modValue;
                     }
                     else
@@ -1199,6 +1217,22 @@ namespace DaggerfallConnect.Arena2
                         Debug.LogError("CreateCharBiography: Invalid skill adjustment value.");
                     }
                 }
+                // string[] tokens = effect.Split(null);
+                // int parseResult;
+
+                // // Skill modifier effect
+                // if (int.TryParse(tokens[0], out parseResult) && parseResult >= 0 && parseResult < skillCount)
+                // {
+                //     short modValue;
+                //     if (short.TryParse(tokens[1], out modValue))
+                //     {
+                //         skills[parseResult] += modValue;
+                //     }
+                //     else
+                //     {
+                //         Debug.LogError("CreateCharBiography: Invalid skill adjustment value.");
+                //     }
+                // }
             }
 
             return skills;

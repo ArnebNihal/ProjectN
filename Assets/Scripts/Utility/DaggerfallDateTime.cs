@@ -33,7 +33,7 @@ namespace DaggerfallWorkshop.Utility
         #region Fields
 
         const ulong classicEpochInSeconds = 12566016000;        // Converts from DaggerfallDateTime epoch to classic Daggerfall epoch
-        const uint classicGameStartTime = 523530;               // Game start time in minutes from classic epoch
+        static uint classicGameStartTime = 523530;               // Game start time in minutes from classic epoch
 
         // Time multipliers
         public const int SecondsPerMinute = 60;
@@ -358,6 +358,7 @@ namespace DaggerfallWorkshop.Utility
             TheTower,
             TheAtronach,
             TheThief,
+            TheSerpent
         }
 
         /// <summary>

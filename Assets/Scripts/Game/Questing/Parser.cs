@@ -124,21 +124,15 @@ namespace DaggerfallWorkshop.Game.Questing
 
             // Validate name
             if (string.IsNullOrEmpty(questName))
-            {
                 throw new Exception("Parse() error: Quest has no name.");
-            }
 
             // Validate QRC
             if (qrcLines.Count == 0)
-            {
                 throw new Exception("Parse() error: Quest has no QRC section.");
-            }
 
             // Validate QBN
             if (qbnLines.Count == 0)
-            {
                 throw new Exception("Parse() error: Quest has no QBN section.");
-            }
 
             // Parse QRC and QBN, unless partial parse requested
             if (!partialParse)
@@ -360,7 +354,7 @@ namespace DaggerfallWorkshop.Game.Questing
                 else
                 {
                     // Something went wrong
-                    throw new Exception(string.Format("Unknown line signature encounted '{0}'.", lines[i]));
+                    throw new Exception(string.Format("Unknown line signature encountered '{0}'.", lines[i]));
                 }
             }
         }

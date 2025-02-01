@@ -40,7 +40,7 @@ namespace DaggerfallWorkshop.Game
         static public bool statusClosed = true;
 
 
-        public static void AdviceBuilder(bool encumbranceRPR)
+        public static void AdviceBuilder()
         {
             DaggerfallMessageBox msgBox = DaggerfallUI.UIManager.TopWindow as DaggerfallMessageBox;
             if (msgBox != null && msgBox.ExtraProceedBinding == InputManager.Instance.GetBinding(InputManager.Actions.Status))
@@ -54,15 +54,14 @@ namespace DaggerfallWorkshop.Game
                     messages.Add(TxtAdvice());
                 }
                 messages.Add(string.Empty);
-                if (encumbranceRPR)
+
+                messages.Add(TxtEncumbrance());
+                if (!string.IsNullOrEmpty(TxtEncAdvice()))
                 {
-                    messages.Add(TxtEncumbrance());
-                    if (!string.IsNullOrEmpty(TxtEncAdvice()))
-                    {
-                        messages.Add(TxtEncAdvice());
-                    }
-                    messages.Add(string.Empty);
+                    messages.Add(TxtEncAdvice());
                 }
+                messages.Add(string.Empty);
+
                 if (!ClimateCalories.isVampire)
                 {
                     messages.Add(TxtWater());

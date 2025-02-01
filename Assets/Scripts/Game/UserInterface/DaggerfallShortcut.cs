@@ -118,6 +118,7 @@ namespace DaggerfallWorkshop.Game.UserInterface
 
             // Charactersheet Screen
             CharacterSheetName,
+            CharacterSheetAge,
             CharacterSheetLevel,
             CharacterSheetGold,
             CharacterSheetHealth,
@@ -297,6 +298,11 @@ namespace DaggerfallWorkshop.Game.UserInterface
             ExtAutomapMinZoom1,
             ExtAutomapMinZoom2,
             ExtAutomapMaxZoom2,
+
+            // ProjectN additional buttons
+            Rest,
+            Pack,
+            Cook
         }
 
         public static Dictionary<Buttons, HotkeySequence> keys = null;

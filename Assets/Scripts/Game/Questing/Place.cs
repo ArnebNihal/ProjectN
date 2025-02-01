@@ -24,6 +24,7 @@ using FullSerializer;
 using DaggerfallWorkshop.Game.Banking;
 using DaggerfallWorkshop.Game.Guilds;
 using DaggerfallWorkshop.Game.Serialization;
+using DaggerfallConnect.Utility;
 
 namespace DaggerfallWorkshop.Game.Questing
 {
@@ -326,7 +327,8 @@ namespace DaggerfallWorkshop.Game.Questing
             siteDetails.mapId = location.MapTableData.MapId;
             siteDetails.locationId = location.Exterior.ExteriorData.LocationId;
             siteDetails.regionIndex = location.RegionIndex;
-            siteDetails.tileIndex = WorldMaps.GetAbsoluteTile(MapsFile.GetPixelFromPixelID(location.MapTableData.MapId));
+            Debug.Log("location.MapTableData.MapId: " + location.MapTableData.MapId);
+            siteDetails.tileIndex = location.AbsTileIndex;
             siteDetails.buildingKey = buildingKey;
             siteDetails.buildingName = buildingName;
             siteDetails.regionName = location.RegionName;
@@ -779,16 +781,22 @@ namespace DaggerfallWorkshop.Game.Questing
         {
             const int maxAttemptsBeforeFallback = 250;
             const int maxAttemptsBeforeFailure = 500;
+            
+            // Get region to be used
+            int region = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
+            List<int> tileIndex = WorldMaps.regionTiles[region];
+            List<DFRegion> regionData = new List<DFRegion>();
 
             // Get player region
-            int tileIndex = WorldMaps.GetRelativeTile(GameManager.Instance.PlayerGPS.CurrentMapPixel);
-            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(tileIndex);
+            for (int tl = 0; tl < tileIndex.Count; tl++)
+            {
+                DFRegion regionCheck = WorldMaps.ConvertWorldMapsToDFRegion(tileIndex[tl], true);
+                if (regionCheck.LocationCount == 0)
+                    continue;
+                regionData.Add(regionCheck);
+            }
+            (int, int) playerTile = GameManager.Instance.PlayerGPS.CurrentTile;
             int playerLocationIndex = GameManager.Instance.PlayerGPS.CurrentLocationIndex;
-
-            // Cannot use a region with no locations
-            // This should not happen in normal play
-            if (regionData.LocationCount == 0)
-                return false;
 
             // Find random town containing building
             int attempts = 0;
@@ -810,18 +818,26 @@ namespace DaggerfallWorkshop.Game.Questing
                 }
 
                 // Get a random location index
-                int locationIndex = UnityEngine.Random.Range(0, (int)regionData.LocationCount);
+                int randomTile = UnityEngine.Random.Range(0, regionData.Count);
+                int locationIndex = UnityEngine.Random.Range(0, regionData[randomTile].LocationCount);
 
                 // Discard the current player location if selected
-                if (locationIndex == playerLocationIndex)
+                if (locationIndex == playerLocationIndex && 
+                    regionData[randomTile].Name == (playerTile.Item1 + playerTile.Item2 * MapsFile.TileX).ToString())
+                    continue;
+
+                // Discard if location selected is in another region
+                DFPosition pos = MapsFile.GetPixelFromPixelID(regionData[randomTile].MapTable[locationIndex].MapId);
+                int locRegion = PoliticData.GetAbsPoliticValue(pos.X, pos.Y);
+                if (region != locRegion)
                     continue;
 
                 // Discard all dungeon location types
-                if (IsDungeonType(regionData.MapTable[locationIndex].LocationType))
+                if (IsDungeonType(regionData[randomTile].MapTable[locationIndex].LocationType))
                     continue;
 
                 // Get location data for town
-                DFLocation location = WorldMaps.GetLocation(tileIndex, locationIndex);
+                DFLocation location = WorldMaps.GetLocation(regionData[randomTile].Name, locationIndex);
                 if (!location.Loaded)
                     continue;
 
@@ -854,7 +870,7 @@ namespace DaggerfallWorkshop.Game.Questing
                 found = true;
             }
 
-            //Debug.LogFormat("Found remote candidate site in {0} attempts", attempts);
+            Debug.LogFormat("Found remote candidate site in {0} attempts", attempts);
 
             return found;
         }
@@ -869,23 +885,40 @@ namespace DaggerfallWorkshop.Game.Questing
         /// </summary>
         bool SelectRemoteDungeonSite(int dungeonTypeIndex)
         {
-            // Get player region
+            // Get region to be used
             int regionIndex = GameManager.Instance.PlayerGPS.CurrentRegionIndex;
-            DFRegion regionData = WorldMaps.ConvertWorldMapsToDFRegion(regionIndex);
+            List<int> tileIndex = WorldMaps.regionTiles[regionIndex];
+            List<DFRegion> regionData = new List<DFRegion>();
 
-            // Cannot use a region with no locations
-            // This should not happen in normal play
-            if (regionData.LocationCount == 0)
-                return false;
+            // Get player region
+            for (int tl = 0; tl < tileIndex.Count; tl++)
+            {
+                DFRegion regionCheck = WorldMaps.ConvertWorldMapsToDFRegion(tileIndex[tl], true);
+                if (regionCheck.LocationCount == 0)
+                    continue;
+                regionData.Add(regionCheck);
+            }
+            (int, int) playerTile = GameManager.Instance.PlayerGPS.CurrentTile;
+            // int playerLocationIndex = GameManager.Instance.PlayerGPS.CurrentLocationIndex;
 
             //Debug.LogFormat("Selecting for random dungeon of type {0} in {1}", dungeonTypeIndex, regionData.Name);
 
-            // Get indices for all dungeons of this type
-            int[] foundIndices = CollectDungeonIndicesOfType(regionData, dungeonTypeIndex);
-            if (foundIndices == null || foundIndices.Length == 0)
+            // Get indices for all dungeons of this type in a randomly selected tile
+            bool dungeonFound = false;
+            int[] foundIndices = new int[0];
+            int randomTile = -1;
+            while (!dungeonFound)
             {
-                Debug.LogFormat("Could not find any random dungeons of type {0} in {1}", dungeonTypeIndex, regionData.Name);
-                return false;
+                randomTile = UnityEngine.Random.Range(0, regionData.Count);
+                foundIndices = CollectDungeonIndicesOfType(regionData[randomTile], dungeonTypeIndex, regionIndex);
+                if (foundIndices == null || foundIndices.Length == 0)
+                {
+                    Debug.LogFormat("Could not find any random dungeons of type {0} in {1}", dungeonTypeIndex, regionData[randomTile].Name);
+                    regionData.RemoveAt(randomTile);
+                    if (regionData.Count <= 0)
+                        return false;
+                }
+                else dungeonFound = true;
             }
 
             //Debug.LogFormat("Found a total of {0} possible dungeons of type {1} in {2}", foundIndices.Length, dungeonTypeIndex, regionData.Name);
@@ -894,7 +927,7 @@ namespace DaggerfallWorkshop.Game.Questing
             int index = UnityEngine.Random.Range(0, foundIndices.Length);
 
             // Get location data for selected dungeon
-            DFLocation location = WorldMaps.GetLocation(regionIndex, foundIndices[index]);
+            DFLocation location = WorldMaps.GetLocation(regionData[randomTile].Name, foundIndices[index]);
             if (!location.Loaded)
                 return false;
 
@@ -914,6 +947,7 @@ namespace DaggerfallWorkshop.Game.Questing
             siteDetails.mapId = location.MapTableData.MapId;
             siteDetails.locationId = location.Exterior.ExteriorData.LocationId;
             siteDetails.regionIndex = location.RegionIndex;
+            siteDetails.tileIndex = location.AbsTileIndex;
             siteDetails.regionName = location.RegionName;
             siteDetails.locationName = location.Name;
             siteDetails.questSpawnMarkers = questSpawnMarkers;
@@ -961,6 +995,7 @@ namespace DaggerfallWorkshop.Game.Questing
             siteDetails.mapId = location.MapTableData.MapId;
             siteDetails.locationId = location.Exterior.ExteriorData.LocationId;
             siteDetails.regionIndex = location.RegionIndex;
+            siteDetails.tileIndex = location.AbsTileIndex;
             siteDetails.regionName = location.RegionName;
             siteDetails.locationName = location.Name;
             siteDetails.questSpawnMarkers = null;
@@ -1082,6 +1117,8 @@ namespace DaggerfallWorkshop.Game.Questing
             siteDetails.mapId = location.MapTableData.MapId;
             siteDetails.locationId = location.Exterior.ExteriorData.LocationId;
             siteDetails.regionIndex = location.RegionIndex;
+            Debug.Log("location.MapTableData.MapId: " + location.MapTableData.MapId);
+            siteDetails.tileIndex = location.AbsTileIndex;
             siteDetails.regionName = location.RegionName;
             siteDetails.locationName = location.Name;
             siteDetails.buildingKey = buildingKey;
@@ -1219,6 +1256,8 @@ namespace DaggerfallWorkshop.Game.Questing
                             site.mapId = location.MapTableData.MapId;
                             site.locationId = location.Exterior.ExteriorData.LocationId;
                             site.regionName = location.RegionName;
+                            Debug.Log("location.MapTableData.MapId: " + location.MapTableData.MapId + ", location.AbsTileIndex: " + location.AbsTileIndex);
+                            site.tileIndex = location.AbsTileIndex;
                             site.locationName = location.Name;
                             site.buildingKey = buildingSummary[i].buildingKey;
                             site.buildingName = buildingName;
@@ -1290,7 +1329,7 @@ namespace DaggerfallWorkshop.Game.Questing
             {
                 // Generate a random surname for this residence
                 //DFRandom.srand(Time.renderedFrameCount);
-                string surname = DaggerfallUnity.Instance.NameHelper.Surname(Utility.NameHelper.BankTypes.Breton);
+                string surname = DaggerfallUnity.Instance.NameHelper.Surname(GameManager.Instance.PlayerGPS.GetNameBankOfCurrentRegion(), UnityEngine.Random.Range(0, 2));
                 buildingName = TextManager.Instance.GetLocalizedText("theNamedResidence").Replace("%s", surname);
             }
             else
@@ -1325,8 +1364,9 @@ namespace DaggerfallWorkshop.Game.Questing
         /// <summary>
         /// Gets location indices for all dungeons of type.
         /// dungeonTypeIndex == -1 will select all available dungeons.
+        /// regionIndex == -1 won't filter based on region
         /// </summary>
-        int[] CollectDungeonIndicesOfType(DFRegion regionData, int dungeonTypeIndex, bool allowFullRange = false)
+        int[] CollectDungeonIndicesOfType(DFRegion regionData, int dungeonTypeIndex, int filterRegion = -1, bool allowFullRange = false)
         {
             // Selectively allow full range of dungeons
             // Only dungeons 0-16 contain quest and item markers
@@ -1348,6 +1388,11 @@ namespace DaggerfallWorkshop.Game.Questing
 
                 // Dungeon must not be involved in any other quests
                 if (IsDungeonAssigned(activeQuestSites, parentQuestPlaceResources, regionData.MapTable[i].MapId))
+                    continue;
+
+                // If region must be filtered, do so
+                DFPosition dunPos = MapsFile.GetPixelFromPixelID(regionData.MapTable[i].MapId);
+                if (filterRegion != PoliticData.GetAbsPoliticValue(dunPos.X, dunPos.Y))
                     continue;
 
                 //Debug.LogFormat("Checking dungeon type {0} at location {1}", (int)regionData.MapTable[i].DungeonType, regionData.MapNames[i]);
