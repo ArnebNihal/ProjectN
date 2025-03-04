@@ -400,7 +400,8 @@ namespace DaggerfallWorkshop.Game.Items
         public bool IsNewWeapon(DaggerfallUnityItem weapon)
         {
             if (weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.ArchersAxe) ||
-                weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.LightFlail))
+                weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.LightFlail) ||
+                weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.Crossbow))
                 return true;
 
             return false;
@@ -425,9 +426,18 @@ namespace DaggerfallWorkshop.Game.Items
             int archive = item.InventoryTextureArchive;
             int record = item.InventoryTextureRecord;
 
+            // Handling Hatchet and Flail
             if (IsNewWeapon(item))
             {
                 MaterialTypes matType = ItemBuilder.GetArmorMaterialType(item.nativeMaterialValue);
+                record = ((int)matType - 1) * 2;
+            }
+
+            // Handling exotic variants of weapons
+            if (item.ItemGroup == ItemGroups.Weapons && item.CurrentVariant != 0)
+            {
+                MaterialTypes matType = ItemBuilder.GetArmorMaterialType(item.nativeMaterialValue);
+                archive = item.TemplateIndex + 10000;
                 record = ((int)matType - 1) * 2;
             }
 
@@ -889,47 +899,58 @@ namespace DaggerfallWorkshop.Game.Items
             if (result != WeaponTypes.None)
                 return result;
 
-            switch (item.TemplateIndex)
+            if (item.CurrentVariant == 0)
             {
-                case (int)Weapons.Dagger:
-                    result = WeaponTypes.Dagger;
-                    break;
-                case (int)Weapons.Staff:
-                    result = WeaponTypes.Staff;
-                    break;
-                case (int)Weapons.Tanto:
-                case (int)Weapons.Shortsword:
-                case (int)Weapons.Wakazashi:
-                case (int)Weapons.Broadsword:
-                case (int)Weapons.Saber:
-                case (int)Weapons.Longsword:
-                case (int)Weapons.Katana:
-                case (int)Weapons.Claymore:
-                case (int)Weapons.Dai_Katana:
-                    result = WeaponTypes.LongBlade;
-                    break;
-                case (int)Weapons.Mace:
-                    result = WeaponTypes.Mace;
-                    break;
-                case (int)Weapons.Flail:
-                case (int)Weapons.LightFlail:
-                    result = WeaponTypes.Flail;
-                    break;
-                case (int)Weapons.Warhammer:
-                    result = WeaponTypes.Warhammer;
-                    break;
-                case (int)Weapons.Battle_Axe:
-                case (int)Weapons.War_Axe:
-                case (int)Weapons.ArchersAxe:
-                    result = WeaponTypes.Battleaxe;
-                    break;
-                case (int)Weapons.Short_Bow:
-                case (int)Weapons.Long_Bow:
-                    result = WeaponTypes.Bow;
-                    break;
-                default:
-                    return WeaponTypes.None;
+                switch (item.TemplateIndex)
+                {
+                    case (int)Weapons.Dagger:
+                        result = WeaponTypes.Dagger;
+                        break;
+                    case (int)Weapons.Staff:
+                        result = WeaponTypes.Staff;
+                        break;
+                    case (int)Weapons.Tanto:
+                    case (int)Weapons.Shortsword:
+                    case (int)Weapons.Wakazashi:
+                    case (int)Weapons.Broadsword:
+                    case (int)Weapons.Saber:
+                    case (int)Weapons.Longsword:
+                    case (int)Weapons.Katana:
+                    case (int)Weapons.Claymore:
+                    case (int)Weapons.Dai_Katana:
+                        result = WeaponTypes.LongBlade;
+                        break;
+                    case (int)Weapons.Mace:
+                        result = WeaponTypes.Mace;
+                        break;
+                    case (int)Weapons.Flail:
+                    case (int)Weapons.LightFlail:
+                        result = WeaponTypes.Flail;
+                        break;
+                    case (int)Weapons.Warhammer:
+                        result = WeaponTypes.Warhammer;
+                        break;
+                    case (int)Weapons.Battle_Axe:
+                    case (int)Weapons.War_Axe:
+                    case (int)Weapons.ArchersAxe:
+                        result = WeaponTypes.Battleaxe;
+                        break;
+                    case (int)Weapons.Short_Bow:
+                    case (int)Weapons.Long_Bow:
+                        result = WeaponTypes.Bow;
+                        break;
+                    case (int)Weapons.Crossbow:
+                        result = WeaponTypes.Crossbow;
+                        break;
+                    default:
+                        return WeaponTypes.None;
+                }
             }
+            else{   // Handle exotic variants
+                result = (WeaponTypes)((item.TemplateIndex * 2) - (104 * 2));
+                if (item.TemplateIndex == (int)Weapons.Crossbow)
+                    result = WeaponTypes.CrossbowExotic;
+            }            
 
             // Handle enchanted weapons
             if (item.IsEnchanted)
@@ -958,6 +979,7 @@ namespace DaggerfallWorkshop.Game.Items
                         result = WeaponTypes.Battleaxe_Magic;
                         break;
                     default:
+                        result = (WeaponTypes)((int)result++);
                         break;
                 }
             }
@@ -1438,135 +1460,152 @@ namespace DaggerfallWorkshop.Game.Items
                     for (int i = 0; i < 4; i++)
                         items.AddItem(ItemBuilder.CreateRandomIngredient(ItemGroups.PlantIngredients1));
                     return;
+
+                case DFCareer.Skills.LightArmor:
+                    AddOrEquipWornItem(playerEntity, ItemBuilder.CreateArmor(gender, race, Armor.Jerkin, armorMaterial)); return;
+                case DFCareer.Skills.MediumArmor:
+                    AddOrEquipWornItem(playerEntity, ItemBuilder.CreateArmor(gender, race, Armor.Hauberk, armorMaterial)); return;
+                case DFCareer.Skills.HeavyArmor:
+                    AddOrEquipWornItem(playerEntity, ItemBuilder.CreateArmor(gender, race, Armor.Cuirass, armorMaterial)); return;
+                case DFCareer.Skills.Block:
+                    AddOrEquipWornItem(playerEntity, ItemBuilder.CreateArmor(gender, race, Armor.Buckler, armorMaterial)); return;
+                case DFCareer.Skills.Disguise:
+                    AddOrEquipWornItem(playerEntity, (gender == Genders.Male) ? ItemBuilder.CreateMensClothing(MensClothing.Reversible_tunic, race) : ItemBuilder.CreateWomensClothing(WomensClothing.Plain_robes, race)); return;
+                case DFCareer.Skills.Enchant:
+                    items.AddItem(ItemBuilder.CreateItem(ItemGroups.MiscItems, (int)MiscItems.Soul_trap)); return;
+                case DFCareer.Skills.Alchemy:
+                    for (int i = 0; i < 4; i++)
+                        items.AddItem(ItemBuilder.CreateRandomIngredient());
+                    return;
             }
         }
+
+        // public void AssignEnemyStartingEquipment(PlayerEntity player, EnemyEntity enemyEntity, int variant)
+        // {
+        //     if (enemyEntity.EntityType == EntityTypes.EnemyClass)
+        //     {
+        //         AssignEnemyClassStartingEquipment(player, enemyEntity, variant);
+        //         return;
+        //     }
+
+        //     Genders playerGender = player.Gender;
+        //     Races race = player.Race;
+        //     int chance = 0;
+        //     int luck = enemyEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
+
+        //     // TODO: give proper equipment to certain enemy class, taking into consideration
+        //     // weapons and armor not forbidden and maybe with an adequate weapon/armor skill
+
+        //     // // City watch never have items above iron or steel
+        //     // if (enemyEntity.EntityType == EntityTypes.EnemyClass && enemyEntity.MobileEnemy.ID == (int)MobileTypes.Knight_CityWatch)
+        //     //     isTownGuard = true;
+
+        //     if (variant == 0)
+        //     {
+        //         // right-hand weapon
+        //         int item = UnityEngine.Random.Range((int)Weapons.Broadsword, (int)(Weapons.Longsword) + 1);
+        //         DaggerfallUnityItem weapon = ItemBuilder.CreateWeapon((Weapons)item, FormulaHelper.RandomMaterial(luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(weapon, true, false);
+        //         enemyEntity.Items.AddItem(weapon);
+
+        //         chance = 50;
+
+        //         // left-hand shield
+        //         item = UnityEngine.Random.Range((int)Armor.Buckler, (int)(Armor.Round_Shield) + 1);
+        //         if (Dice100.SuccessRoll(chance))
+        //         {
+        //             DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, (Items.Armor)item, FormulaHelper.RandomArmorMaterial((Armor)item, luck));
+        //             enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
+        //             enemyEntity.Items.AddItem(armor);
+        //         }
+        //         // left-hand weapon
+        //         else if (Dice100.SuccessRoll(chance))
+        //         {
+        //             item = UnityEngine.Random.Range((int)Weapons.Dagger, (int)(Weapons.Shortsword) + 1);
+        //             weapon = ItemBuilder.CreateWeapon((Weapons)item, FormulaHelper.RandomMaterial(luck));
+        //             enemyEntity.ItemEquipTable.EquipItem(weapon, true, false);
+        //             enemyEntity.Items.AddItem(weapon);
+        //         }
+        //     }
+        //     else
+        //     {
+        //         // right-hand weapon
+        //         int item = UnityEngine.Random.Range((int)Weapons.Claymore, (int)(Weapons.Battle_Axe) + 1);
+        //         DaggerfallUnityItem weapon = ItemBuilder.CreateWeapon((Weapons)item, FormulaHelper.RandomMaterial(luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(weapon, true, false);
+        //         enemyEntity.Items.AddItem(weapon);
+
+        //         if (variant == 1)
+        //             chance = 75;
+        //         else if (variant == 2)
+        //             chance = 90;
+        //     }
+        //     // helm
+        //     if (Dice100.SuccessRoll(chance))
+        //     {
+        //         Armor headGear = GetRandomArmorPiece(BodyParts.Head);
+        //         DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, headGear, FormulaHelper.RandomArmorMaterial(headGear, luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
+        //         enemyEntity.Items.AddItem(armor);
+        //     }
+        //     // right pauldron
+        //     if (Dice100.SuccessRoll(chance))
+        //     {
+        //         Armor rightArm = GetRandomArmorPiece(BodyParts.RightArm);
+        //         DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, rightArm, FormulaHelper.RandomArmorMaterial(rightArm, luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
+        //         enemyEntity.Items.AddItem(armor);
+        //     }
+        //     // left pauldron
+        //     if (Dice100.SuccessRoll(chance))
+        //     {
+        //         Armor leftArm = GetRandomArmorPiece(BodyParts.LeftArm);
+        //         DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, leftArm, FormulaHelper.RandomArmorMaterial(leftArm, luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
+        //         enemyEntity.Items.AddItem(armor);
+        //     }
+        //     // cuirass
+        //     if (Dice100.SuccessRoll(chance))
+        //     {
+        //         Armor torso = GetRandomArmorPiece(BodyParts.Chest);
+        //         DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, torso, FormulaHelper.RandomArmorMaterial(torso, luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
+        //         enemyEntity.Items.AddItem(armor);
+        //     }
+        //     // greaves
+        //     if (Dice100.SuccessRoll(chance))
+        //     {
+        //         Armor legs = GetRandomArmorPiece(BodyParts.Legs);
+        //         DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, legs, FormulaHelper.RandomArmorMaterial(legs, luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
+        //         enemyEntity.Items.AddItem(armor);
+        //     }
+        //     // boots
+        //     if (Dice100.SuccessRoll(chance))
+        //     {
+        //         Armor feet = GetRandomArmorPiece(BodyParts.Feet);
+        //         DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, feet, FormulaHelper.RandomArmorMaterial(feet, luck));
+        //         enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
+        //         enemyEntity.Items.AddItem(armor);
+        //     }
+
+        //     // Chance for poisoned weapon
+        //     // ProjectN: removed the player.level > 1 requirement for a weapon to be poisoned
+        //     DaggerfallUnityItem poisonedWeapon = enemyEntity.ItemEquipTable.GetItem(EquipSlots.RightHand);
+        //     if (poisonedWeapon != null && (enemyEntity.MobileEnemy.ID == (int)MobileTypes.Orc
+        //             || enemyEntity.MobileEnemy.ID == (int)MobileTypes.Centaur || enemyEntity.MobileEnemy.ID == (int)MobileTypes.OrcSergeant))
+        //     {
+        //         int chanceToPoison = 5;
+
+        //         if (Dice100.SuccessRoll(chanceToPoison))
+        //         {
+        //             // Apply poison
+        //             poisonedWeapon.poisonType = (Items.Poisons)UnityEngine.Random.Range(128, 135 + 1);
+        //         }
+        //     }
+        // }
 
         public void AssignEnemyStartingEquipment(PlayerEntity player, EnemyEntity enemyEntity, int variant)
-        {
-            if (enemyEntity.EntityType == EntityTypes.EnemyClass)
-            {
-                AssignEnemyClassStartingEquipment(player, enemyEntity, variant);
-                return;
-            }
-
-            Genders playerGender = player.Gender;
-            Races race = player.Race;
-            int chance = 0;
-            int luck = enemyEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
-
-            // TODO: give proper equipment to certain enemy class, taking into consideration
-            // weapons and armor not forbidden and maybe with an adequate weapon/armor skill
-
-            // // City watch never have items above iron or steel
-            // if (enemyEntity.EntityType == EntityTypes.EnemyClass && enemyEntity.MobileEnemy.ID == (int)MobileTypes.Knight_CityWatch)
-            //     isTownGuard = true;
-
-            if (variant == 0)
-            {
-                // right-hand weapon
-                int item = UnityEngine.Random.Range((int)Weapons.Broadsword, (int)(Weapons.Longsword) + 1);
-                DaggerfallUnityItem weapon = ItemBuilder.CreateWeapon((Weapons)item, FormulaHelper.RandomMaterial(luck));
-                enemyEntity.ItemEquipTable.EquipItem(weapon, true, false);
-                enemyEntity.Items.AddItem(weapon);
-
-                chance = 50;
-
-                // left-hand shield
-                item = UnityEngine.Random.Range((int)Armor.Buckler, (int)(Armor.Round_Shield) + 1);
-                if (Dice100.SuccessRoll(chance))
-                {
-                    DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, (Items.Armor)item, FormulaHelper.RandomArmorMaterial((Armor)item, luck));
-                    enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
-                    enemyEntity.Items.AddItem(armor);
-                }
-                // left-hand weapon
-                else if (Dice100.SuccessRoll(chance))
-                {
-                    item = UnityEngine.Random.Range((int)Weapons.Dagger, (int)(Weapons.Shortsword) + 1);
-                    weapon = ItemBuilder.CreateWeapon((Weapons)item, FormulaHelper.RandomMaterial(luck));
-                    enemyEntity.ItemEquipTable.EquipItem(weapon, true, false);
-                    enemyEntity.Items.AddItem(weapon);
-                }
-            }
-            else
-            {
-                // right-hand weapon
-                int item = UnityEngine.Random.Range((int)Weapons.Claymore, (int)(Weapons.Battle_Axe) + 1);
-                DaggerfallUnityItem weapon = ItemBuilder.CreateWeapon((Weapons)item, FormulaHelper.RandomMaterial(luck));
-                enemyEntity.ItemEquipTable.EquipItem(weapon, true, false);
-                enemyEntity.Items.AddItem(weapon);
-
-                if (variant == 1)
-                    chance = 75;
-                else if (variant == 2)
-                    chance = 90;
-            }
-            // helm
-            if (Dice100.SuccessRoll(chance))
-            {
-                Armor headGear = GetRandomArmorPiece(BodyParts.Head);
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, headGear, FormulaHelper.RandomArmorMaterial(headGear, luck));
-                enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
-                enemyEntity.Items.AddItem(armor);
-            }
-            // right pauldron
-            if (Dice100.SuccessRoll(chance))
-            {
-                Armor rightArm = GetRandomArmorPiece(BodyParts.RightArm);
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, rightArm, FormulaHelper.RandomArmorMaterial(rightArm, luck));
-                enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
-                enemyEntity.Items.AddItem(armor);
-            }
-            // left pauldron
-            if (Dice100.SuccessRoll(chance))
-            {
-                Armor leftArm = GetRandomArmorPiece(BodyParts.LeftArm);
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, leftArm, FormulaHelper.RandomArmorMaterial(leftArm, luck));
-                enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
-                enemyEntity.Items.AddItem(armor);
-            }
-            // cuirass
-            if (Dice100.SuccessRoll(chance))
-            {
-                Armor torso = GetRandomArmorPiece(BodyParts.Chest);
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, torso, FormulaHelper.RandomArmorMaterial(torso, luck));
-                enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
-                enemyEntity.Items.AddItem(armor);
-            }
-            // greaves
-            if (Dice100.SuccessRoll(chance))
-            {
-                Armor legs = GetRandomArmorPiece(BodyParts.Legs);
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, legs, FormulaHelper.RandomArmorMaterial(legs, luck));
-                enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
-                enemyEntity.Items.AddItem(armor);
-            }
-            // boots
-            if (Dice100.SuccessRoll(chance))
-            {
-                Armor feet = GetRandomArmorPiece(BodyParts.Feet);
-                DaggerfallUnityItem armor = ItemBuilder.CreateArmor(playerGender, race, feet, FormulaHelper.RandomArmorMaterial(feet, luck));
-                enemyEntity.ItemEquipTable.EquipItem(armor, true, false);
-                enemyEntity.Items.AddItem(armor);
-            }
-
-            // Chance for poisoned weapon
-            // ProjectN: removed the player.level > 1 requirement for a weapon to be poisoned
-            DaggerfallUnityItem poisonedWeapon = enemyEntity.ItemEquipTable.GetItem(EquipSlots.RightHand);
-            if (poisonedWeapon != null && (enemyEntity.MobileEnemy.ID == (int)MobileTypes.Orc
-                    || enemyEntity.MobileEnemy.ID == (int)MobileTypes.Centaur || enemyEntity.MobileEnemy.ID == (int)MobileTypes.OrcSergeant))
-            {
-                int chanceToPoison = 5;
-
-                if (Dice100.SuccessRoll(chanceToPoison))
-                {
-                    // Apply poison
-                    poisonedWeapon.poisonType = (Items.Poisons)UnityEngine.Random.Range(128, 135 + 1);
-                }
-            }
-        }
-
-        public void AssignEnemyClassStartingEquipment(PlayerEntity player, EnemyEntity enemyEntity, int variant)
         {
             Genders playerGender = player.Gender;
             Races playerRace = player.Race;
@@ -1587,9 +1626,10 @@ namespace DaggerfallWorkshop.Game.Items
                 // Ranged specialists:
                 case MobileTypes.Archer:
                 case MobileTypes.Ranger:
-                    AddOrEquipWornItem(enemyEntity, ItemBuilder.CreateWeapon(RandomBow(), FormulaHelper.RandomMaterial(luck)));
-                    AddOrEquipWornItem(enemyEntity, CreateWeapon((enemyEntity.MobileEnemy.ID == (int)MobileTypes.Ranger) ? RandomLongblade() : RandomShortblade(), FormulaHelper.RandomMaterial(luck)));
-                    DaggerfallUnityItem arrowPile = ItemBuilder.CreateWeapon(Weapons.Arrow, FormulaHelper.RandomMaterial(luck));
+                case MobileTypes.ArcherRider:
+                    AddOrEquipWornItem(enemyEntity, ItemBuilder.CreateWeapon(RandomBow(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)));
+                    AddOrEquipWornItem(enemyEntity, CreateWeapon((enemyEntity.MobileEnemy.ID == (int)MobileTypes.Ranger) ? RandomLongblade() : RandomShortblade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)));
+                    DaggerfallUnityItem arrowPile = ItemBuilder.CreateWeapon(Weapons.Arrow, FormulaHelper.RandomMaterial(luck, enemyEntity.Level));
                     arrowPile.stackCount = UnityEngine.Random.Range(4, 17);
                     enemyEntity.Items.AddItem(arrowPile);
                     armored = 60;
@@ -1600,28 +1640,37 @@ namespace DaggerfallWorkshop.Game.Items
                 case MobileTypes.Barbarian:
                 case MobileTypes.Knight:
                 case MobileTypes.Knight_CityWatch:
-                case MobileTypes.Monk:
+                case MobileTypes.Monk:              // Not sure this should be here
                 case MobileTypes.Spellsword:
                 case MobileTypes.Warrior:
                 case MobileTypes.Rogue:
+                case MobileTypes.Guard:
+                case MobileTypes.KnightRider:
+                case MobileTypes.RogueRider:
+                case MobileTypes.RogueDruid:
+                case MobileTypes.RoyalKnight:
+                case MobileTypes.NecroGlaive:
+                case MobileTypes.SpellswordRider:
+
+                case MobileTypes.Orc:
                     if (variant == 0)
                     {
-                        AddOrEquipWornItem(enemyEntity, CreateWeapon(GetCombatClassWeapon((MobileTypes)enemyEntity.MobileEnemy.ID), FormulaHelper.RandomMaterial(luck, isTownGuard)), true);
+                        AddOrEquipWornItem(enemyEntity, CreateWeapon(GetCombatClassWeapon((MobileTypes)enemyEntity.MobileEnemy.ID), FormulaHelper.RandomMaterial(luck, enemyEntity.Level, isTownGuard)), true);
                         // Left hand shield?
                         if (Dice100.SuccessRoll(chance))
                         {
                             Armor shield = RandomShield();
-                            AddOrEquipWornItem(enemyEntity, ItemBuilder.CreateArmor(playerGender, playerRace, shield, FormulaHelper.RandomArmorMaterial(shield, luck, isTownGuard)), true);
+                            AddOrEquipWornItem(enemyEntity, ItemBuilder.CreateArmor(playerGender, playerRace, shield, FormulaHelper.RandomArmorMaterial(shield, luck, enemyEntity.Level, isTownGuard)), true);
                         }
                         // left-hand weapon?
                         else if (Dice100.SuccessRoll(chance))
-                            AddOrEquipWornItem(enemyEntity, CreateWeapon(SecondaryWeapon(), FormulaHelper.RandomMaterial(luck, isTownGuard)));
+                            AddOrEquipWornItem(enemyEntity, CreateWeapon(SecondaryWeapon(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level, isTownGuard)));
                         if (!IsFighter((MobileTypes)enemyEntity.MobileEnemy.ID))
                             armored = 80;
                     }
                     else
                     {
-                        AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomBigWeapon(), FormulaHelper.RandomMaterial(luck, isTownGuard)), true);
+                        AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomBigWeapon(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level, isTownGuard)), true);
                         if (!IsFighter((MobileTypes)enemyEntity.MobileEnemy.ID))
                         {
                             prefChain = true;
@@ -1639,9 +1688,12 @@ namespace DaggerfallWorkshop.Game.Items
                 case MobileTypes.Mage:
                 case MobileTypes.Sorcerer:
                 case MobileTypes.Healer:
-                    AddOrEquipWornItem(enemyEntity, ItemBuilder.CreateWeapon(Weapons.Staff, FormulaHelper.RandomMaterial(luck)), true);
+                case MobileTypes.Druid:
+                case MobileTypes.NecroAcolyte:
+                case MobileTypes.WitchDefender:
+                    AddOrEquipWornItem(enemyEntity, ItemBuilder.CreateWeapon(Weapons.Staff, FormulaHelper.RandomMaterial(luck, enemyEntity.Level)), true);
                     if (Dice100.SuccessRoll(chance))
-                        AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomShortblade(), FormulaHelper.RandomMaterial(luck)));
+                        AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomShortblade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)));
                     AddOrEquipWornItem(enemyEntity, (playerGender == Genders.Male) ? ItemBuilder.CreateMensClothing(MensClothing.Plain_robes, playerRace) : ItemBuilder.CreateWomensClothing(WomensClothing.Plain_robes, playerRace), true);
                     armored = 35;
                     prefLeather = true;
@@ -1649,14 +1701,17 @@ namespace DaggerfallWorkshop.Game.Items
 
                 // Stealthy stabby classes:
                 case MobileTypes.Assassin:
-                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomAxeOrBlade(), FormulaHelper.RandomMaterial(luck)), true);
-                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomAxeOrBlade(), FormulaHelper.RandomMaterial(luck)));
+                case MobileTypes.BountyHunter:
+                case MobileTypes.NecroAssassin:
+                case MobileTypes.DarkBrotherhood:
+                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomAxeOrBlade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)), true);
+                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomAxeOrBlade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)));
                     armored = 65;
                     prefChain = true;
                     break;
                 case MobileTypes.Battlemage:
-                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomBluntOrBlade(), FormulaHelper.RandomMaterial(luck)), true);
-                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomBluntOrBlade(), FormulaHelper.RandomMaterial(luck)));
+                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomBluntOrBlade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)), true);
+                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomBluntOrBlade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)));
                     armored = 75;
                     prefChain = true;
                     break;
@@ -1667,9 +1722,10 @@ namespace DaggerfallWorkshop.Game.Items
                 case MobileTypes.Burglar:
                 case MobileTypes.Nightblade:
                 case MobileTypes.Thief:
-                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomShortblade(), FormulaHelper.RandomMaterial(luck)), true);
+                case MobileTypes.ThiefRider:
+                    AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomShortblade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)), true);
                     if (Dice100.SuccessRoll(chance))
-                        AddOrEquipWornItem(enemyEntity, CreateWeapon(SecondaryWeapon(), FormulaHelper.RandomMaterial(luck)));
+                        AddOrEquipWornItem(enemyEntity, CreateWeapon(SecondaryWeapon(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)));
                     armored = 50;
                     prefLeather = true;
                     if (enemyEntity.MobileEnemy.ID == (int)MobileTypes.Nightblade)
@@ -1681,28 +1737,28 @@ namespace DaggerfallWorkshop.Game.Items
             if (Dice100.SuccessRoll(armored))
             {
                 int torso = GetArmorTemplateIndex(EquipSlots.ChestArmor, prefChain, prefLeather);
-                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, torso, FormulaHelper.RandomArmorMaterial((Armor)torso, luck, isTownGuard)), true);
+                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, torso, FormulaHelper.RandomArmorMaterial((Armor)torso, luck, enemyEntity.Level, isTownGuard)), true);
             }
             armored -= 10;
             // Legs (Barbarians have a raised chance)
             if (Dice100.SuccessRoll(armored) || (enemyEntity.MobileEnemy.ID == (int)MobileTypes.Barbarian && Dice100.SuccessRoll(armored + 50)))
             {
                 int legs = GetArmorTemplateIndex(EquipSlots.LegsArmor, prefChain, prefLeather);
-                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, legs, FormulaHelper.RandomArmorMaterial((Armor)legs, luck, isTownGuard)), true);
+                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, legs, FormulaHelper.RandomArmorMaterial((Armor)legs, luck, enemyEntity.Level, isTownGuard)), true);
             }
             armored -= 10;
             // Feet
             if (Dice100.SuccessRoll(armored))
             {
                 int feet = GetArmorTemplateIndex(EquipSlots.Feet, prefChain, prefLeather);
-                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, feet, FormulaHelper.RandomArmorMaterial((Armor)feet, luck, isTownGuard)), true);
+                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, feet, FormulaHelper.RandomArmorMaterial((Armor)feet, luck, enemyEntity.Level, isTownGuard)), true);
             }
             armored -= 10;
             // Head (Barbarians have a raised chance)
             if (Dice100.SuccessRoll(armored) || (enemyEntity.MobileEnemy.ID == (int)MobileTypes.Barbarian && Dice100.SuccessRoll(armored + 50)))
             {
                 int head = GetArmorTemplateIndex(EquipSlots.Head, prefChain, prefLeather);
-                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, head, FormulaHelper.RandomArmorMaterial((Armor)head, luck, isTownGuard)), true);
+                AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, head, FormulaHelper.RandomArmorMaterial((Armor)head, luck, enemyEntity.Level, isTownGuard)), true);
             }
             armored -= 20;
 
@@ -1712,19 +1768,19 @@ namespace DaggerfallWorkshop.Game.Items
                 if (Dice100.SuccessRoll(armored))
                 {
                     int rightArm = GetArmorTemplateIndex(EquipSlots.RightArm, prefChain, prefLeather);
-                    AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, rightArm, FormulaHelper.RandomArmorMaterial((Armor)rightArm, luck, isTownGuard)), true);
+                    AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, rightArm, FormulaHelper.RandomArmorMaterial((Armor)rightArm, luck, enemyEntity.Level, isTownGuard)), true);
                 }
                 // left arm
                 if (Dice100.SuccessRoll(armored))
                 {
                     int leftArm = GetArmorTemplateIndex(EquipSlots.LeftArm, prefChain, prefLeather);
-                    AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, leftArm, FormulaHelper.RandomArmorMaterial((Armor)leftArm, luck, isTownGuard)), true);
+                    AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, leftArm, FormulaHelper.RandomArmorMaterial((Armor)leftArm, luck, enemyEntity.Level, isTownGuard)), true);
                 }
                 // hands
                 if (Dice100.SuccessRoll(armored))
                 {
                     int hands = GetArmorTemplateIndex(EquipSlots.Gloves, prefChain, prefLeather);
-                    AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, hands, FormulaHelper.RandomArmorMaterial((Armor)hands, luck, isTownGuard)), true);
+                    AddOrEquipWornItem(enemyEntity, CreateArmor(playerGender, playerRace, hands, FormulaHelper.RandomArmorMaterial((Armor)hands, luck, enemyEntity.Level, isTownGuard)), true);
                 }
             }
 
@@ -1733,7 +1789,7 @@ namespace DaggerfallWorkshop.Game.Items
             if (mainWeapon != null)
             {
                 int chanceToPoison = 5;
-                if (enemyEntity.MobileEnemy.ID == (int)MobileTypes.Assassin)
+                if (enemyEntity.MobileEnemy.ID == (int)MobileTypes.Assassin || enemyEntity.MobileEnemy.ID == (int)MobileTypes.BountyHunter || enemyEntity.MobileEnemy.ID == (int)MobileTypes.NecroAssassin || enemyEntity.MobileEnemy.ID == (int)MobileTypes.DarkBrotherhood)
                     chanceToPoison = 60;
 
                 if (Dice100.SuccessRoll(chanceToPoison))
@@ -1822,8 +1878,11 @@ namespace DaggerfallWorkshop.Game.Items
                 case MobileTypes.Barbarian:
                     return RandomBigWeapon();
                 case MobileTypes.Knight:
+                case MobileTypes.KnightRider:
+                case MobileTypes.RoyalKnight:
                     return CoinFlip() ? RandomBlunt() : RandomLongblade();
                 case MobileTypes.Knight_CityWatch:
+                case MobileTypes.Guard:
                     return RandomAxeOrBlade();
                 case MobileTypes.Monk:
                     return RandomBlunt();
@@ -1846,7 +1905,11 @@ namespace DaggerfallWorkshop.Game.Items
 
         static bool IsFighter(MobileTypes mob)
         {
-            return mob == MobileTypes.Knight || mob == MobileTypes.Warrior;
+            return mob == MobileTypes.Knight || 
+                   mob == MobileTypes.Warrior || 
+                   mob == MobileTypes.KnightRider || 
+                   mob == MobileTypes.RoyalKnight || 
+                   mob == MobileTypes.NecroGlaive;
         }
 
         static bool IsAgileFighter(MobileTypes mob)

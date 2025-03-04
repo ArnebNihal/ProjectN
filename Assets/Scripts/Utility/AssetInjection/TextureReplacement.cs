@@ -28,6 +28,7 @@ using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop.Game.Items;
 using DaggerfallWorkshop.Game.UserInterface;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Utility.AssetInjection
 {
@@ -76,6 +77,16 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
         public Texture2D[][] EmissionMaps;          // Emission maps for all records and frames.
     }
 
+    public struct CustomEnemyTextures
+    {
+        public string Name;
+        public int Records;
+        public int[] Frames;
+        public bool isEmissive;
+        public int[] Size;
+        public float[] Scale;
+    }
+
     #endregion
 
     /// <summary>
@@ -87,6 +98,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
         #region Fields
 
         const string extension = ".png";
+        static int[] defaultFrames = {4,4,4,4,4,5,5,5,5,5,1,1,1,1,1,1,1,1,1,1,1};
 
         // Paths
         static readonly string texturesPath = Path.Combine(Application.streamingAssetsPath, "Textures");
@@ -644,6 +656,113 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             return null;
         }
 
+        public static Material GetCustomMobileBillboardMaterial(int archive, MeshFilter meshFilter, ref MobileBillboardImportedTextures importedTextures)
+        {
+            Texture2D tex, emission;
+            // if (importedTextures.HasImportedTextures = LoadFromCacheOrImport(archive, 0, 0, true, true, out tex, out emission))
+            // {
+                string renderMode = null;
+
+                // Read xml configuration
+                // XMLManager xml;
+                // if (XMLManager.TryReadXml(ImagesPath, string.Format("{0:000}", archive), out xml))
+                // {
+                //     xml.TryGetString("renderMode", out renderMode);
+                //     importedTextures.IsEmissive = xml.GetBool("emission");
+                // }
+
+                // Make material
+                Material material = MakeBillboardMaterial(renderMode);
+
+                string fileName = TextureFile.IndexToFileName(archive);
+                LoadCustomEnemyTexture(Path.Combine(WorldMaps.texturePath, fileName), out CustomEnemyTextures textureFile);
+                List<Texture2D[]> allAlbedo = new List<Texture2D[]>();
+                List<Texture2D[]> allEmission = new List<Texture2D[]>();
+                
+                // Enable emission
+                ToggleEmission(material, textureFile.isEmissive);
+
+                for (int rec = 0; rec < textureFile.Records; rec++)
+                {
+                    Texture2D[] currentAlbedo = new Texture2D[textureFile.Frames[rec]];
+                    Texture2D[] currentEmissiveAlbedo = new Texture2D[textureFile.Frames[rec]];
+
+                    for (int frame = 0; frame < textureFile.Frames[rec]; frame++)
+                    {
+                        byte[] fileBytes = File.ReadAllBytes(Path.Combine(WorldMaps.texturePath, archive.ToString(), archive + "_" + rec + "-" + frame + ".png"));
+                        currentAlbedo[frame] = new Texture2D(1, 1);
+                        ImageConversion.LoadImage(currentAlbedo[frame], fileBytes);
+                        currentAlbedo[frame].filterMode = FilterMode.Point;
+                        if (textureFile.isEmissive)
+                        {
+                            byte[] emissiveFileBytes = File.ReadAllBytes(Path.Combine(WorldMaps.texturePath, archive.ToString(), archive + "_" + rec + "-" + frame + "_Emission.png"));
+                            currentEmissiveAlbedo[frame] = new Texture2D(1, 1);
+                            ImageConversion.LoadImage(currentEmissiveAlbedo[frame], fileBytes);
+                            currentEmissiveAlbedo[frame].filterMode = FilterMode.Point;
+                        }
+                    }
+                    allAlbedo.Add(currentAlbedo);
+                    if (textureFile.isEmissive)
+                        allEmission.Add(currentEmissiveAlbedo);
+
+                    // if (importedTextures.IsEmissive)
+                    // {
+                    //     if (TryImportTexture(texturesPath, frame => GetName(archive, record, frame, TextureMap.Emission), out Texture2D[] currentEmissive))
+                    //     {
+                    //         allEmission.Add(currentEmissive);
+                    //     }
+                    //     else
+                    //     {
+                    //         allEmission.Add(currentAlbedo);
+                    //     }
+                    // }
+                }
+                importedTextures.HasImportedTextures = true;
+                importedTextures.Albedo = allAlbedo.ToArray();
+                if (textureFile.isEmissive)
+                {
+                    importedTextures.IsEmissive = true;
+                    importedTextures.EmissionMaps = allEmission.ToArray();
+                }
+            // }
+            return material;
+        }
+
+        public static bool LoadCustomEnemyTexture(string path, out CustomEnemyTextures textureData)
+        {
+            textureData = JsonConvert.DeserializeObject<CustomEnemyTextures>(File.ReadAllText(path));
+
+            if (textureData.Records <= 0)
+                return false;
+
+            if (textureData.Frames.Length < textureData.Records)
+                textureData.Frames = defaultFrames;
+            // This way, we can write the first and last texture size only:
+            if (textureData.Size.Length < textureData.Records * 2)
+            {
+                int[] swap = (int[])textureData.Size.Clone();
+                textureData.Size = new int[textureData.Records * 2];
+                
+                for (int i = 0; i < textureData.Records; i++)
+                {
+                    textureData.Size[i * 2] = swap[0];
+                    textureData.Size[i * 2 + 1] = swap[1];
+                }
+            }
+            if (textureData.Scale.Length < textureData.Records * 2)
+            {
+                float[] swap = (float[])textureData.Scale.Clone();
+                textureData.Scale = new float[textureData.Records * 2];
+                
+                for (int i = 0; i < textureData.Records; i++)
+                {
+                    textureData.Scale[i * 2] = swap[0];
+                    textureData.Scale[i * 2 + 1] = swap[1];
+                }
+            }
+            return true;
+        }
+
         /// <summary>
         /// Read scale from xml and apply to given vector.
         /// </summary>
@@ -653,11 +772,18 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
                 return;
 
             XMLManager xml;
+            string fileName = TextureFile.IndexToFileName(archive);
             if (XMLManager.TryReadXml(texturesPath, GetName(archive, record), out xml))
             {
                 Vector2 scale = xml.GetVector2("scaleX", "scaleY", Vector2.one);
                 size.x *= scale.x;
                 size.y *= scale.y;
+            }
+            else if (archive >= 1500 && archive <= 1750 &&
+                     LoadCustomEnemyTexture(Path.Combine(WorldMaps.texturePath, fileName), out CustomEnemyTextures textureFile))
+            {
+                size.x *= textureFile.Scale[record * 2];
+                size.y *= textureFile.Scale[record * 2 + 1];
             }
         }
 
@@ -1032,6 +1158,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
             if (!path.EndsWith(extension))
                 path += extension;
 
+            // Debug.Log("Importing texture from path " + path);
             if (File.Exists(path))
             {
                 byte[] bytes = File.ReadAllBytes(path);
@@ -1050,6 +1177,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
                 return true;
             }
 
+            // Debug.Log("Importing for path " + path + " failed!");
             tex = null;
             return false;
         }

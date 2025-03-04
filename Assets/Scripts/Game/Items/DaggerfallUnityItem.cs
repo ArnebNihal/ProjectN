@@ -857,6 +857,7 @@ namespace DaggerfallWorkshop.Game.Items
                             return SoundClips.EquipStaff;
                         case (int)Weapons.Short_Bow:
                         case (int)Weapons.Long_Bow:
+                        case (int)Weapons.Crossbow:
                             return SoundClips.EquipBow;
 
                         default:
@@ -895,6 +896,7 @@ namespace DaggerfallWorkshop.Game.Items
                     return SoundClips.SwingHighPitch;
                 case (int)Weapons.Short_Bow:
                 case (int)Weapons.Long_Bow:
+                case (int)Weapons.Crossbow:
                     return SoundClips.ArrowShoot;
 
                 default:

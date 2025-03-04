@@ -32,7 +32,7 @@ namespace DaggerfallConnect.Arena2
         const int socialGroupCount = 5;
         const int defaultBackstoriesStart = 4116;
         static int[] childGeneric = { 0, 1000, 3000, 16000 };  // Question 2000 is excluded
-        static int[] adolescentGeneric = { 3001, 4000, 5000, 5001 };
+        static int[] adolescentGeneric = { 3001, 4000, 5000, 5001, 29000 };
         static int[] youngadultGeneric = { 5002, 6000, 8000, 17000 };  // Question 7000 is excluded
         static int[] adultGeneric = { 9000, 10000, 11000, 11001, 11002, 11003, 11004, 12000, 13000, 14000, 15000 };
 

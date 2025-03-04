@@ -137,7 +137,7 @@ namespace DaggerfallWorkshop.Game
                 return;
 
             EnemyEntity entity = entityBehaviour.Entity as EnemyEntity;
-            Items.DaggerfallUnityItem arrow = Items.ItemBuilder.CreateWeapon(Items.Weapons.Arrow, FormulaHelper.RandomMaterial(entity.Stats.GetLiveStatValue(DFCareer.Stats.Luck)));
+            Items.DaggerfallUnityItem arrow = Items.ItemBuilder.CreateWeapon(Items.Weapons.Arrow, FormulaHelper.RandomMaterial(entity.Stats.GetLiveStatValue(DFCareer.Stats.Luck), entity.Level));
 
             if (senses.Target == GameManager.Instance.PlayerEntityBehaviour)
                 damage = ApplyDamageToPlayer(entity.ItemEquipTable.GetItem(Items.EquipSlots.RightHand), arrow);
@@ -252,9 +252,11 @@ namespace DaggerfallWorkshop.Game
 
             // Calculate damage
             // ProjectN: adding variables for arrow material
-            if (weapon.GetWeaponSkillID() != DFCareer.Skills.Archery)
+            if (weapon != null && weapon.GetWeaponSkillID() != DFCareer.Skills.Archery)
                 damage = FormulaHelper.CalculateAttackDamage(entity, playerEntity, false, 0, weapon);
-            else damage = FormulaHelper.CalculateAttackDamage(entity, playerEntity, false, 0, weapon, arrow);
+            else if (weapon != null)
+                damage = FormulaHelper.CalculateAttackDamage(entity, playerEntity, false, 0, weapon, arrow);
+            else damage = FormulaHelper.CalculateAttackDamage(entity, playerEntity, false, 0, weapon);
 
             // Break any "normal power" concealment effects on enemy
             if (entity.IsMagicallyConcealedNormalPower && damage > 0)

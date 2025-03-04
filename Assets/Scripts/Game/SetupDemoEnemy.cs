@@ -160,12 +160,14 @@ namespace DaggerfallWorkshop.Game
                     entity.WorldContext = GameManager.Instance.PlayerEnterExit.WorldContext;
 
                     int enemyIndex = (int)EnemyType;
-                    if (enemyIndex >= 0 && enemyIndex <= 42)
+                    if ((enemyIndex >= 0 && enemyIndex <= 42) ||
+                        (enemyIndex >= 256 && enemyIndex <= 290))
                     {
                         entityBehaviour.EntityType = EntityTypes.EnemyMonster;
                         entity.SetEnemyCareer(mobileEnemy, entityBehaviour.EntityType);
                     }
-                    else if (enemyIndex >= 128 && enemyIndex <= 146)
+                    else if ((enemyIndex >= 128 && enemyIndex <= 146) ||
+                             (enemyIndex >= 384 && enemyIndex <= 398))
                     {
                         entityBehaviour.EntityType = EntityTypes.EnemyClass;
                         entity.SetEnemyCareer(mobileEnemy, entityBehaviour.EntityType);

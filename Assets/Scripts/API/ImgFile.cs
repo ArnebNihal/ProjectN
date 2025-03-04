@@ -127,7 +127,7 @@ namespace DaggerfallConnect.Arena2
                     return string.Empty;
 
                 string fn = Path.GetFileName(managedFile.FilePath);
-                Debug.Log("filePath: " + managedFile.FilePath + ", file name: " + fn);
+                // Debug.Log("filePath: " + managedFile.FilePath + ", file name: " + fn);
 
                 // Handle special palettes
                 if (fn.Substring(0, 4) == "FMAP")

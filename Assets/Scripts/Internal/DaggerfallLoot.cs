@@ -78,10 +78,10 @@ namespace DaggerfallWorkshop
         /// Generates items in the given item collection based on loot table key.
         /// Any existing items will be destroyed.
         /// </summary>
-        public static void GenerateItems(string LootTableKey, ItemCollection collection)
+        public static void GenerateItems(string LootTableKey, ItemCollection collection, int levelModifier = 1)
         {
             LootChanceMatrix matrix = LootTables.GetMatrix(LootTableKey);
-            DaggerfallUnityItem[] newitems = LootTables.GenerateRandomLoot(matrix, GameManager.Instance.PlayerEntity);
+            DaggerfallUnityItem[] newitems = LootTables.GenerateRandomLoot(matrix, GameManager.Instance.PlayerEntity, levelModifier);
 
             collection.Import(newitems);
         }
@@ -161,6 +161,16 @@ namespace DaggerfallWorkshop
             int shopQuality = buildingData.quality;
             Game.Entity.PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
             int luck = playerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
+
+            int region = playerGPS.CurrentRegionIndex;
+            GovernmentType government = TextManager.Instance.GetCurrentRegionGovernment(region);
+            DFRegion.LocationTypes location = playerGPS.CurrentLocationType;
+            int levelModifier = 0;
+            levelModifier += FormulaHelper.GovernmentModifier(government);
+            levelModifier += FormulaHelper.LocationModifier(location);
+            // TO TEST: adding a partial quality level to levelModifier
+            levelModifier += shopQuality / 4;
+
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
             byte[] itemGroups = { 0 };
 
@@ -261,11 +271,11 @@ namespace DaggerfallWorkshop
                                 if (Dice100.SuccessRoll(stockChance))
                                 {
                                     if (itemGroup == ItemGroups.Weapons)
-                                        item = ItemBuilder.CreateWeapon(GetCorrectWeaponIndex(j, Weapons.Dagger), FormulaHelper.RandomMaterial(luck));
+                                        item = ItemBuilder.CreateWeapon(GetCorrectWeaponIndex(j, Weapons.Dagger), FormulaHelper.RandomMaterial(luck, levelModifier));
                                     else if (itemGroup == ItemGroups.Armor)
                                     {
                                         Armor armor = GetCorrectArmorIndex(j, Armor.Cuirass);
-                                        item = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, armor, FormulaHelper.RandomArmorMaterial(armor, luck));
+                                        item = ItemBuilder.CreateArmor(playerEntity.Gender, playerEntity.Race, armor, FormulaHelper.RandomArmorMaterial(armor, luck, levelModifier));
                                     }
                                     else if (itemGroup == ItemGroups.MensClothing)
                                     {
@@ -373,6 +383,16 @@ namespace DaggerfallWorkshop
             Game.Entity.PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
             int luck = playerEntity.Stats.GetLiveStatValue(DFCareer.Stats.Luck);
 
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            int region = playerGPS.CurrentRegionIndex;
+            GovernmentType government = TextManager.Instance.GetCurrentRegionGovernment(region);
+            DFRegion.LocationTypes location = playerGPS.CurrentLocationType;
+            int levelModifier = 0;
+            levelModifier += FormulaHelper.GovernmentModifier(government);
+            levelModifier += FormulaHelper.LocationModifier(location);
+            // TO TEST: adding a partial quality level to levelModifier
+            levelModifier += buildingData.quality / 4;
+
             float low = 1f;
             if (buildingData.quality <= 3)
                 low = 0.25f;        // 01 - 03, worn+
@@ -428,7 +448,7 @@ namespace DaggerfallWorkshop
                     {
                         if (itemGroup == ItemGroups.MagicItems)
                         {
-                            item = ItemBuilder.CreateRandomMagicItem(luck, playerEntity.Gender, playerEntity.Race);
+                            item = ItemBuilder.CreateRandomMagicItem(luck, playerEntity.Gender, playerEntity.Race, levelModifier);
                         }
                         else if (itemGroup == ItemGroups.Books)
                         {

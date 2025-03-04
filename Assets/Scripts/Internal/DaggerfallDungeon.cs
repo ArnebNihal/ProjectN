@@ -289,23 +289,43 @@ namespace DaggerfallWorkshop
 #endif
 
             // Get player level - use level 1 if game not running (e.g. importing in editor mode)
-            float playerLevel = 1;
+            // ProjectN: dungeon level is now based on dungeon type, dungeon size and distance 
+            // from the starting block. Dungeon level determines enemies encountered, loot and stuff.
+            float dungeonLevel = 1;
             if (Application.isPlaying)
-                playerLevel = GameManager.Instance.PlayerEntity.Level;
+            {            
+                // playerLevel = GameManager.Instance.PlayerEntity.Level;
+                dungeonLevel = GetDungeonTypeLevel(Summary.DungeonType);
+                dungeonLevel += GetDungeonSizeLevel(Summary.LocationType);
+            }
+
+            // ProjectN: get coordinates of starting block, since distance from it is a factor in rolling
+            // random enemies.
+            DFPosition startingBlock = new DFPosition(0, 0);
+            for (int i = 0; i < summary.LocationData.Dungeon.Blocks.Length; i++)
+            {
+                if (summary.LocationData.Dungeon.Blocks[i].IsStartingBlock)
+                {
+                    startingBlock = new DFPosition(summary.LocationData.Dungeon.Blocks[i].X, summary.LocationData.Dungeon.Blocks[i].Z);
+                    break;
+                }
+            }
 
             // Calculate monster power - this is a clamped 0-1 value based on player's level from 1-20
-            float monsterPower = Mathf.Clamp01(playerLevel / 20f);
+            // float monsterPower = Mathf.Clamp01(dungeonLevel / 20f);
 
             // Create dungeon layout
             for (int i = 0; i < summary.LocationData.Dungeon.Blocks.Length; i++)
             {
                 DFLocation.DungeonBlock block = summary.LocationData.Dungeon.Blocks[i];
+                float actualDungeonLevel = dungeonLevel + CalculateDistance(startingBlock, new DFPosition(block.X, block.Z));
+
                 GameObject go = GameObjectHelper.CreateRDBBlockGameObject(
                     block.BlockName,
                     DungeonTextureTable,
                     block.IsStartingBlock,
                     Summary.DungeonType,
-                    monsterPower,
+                    actualDungeonLevel,
                     RandomMonsterVariance,
                     (int)DateTime.Now.Ticks/*Summary.ID*/,      // TODO: Add more options for seed
                     dfUnity.Option_DungeonBlockPrefab,
@@ -518,6 +538,61 @@ namespace DaggerfallWorkshop
         {
             if (OnSetDungeon != null)
                 OnSetDungeon(this);
+        }
+
+        public static int GetDungeonTypeLevel(DFRegion.DungeonTypes dungeonType)
+        {
+            switch (dungeonType)
+            {
+                case DFRegion.DungeonTypes.NaturalCave:
+                case DFRegion.DungeonTypes.Cemetery:
+                case DFRegion.DungeonTypes.RuinedCastle:
+                    return 0;
+                case DFRegion.DungeonTypes.SpiderNest:
+                case DFRegion.DungeonTypes.ScorpionNest:
+                case DFRegion.DungeonTypes.Prison:
+                case DFRegion.DungeonTypes.Mine:
+                    return 3;
+                case DFRegion.DungeonTypes.BarbarianStronghold:
+                case DFRegion.DungeonTypes.OrcStronghold:
+                case DFRegion.DungeonTypes.HumanStronghold:
+                    return 6;
+                case DFRegion.DungeonTypes.Crypt:
+                case DFRegion.DungeonTypes.GiantStronghold:
+                case DFRegion.DungeonTypes.VampireHaunt:
+                case DFRegion.DungeonTypes.Laboratory:
+                    return 9;
+                case DFRegion.DungeonTypes.DragonsDen:
+                case DFRegion.DungeonTypes.Coven:
+                case DFRegion.DungeonTypes.DesecratedTemple:
+                case DFRegion.DungeonTypes.VolcanicCaves:
+                    return 12;
+                default:
+                    return 0;
+            }
+        }
+
+        public static int GetDungeonSizeLevel(DFRegion.LocationTypes dungeonSize)
+        {
+            switch (dungeonSize)
+            {
+                case DFRegion.LocationTypes.DungeonRuin:
+                    return 0;
+                case DFRegion.LocationTypes.DungeonKeep:
+                    return 5;
+                case DFRegion.LocationTypes.DungeonLabyrinth:
+                    return 10;
+                default:
+                    return 0;
+            }
+        }
+
+        public static float CalculateDistance(DFPosition position1, DFPosition position2)
+        {
+            double absX = (double)(Math.Abs(position1.X - position2.X));
+            double absY = (double)(Math.Abs(position1.Y - position2.Y));
+
+            return (float)(Math.Sqrt((Math.Pow(absX, 2.0f) + Math.Pow(absY, 2.0f))));
         }
     }
 }

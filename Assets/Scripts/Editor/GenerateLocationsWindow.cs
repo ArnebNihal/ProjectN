@@ -1411,9 +1411,9 @@ namespace MapEditor
             string resultingName;
             int dungeonNameType;
 
-            if (dungeonType == (int)DFRegion.DungeonTypes.Cemetery || (UnityEngine.Random.Range(0, 10) + 1 < 8))
+            if (dungeonType == (int)DFRegion.DungeonTypes.Cemetery || (UnityEngine.Random.Range(0, 10) + 1 < 10))
                 dungeonNameType = dungeonType;
-            else dungeonNameType = Enum.GetNames(typeof(DFRegion.DungeonTypes)).Length;
+            else dungeonNameType = UnityEngine.Random.Range(0, (Enum.GetNames(typeof(DFRegion.DungeonTypes)).Length - 2));  // Excluding NoDungeon and cemeteries
 
             // 0: The (name)'s (epithet);
             // 1: (title) (name)'s (epithet);
@@ -2738,6 +2738,7 @@ namespace MapEditor
             generatedLocation.Exterior.Buildings = new DFLocation.BuildingData[generatedLocation.Exterior.BuildingCount];
 
             int buildingCount = 0;
+            int resultingKey = 0;
 
             for (int j = 0; j < townShape.Item1 * townShape.Item2; j++)
             {
@@ -2755,12 +2756,15 @@ namespace MapEditor
 
                     buildingCount++;
                     partialBuildingCount++;
+                    resultingKey = (resultingKey | GetPartialKey(generatedLocation.Exterior.Buildings[buildingCount]));
                 }
                 while (partialBuildingCount < block.RmbBlock.FldHeader.BuildingDataList.Length);                
             }
 
             if (buildingCount != generatedLocation.Exterior.BuildingCount)
                 Debug.Log("Buildings set and BuildingCount for location " + generatedLocation.Exterior.RecordElement.Header.LocationName + " don't correspond");
+
+            generatedLocation.MapTableData.Key = (uint)resultingKey;
 
             generatedLocation.Dungeon = new DFLocation.LocationDungeon();
             generatedLocation.Climate = MapsFile.GetWorldClimateSettings(ClimateInfo.Climate[position.X, position.Y]);
@@ -2769,6 +2773,78 @@ namespace MapEditor
             generatedLocation.LocationIndex = 0; // TODO
 
             return generatedLocation;
+        }
+
+        protected int GetPartialKey(DFLocation.BuildingData building)
+        {
+            switch (building.BuildingType)
+            {
+                case DFLocation.BuildingTypes.Alchemist:
+                    return 2048;
+                case DFLocation.BuildingTypes.Armorer:
+                    return 1024;
+                case DFLocation.BuildingTypes.Bank:
+                    return 4096;
+                case DFLocation.BuildingTypes.Bookseller:
+                    return 8192;
+                case DFLocation.BuildingTypes.ClothingStore:
+                    return 16384;
+                case DFLocation.BuildingTypes.GemStore:
+                    return 32768;
+                case DFLocation.BuildingTypes.Library:
+                    return 65536;
+                case DFLocation.BuildingTypes.PawnShop:
+                    return 4194304;                
+                case DFLocation.BuildingTypes.Tavern:
+                    return 256;
+                case DFLocation.BuildingTypes.WeaponSmith:
+                    return 512;
+                case DFLocation.BuildingTypes.Temple:
+                    switch (building.FactionId)
+                    {
+                        case 21:
+                            return 2;
+                        case 22:
+                            return 128;
+                        case 24:
+                            return 32;
+                        case 26:
+                            return 1;
+                        case 27:
+                            return 8;
+                        case 29:
+                            return 4;
+                        case 33:
+                            return 64;
+                        case 35:
+                            return 16;
+                        default:
+                            return 0;
+                    }
+                case DFLocation.BuildingTypes.GuildHall:
+                    switch (building.FactionId)
+                    {
+                        case 40:
+                            return 262144;
+                        case 41:
+                            return 2097152;
+                        case 368:
+                        case 408:
+                        case 409:
+                        case 410:
+                        case 411:
+                        case 413:
+                        case 414:
+                        case 415:
+                        case 416:
+                        case 417:
+                            return 131072;
+                        default:
+                            return 0;
+                    }
+                default:
+                    return 0;
+            }
         }
 
         protected void GenerateTownSize(int locationType, out (int, int, int) refinedSize, bool isCapital = false)

@@ -59,6 +59,7 @@ namespace DaggerfallWorkshop.Game.Guilds
 
             // When leaving they will try to forcibly 'retire' you!
             int deathSquad = 4 + (GameManager.Instance.PlayerEntity.Level / 2);
+            GameObjectHelper.CreateFoeSpawner(false, MobileTypes.DarkBrotherhood, deathSquad, 1, 10);
             GameObjectHelper.CreateFoeSpawner(false, MobileTypes.Assassin, deathSquad, 1, 5);
             GameObjectHelper.CreateFoeSpawner(false, MobileTypes.Nightblade, deathSquad, 4, 16);
         }

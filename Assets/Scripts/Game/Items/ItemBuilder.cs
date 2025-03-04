@@ -403,15 +403,226 @@ namespace DaggerfallWorkshop.Game.Items
             }
 
             ApplyWeaponMaterial(newItem, material);
+            int variant = GetWeaponVariant(newItem, material);
+            SetVariant(newItem, variant);
             
             return newItem;
+        }
+
+        public static int GetWeaponVariant(DaggerfallUnityItem weapon, MaterialTypes material)
+        {
+            // For the moment, there's no Glass Exotic variant
+            if (material == MaterialTypes.Glass || WeaponHasNoVariants(weapon.TemplateIndex))
+                return 0;
+
+            if (!GameManager.HasInstance)
+                return 0;
+
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            int chances = 1;
+
+            if (IsFromThisArea(weapon))
+                chances = 10;
+            else if (playerGPS.IsPlayerInTown(true) && playerGPS.CurrentLocation.Exterior.ExteriorData.PortTownAndUnknown != 0)
+                chances = 4;
+
+            if (DFRandom.random_range_inclusive(1, 1000) <= chances)
+                return 1;
+
+            return 0;
+        }
+
+        public static bool IsFromThisArea(DaggerfallUnityItem weapon)
+        {
+            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+
+            // At the moment, it's not possible to visit a place where daedric exotic weapons are "common"
+            if (weapon.nativeMaterialValue == (int)MaterialTypes.Daedric)
+                return false;
+
+            if (weapon.nativeMaterialValue == (int)MaterialTypes.Iron)
+            {
+                if (IsFromUpperCraglorn(playerGPS.CurrentRegionIndex) &&
+                   (weapon.TemplateIndex == (int)Weapons.Claymore ||
+                    weapon.TemplateIndex == (int)Weapons.Warhammer ||
+                    weapon.TemplateIndex == (int)Weapons.War_Axe))
+                    return true;
+            }
+
+            if (weapon.nativeMaterialValue == (int)MaterialTypes.Orcish)
+            {
+                if (playerGPS.CurrentRegionIndex == Array.IndexOf(WorldData.WorldSetting.RegionNames, "Orsinium Area") &&
+                   (weapon.TemplateIndex == (int)Weapons.Dagger ||
+                    weapon.TemplateIndex == (int)Weapons.Tanto ||
+                    weapon.TemplateIndex == (int)Weapons.Staff ||
+                    weapon.TemplateIndex == (int)Weapons.Shortsword ||
+                    weapon.TemplateIndex == (int)Weapons.Wakazashi ||
+                    weapon.TemplateIndex == (int)Weapons.Longsword ||
+                    weapon.TemplateIndex == (int)Weapons.Katana ||
+                    weapon.TemplateIndex == (int)Weapons.Dai_Katana))
+                    return true;
+                if (IsFromHollowWastes(playerGPS.CurrentRegionIndex) &&
+                   (weapon.TemplateIndex == (int)Weapons.Broadsword ||
+                    weapon.TemplateIndex == (int)Weapons.Saber ||
+                    weapon.TemplateIndex == (int)Weapons.Claymore ||
+                    weapon.TemplateIndex == (int)Weapons.Mace ||
+                    weapon.TemplateIndex == (int)Weapons.Flail))
+                    return true;
+                if (IsFromValusMountains(playerGPS.CurrentRegionIndex) &&
+                   (weapon.TemplateIndex == (int)Weapons.Warhammer ||
+                    weapon.TemplateIndex == (int)Weapons.Battle_Axe ||
+                    weapon.TemplateIndex == (int)Weapons.War_Axe))                
+                    return true;
+                if (IsFromGreenshade(playerGPS.CurrentRegionIndex) &&
+                    weapon.TemplateIndex == (int)Weapons.Short_Bow)
+                    return true;
+                if (IsFromGrathwood(playerGPS.CurrentRegionIndex) &&
+                    weapon.TemplateIndex == (int)Weapons.Long_Bow)
+                    return true;
+            }
+
+            return RandomWeaponOrigin(playerGPS.CurrentRegionIndex, weapon);
+        }
+
+        public static bool RandomWeaponOrigin(int regionIndex, DaggerfallUnityItem weapon)
+        {
+            int factor = weapon.TemplateIndex * weapon.nativeMaterialValue * 7;
+            int regionNumber = WorldData.WorldSetting.RegionNames.Length;
+            while (factor >= regionNumber)
+            {
+                factor -= regionNumber;
+            }
+            return regionIndex == factor;
+        }
+
+        public static int RandomWeaponOrigin(DaggerfallUnityItem weapon)
+        {
+            int factor = weapon.TemplateIndex * weapon.nativeMaterialValue * 7;
+            int regionNumber = WorldData.WorldSetting.RegionNames.Length;
+            while (factor >= regionNumber)
+            {
+                factor -= regionNumber;
+            }
+            return factor;
+        }
+
+        /// <summary>
+        /// Checks if the passed region index belongs to a region in the Hollow Wastes area
+        /// (https://en.uesp.net/wiki/Lore:Hollow_Wastes)
+        /// </summary>
+        public static bool IsFromHollowWastes(int regionIndex)
+        {
+            switch (regionIndex)
+            {
+                case 11:    // Dak'fron
+                case 20:    // Sentinel
+                case 47:    // Ayasofya
+                case 48:    // Tigonus
+                case 54:    // Santaki
+                case 55:    // Antiphyllos
+                case 56:    // Bergama
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the passed region index belongs to a region in the Valus Mountains area
+        /// (https://en.uesp.net/wiki/Lore:Valus_Mountains)
+        /// </summary>
+        public static bool IsFromValusMountains(int regionIndex)
+        {
+            switch (regionIndex)
+            {
+                case 153:   // Kragenmoor
+                case 154:   // Andrethis
+                case 351:   // Cheydinhal
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the passed region index belongs to a region in the Grathwood area
+        /// (https://en.uesp.net/wiki/Lore:Grahtwood)
+        /// </summary>
+        public static bool IsFromGrathwood(int regionIndex)
+        {
+            switch (regionIndex)
+            {
+                case 244:   // Tarlain Heights
+                case 245:   // Cormount
+                case 246:   // Stonesquare
+                case 247:   // Southpoint
+                case 251:   // Haven
+                case 299:   // Greenhall
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the passed region index belongs to a region in the Greenshade area
+        /// (https://en.uesp.net/wiki/Lore:Greenshade)
+        /// </summary>
+        public static bool IsFromGreenshade(int regionIndex)
+        {
+            switch (regionIndex)
+            {
+                case 239:   // Woodheart
+                case 240:   // Vullen Haven
+                case 241:   // Longhaven
+                case 242:   // Marbruk Field
+                case 243:   // Greenheart
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks if the passed region index belongs to a region in the Upper Craglorn area
+        /// (https://en.uesp.net/wiki/Lore:Craglorn)
+        /// </summary>
+        public static bool IsFromUpperCraglorn(int regionIndex)
+        {
+            switch (regionIndex)
+            {
+                case 104:   // Belkarth
+                case 105:   // Dragon Gate
+                case 106:   // Dragonstar
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static bool WeaponHasNoVariants(int weaponIndex)
+        {
+            switch (weaponIndex)
+            {
+                case 288:   // Hatchet
+                case 289:   // Flail
+                    return true;
+
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
         /// Creates random weapon.
         /// </summary>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem CreateRandomWeapon(int luck, bool isTownGuard = false)
+        public static DaggerfallUnityItem CreateRandomWeapon(int luck, int levelModifier = 1, bool isTownGuard = false)
         {
             // Create a random weapon type, including any custom items registered as weapons
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
@@ -426,7 +637,7 @@ namespace DaggerfallWorkshop.Game.Items
                 newItem = CreateItem(ItemGroups.Weapons, customItemTemplates[groupIndex - enumArray.Length]);
  
             // Random weapon material
-            MaterialTypes material = FormulaHelper.RandomMaterial(luck, isTownGuard);
+            MaterialTypes material = FormulaHelper.RandomMaterial(luck, levelModifier, isTownGuard);
 
             if (groupIndex == 18)
             {   // Handle arrows
@@ -483,7 +694,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="gender">Gender armor is created for.</param>
         /// <param name="race">Race armor is created for.</param>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem CreateRandomArmor(int luck, Genders gender, Races race, bool isTownGuard = false)
+        public static DaggerfallUnityItem CreateRandomArmor(int luck, Genders gender, Races race, int levelModifier = 1, bool isTownGuard = false)
         {
             // Create a random armor type, including any custom items registered as armor
             ItemHelper itemHelper = DaggerfallUnity.Instance.ItemHelper;
@@ -498,7 +709,7 @@ namespace DaggerfallWorkshop.Game.Items
             // else
             //     newItem = CreateItem(ItemGroups.Armor, customItemTemplates[groupIndex - enumArray.Length]);
 
-            ApplyArmorSettings(newItem, gender, race, FormulaHelper.RandomArmorMaterial((Armor)enumArray.GetValue(groupIndex), luck, isTownGuard));
+            ApplyArmorSettings(newItem, gender, race, FormulaHelper.RandomArmorMaterial((Armor)enumArray.GetValue(groupIndex), luck, levelModifier, isTownGuard));
 
             return newItem;
         }
@@ -586,7 +797,7 @@ namespace DaggerfallWorkshop.Game.Items
             
             if (GetArmorMaterialType((int)material) >= MaterialTypes.Iron)
             {
-                Debug.Log("Armor material type:  + " + GetArmorMaterialType((int)material));
+                Debug.Log("materia: " + material + ", Armor material type: " + GetArmorMaterialType((int)material));
                 armor = SetItemPropertiesByMaterial(armor, (int)material);
             }
 
@@ -611,9 +822,9 @@ namespace DaggerfallWorkshop.Game.Items
         /// Creates random magic item in same manner as classic.
         /// </summary>
         /// <returns>DaggerfallUnityItem</returns>
-        public static DaggerfallUnityItem CreateRandomMagicItem(int playerLuck, Genders gender, Races race)
+        public static DaggerfallUnityItem CreateRandomMagicItem(int playerLuck, Genders gender, Races race, int levelModifier = 1)
         {
-            return CreateRegularMagicItem(chooseAtRandom, playerLuck, gender, race);
+            return CreateRegularMagicItem(chooseAtRandom, playerLuck, gender, race, levelModifier);
         }
 
         /// <summary>
@@ -625,7 +836,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="race">The race to create an item for.</param>
         /// <returns>DaggerfallUnityItem</returns>
         /// <exception cref="Exception">When a base item cannot be created.</exception>
-        public static DaggerfallUnityItem CreateRegularMagicItem(int chosenItem, int playerLuck, Genders gender, Races race)
+        public static DaggerfallUnityItem CreateRegularMagicItem(int chosenItem, int playerLuck, Genders gender, Races race, int levelModifier = 1)
         {
             byte[] itemGroups0 = { 2, 3, 6, 10, 12, 14, 25 };
             byte[] itemGroups1 = { 2, 3, 6, 12, 25 };
@@ -661,14 +872,14 @@ namespace DaggerfallWorkshop.Game.Items
             // Create the base item
             if (group == ItemGroups.Weapons)
             {
-                newItem = CreateRandomWeapon(playerLuck);
+                newItem = CreateRandomWeapon(playerLuck, levelModifier);
 
                 // No arrows as enchanted items
                 while (newItem.GroupIndex == 18)
-                    newItem = CreateRandomWeapon(playerLuck);
+                    newItem = CreateRandomWeapon(playerLuck, levelModifier);
             }
             else if (group == ItemGroups.Armor)
-                newItem = CreateRandomArmor(playerLuck, gender, race);
+                newItem = CreateRandomArmor(playerLuck, gender, race, levelModifier);
             else if (group == ItemGroups.MensClothing || group == ItemGroups.WomensClothing)
                 newItem = CreateRandomClothing(gender, race);
             else if (group == ItemGroups.ReligiousItems)
@@ -745,6 +956,7 @@ namespace DaggerfallWorkshop.Game.Items
         {
             int multiplier = 1;
             MaterialTypes material = MaterialTypes.Iron;
+            Debug.Log("nativeMaterialValue: " + nativeMaterialValue);
 
             if (item.ItemGroup == ItemGroups.Weapons)
             {
@@ -1409,9 +1621,106 @@ namespace DaggerfallWorkshop.Game.Items
                     }
                 }
             }
+            if (item.GroupIndex == (int)ItemGroups.Weapons && variant != 0)
+            {
+                string prefix = GetExoticWeaponPrefix(item);
+                item.shortName = prefix + " " + item.shortName;
+                item.value *= 10;
+                item.maxCondition = item.maxCondition * 15 / 10;
+                item.enchantmentPoints = item.enchantmentPoints * 15 / 10;
+            }
 
             // Store variant
             item.CurrentVariant = variant;
+        }
+
+        public static string GetExoticWeaponPrefix(DaggerfallUnityItem weapon)
+        {
+            if (weapon.nativeMaterialValue == (int)MaterialTypes.Daedric)
+            {
+                switch (weapon.TemplateIndex)
+                {
+                    case (int)Weapons.Dagger:
+                        return "Deadlands'";
+                    case (int)Weapons.Tanto:
+                        return "Mirrormoor's";
+                    case (int)Weapons.Staff:
+                        return "Apocrypha's";
+                    case (int)Weapons.Shortsword:
+                        return "Shivering Isle's";
+                    case (int)Weapons.Wakazashi:
+                        return "Void's";
+                    case (int)Weapons.Broadsword:
+                        return "Pit's";
+                    case (int)Weapons.Saber:
+                        return "Moonshadow's";
+                    case (int)Weapons.Longsword:
+                        return "Auroran's";
+                    case (int)Weapons.Katana:
+                        return "Spiral Skein's";
+                    case (int)Weapons.Claymore:
+                        return "Attribution's";
+                    case (int)Weapons.Dai_Katana:
+                        return "Revelry's";
+                    case (int)Weapons.Mace:
+                        return "Ashpit's";
+                    case (int)Weapons.Flail:
+                        return "Quagmire's";
+                    case (int)Weapons.Warhammer:
+                        return "Coldharbour's";
+                    case (int)Weapons.Battle_Axe:
+                        return "Regret's";
+                    case (int)Weapons.War_Axe:
+                        return "Oblivion's";
+                    case (int)Weapons.Short_Bow:
+                        return "Hunting Ground's";
+                    case (int)Weapons.Long_Bow:
+                        return "Evergloam's";
+                }
+            }
+            if (weapon.nativeMaterialValue == (int)MaterialTypes.Orcish)
+            {
+                switch (weapon.TemplateIndex)
+                {
+                    case (int)Weapons.Dagger:
+                    case (int)Weapons.Tanto:
+                    case (int)Weapons.Staff:
+                    case (int)Weapons.Shortsword:
+                    case (int)Weapons.Wakazashi:
+                    case (int)Weapons.Longsword:
+                    case (int)Weapons.Katana:
+                    case (int)Weapons.Dai_Katana:
+                        return "Orsinium's";
+                    case (int)Weapons.Broadsword:
+                    case (int)Weapons.Saber:
+                    case (int)Weapons.Claymore:
+                    case (int)Weapons.Mace:
+                    case (int)Weapons.Flail:
+                        return "Hollow Wastes'";
+                    case (int)Weapons.Warhammer:
+                    case (int)Weapons.Battle_Axe:
+                    case (int)Weapons.War_Axe:
+                        return "Valus'";
+                    case (int)Weapons.Short_Bow:
+                        return "Greenshade's";
+                    case (int)Weapons.Long_Bow:
+                        return "Grathwood's";
+                }                    
+            }
+            if (weapon.nativeMaterialValue == (int)MaterialTypes.Iron)
+            {
+                if (weapon.TemplateIndex == (int)Weapons.Claymore ||
+                    weapon.TemplateIndex == (int)Weapons.Warhammer ||
+                    weapon.TemplateIndex == (int)Weapons.War_Axe)
+                    return "Craglorn's";
+            }
+
+            string randomPrefix = WorldData.WorldSetting.RegionNames[RandomWeaponOrigin(weapon)];
+
+            if (randomPrefix.EndsWith("s")) randomPrefix += "'";
+            else randomPrefix += "'s";
+
+            return randomPrefix;
         }
 
         public static BodyMorphology GetBodyMorphology(Races race)
@@ -1443,11 +1752,12 @@ namespace DaggerfallWorkshop.Game.Items
 
         public static ArmorTypes GetArmorType(int nativeMaterialValue)
         {
-            return (ArmorTypes)(nativeMaterialValue / 0x0100 * 0x0100);
+            return (ArmorTypes)(nativeMaterialValue / 100 * 100);
         }
 
         public static MaterialTypes GetArmorMaterialType(int nativeMaterialValue)
         {
+            Debug.Log(nativeMaterialValue + " (nativeMaterialValue) % 0x0010 = " + (nativeMaterialValue % 0x0010));
             return (MaterialTypes)(nativeMaterialValue % 0x0010);
         }
 

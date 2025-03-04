@@ -368,7 +368,7 @@ namespace DaggerfallWorkshop
 
         HaltWeak = 302,
 
-        ArenaHomonculus = 305,
+        ArenaHomunculus = 305,
 
         ArenaIceGolem = 307,
 
@@ -571,5 +571,8 @@ namespace DaggerfallWorkshop
         Halt2 = 457,
 
         Groan = 458,
+
+        BattlespireScampBark = 1000,
+        BattlespireScampAttack = 1001,
     }
 }

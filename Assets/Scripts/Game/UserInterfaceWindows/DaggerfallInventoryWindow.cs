@@ -24,6 +24,7 @@ using DaggerfallWorkshop.Game.Banking;
 using System.Linq;
 using DaggerfallConnect;
 using DaggerfallWorkshop.Game.Formulas;
+using System.IO;
 
 namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 {
@@ -876,10 +877,15 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 string filename = TextureFile.IndexToFileName(dropIconArchive);
                 containerImage = ImageReader.GetImageData(filename, DaggerfallLootDataTables.dropIconIdxs[dropIconArchive][dropIconTexture], 0, true);
             }
-            else if (lootTarget != null && lootTarget.TextureArchive > 0)
+            else if (lootTarget != null && lootTarget.TextureArchive > 0 && lootTarget.TextureArchive < 1000)
             {
                 string filename = TextureFile.IndexToFileName(lootTarget.TextureArchive);
                 containerImage = ImageReader.GetImageData(filename, lootTarget.TextureRecord, 0, true);
+            }
+            else if (lootTarget != null && lootTarget.TextureArchive >= 1000 && lootTarget.TextureArchive < 1750)
+            {
+                string filename = TextureFile.IndexToFileName(lootTarget.TextureArchive);
+                containerImage = ImageReader.GetImageData(Path.Combine(lootTarget.TextureArchive.ToString(), filename), lootTarget.TextureRecord, 0, true);
             }
             else
             {

@@ -18,6 +18,7 @@ using DaggerfallWorkshop.Game.MagicAndEffects;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Items;
+using System;
 
 namespace DaggerfallWorkshop.Game.Entity
 {
@@ -73,6 +74,12 @@ namespace DaggerfallWorkshop.Game.Entity
         static byte[] DaedraLordSpells     = { 0x08, 0x0A, 0x0E, 0x3C, 0x43 };
         static byte[] LichSpells           = { 0x08, 0x0A, 0x0E, 0x22, 0x3C };
         static byte[] AncientLichSpells    = { 0x08, 0x0A, 0x0E, 0x1D, 0x1F, 0x22, 0x3C };
+        static byte[] HomunculusSpells     = { 0x07, 0x0A, 0x1D, 0x2C };
+        static byte[] MedusaSpells         = { 0x23 };
+        static byte[] SnowWolfSpells       = { 0x10 };
+        static byte[] HellHoundSpells      = { 0x07 };
+        static byte[] DremoraSpells        = { 0x08, 0x0E };
+        static byte[] ScampSpells          = { 0x1F };
         static byte[][] EnemyClassSpells   = { FrostDaedraSpells, DaedrothSpells, OrcShamanSpells, VampireAncientSpells, DaedraLordSpells, LichSpells, AncientLichSpells };
 
         #endregion
@@ -260,7 +267,7 @@ namespace DaggerfallWorkshop.Game.Entity
                 {
                     // Default like a monster
                     level = mobileEnemy.Level;
-                    maxHealth = Random.Range(mobileEnemy.MinHealth, mobileEnemy.MaxHealth + 1);
+                    maxHealth = UnityEngine.Random.Range(mobileEnemy.MinHealth, mobileEnemy.MaxHealth + 1);
                     for (int i = 0; i < ArmorValues.Length; i++)
                     {
                         ArmorValues[i] = (sbyte)(mobileEnemy.ArmorValue);
@@ -290,15 +297,42 @@ namespace DaggerfallWorkshop.Game.Entity
             }
             else if (entityType == EntityTypes.EnemyClass)
             {
-                careerIndex = mobileEnemy.ID - 128;
-                career = GetClassCareerTemplate((ClassCareers)careerIndex);
+                if (mobileEnemy.ID <= ((int)ClassCareers.Knight + 128))
+                {
+                    careerIndex = mobileEnemy.ID - 128;
+                    career = GetClassCareerTemplate((ClassCareers)careerIndex);
+                }
+                else{
+                    careerIndex = GetNewClassCareerIndex(mobileEnemy.ID);
+                    career = GetClassCareerTemplate((ClassCareers)careerIndex);
+                }
+                
                 stats.SetPermanentFromCareer(career);
 
                 // Enemy class is levelled to player and uses similar health rules
                 // City guards are 3 to 6 levels above the player
-                level = GameManager.Instance.PlayerEntity.Level;
-                if (careerIndex == (int)MobileTypes.Knight_CityWatch - 128)
-                    level += UnityEngine.Random.Range(3, 7);
+                // TODO: make enemy class level based on location + random factor
+                PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+                PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
+                int region = playerGPS.CurrentRegionIndex;
+                DFRegion.LocationTypes location = playerGPS.CurrentLocationType;
+                DFRegion.DungeonTypes dungeon;
+                GovernmentType government = TextManager.Instance.GetCurrentRegionGovernment(region);
+                if (playerEnterExit.IsPlayerInsideDungeon)
+                    dungeon = playerGPS.CurrentLocation.MapTableData.DungeonType;
+                level += FormulaHelper.GovernmentModifier(government);
+                level += FormulaHelper.LocationModifier(location);
+                if (playerEnterExit.IsPlayerInsideDungeon)
+                {
+                    dungeon = playerGPS.CurrentLocation.MapTableData.DungeonType;
+                    level += FormulaHelper.DungeonModifier(dungeon);
+                }
+                level = RandomizeLevel(level);
+                Debug.Log("career: " + career.Name + ", level: " + level);
+                // level = GameManager.Instance.PlayerEntity.Level;
+                // if (careerIndex == (int)MobileTypes.Knight_CityWatch - 128)
+                // if (careerIndex == (int)MobileTypes.Knight_CityWatch - 128)
+                //     level += UnityEngine.Random.Range(3, 7);
 
                 maxHealth = FormulaHelper.RollEnemyClassMaxHealth(level, career.HitPointsPerLevel);
             }
@@ -313,34 +347,45 @@ namespace DaggerfallWorkshop.Game.Entity
             this.entityType = entityType;
             name = career.Name;
             minMetalToHit = mobileEnemy.MinMetalToHit;
-            team = mobileEnemy.Team;
+            if (mobileEnemy.Team == MobileTeams.Random)
+                team = (MobileTeams)UnityEngine.Random.Range(0, Enum.GetNames(typeof(MobileTeams)).Length);
+            else team = mobileEnemy.Team;
 
-            short skillsLevel = (short)((level * 5) + 30);
-            if (skillsLevel > 100)
-            {
-                skillsLevel = 100;
-            }
+            short skillsLevel = 0;
+            // if (skillsLevel > 100)
+            // {
+            //     skillsLevel = 100;
+            // }
 
             for (int i = 0; i <= DaggerfallSkills.Count; i++)
             {
+                skillsLevel = (short)(level * 3 + GetSkillProficiencyBonus(career, i));
+                if (skillsLevel > 100)
+                {
+                    skillsLevel = 100;
+                }
                 skills.SetPermanentSkillValue(i, skillsLevel);
             }
 
             // Generate loot table items
-            DaggerfallLoot.GenerateItems(mobileEnemy.LootTableKey, items);
+            DaggerfallLoot.GenerateItems(mobileEnemy.LootTableKey, items, level);
 
             // Enemy classes and some monsters use equipment
-            if (careerIndex == (int)MonsterCareers.Orc || careerIndex == (int)MonsterCareers.OrcShaman)
+            // if (careerIndex == (int)MonsterCareers.Orc || careerIndex == (int)MonsterCareers.OrcShaman)
+            // {
+            //     SetEnemyEquipment(0);
+            // }
+            // else if (careerIndex == (int)MonsterCareers.Centaur || careerIndex == (int)MonsterCareers.OrcSergeant)
+            // {
+            //     SetEnemyEquipment(1);
+            // }
+            // else if (careerIndex == (int)MonsterCareers.OrcWarlord)
+            // {
+            //     SetEnemyEquipment(2);
+            // }
+            if (MonsterHasEquipment(careerIndex, out int variant))
             {
-                SetEnemyEquipment(0);
-            }
-            else if (careerIndex == (int)MonsterCareers.Centaur || careerIndex == (int)MonsterCareers.OrcSergeant)
-            {
-                SetEnemyEquipment(1);
-            }
-            else if (careerIndex == (int)MonsterCareers.OrcWarlord)
-            {
-                SetEnemyEquipment(2);
+                SetEnemyEquipment(variant);
             }
             else if (entityType == EntityTypes.EnemyClass)
             {
@@ -376,6 +421,20 @@ namespace DaggerfallWorkshop.Game.Entity
                     SetEnemySpells(LichSpells);
                 else if (careerIndex == (int)MonsterCareers.AncientLich)
                     SetEnemySpells(AncientLichSpells);
+                else if (careerIndex == (int)MonsterCareers.Homunculus)
+                    SetEnemySpells(HomunculusSpells);
+                else if (careerIndex == (int)MonsterCareers.Medusa)
+                    SetEnemySpells(MedusaSpells);
+                else if (careerIndex == (int)MonsterCareers.SnowWolf)
+                    SetEnemySpells(SnowWolfSpells);
+                else if (careerIndex == (int)MonsterCareers.HellHound)
+                    SetEnemySpells(HellHoundSpells);
+                else if (careerIndex == (int)MonsterCareers.FireDaemon)
+                    SetEnemySpells(FireDaedraSpells);
+                else if (careerIndex == (int)MonsterCareers.Dremora)
+                    SetEnemySpells(DremoraSpells);
+                else if (careerIndex == (int)MonsterCareers.Scamp)
+                    SetEnemySpells(ScampSpells);
             }
             else if (entityType == EntityTypes.EnemyClass && (mobileEnemy.CastsMagic))
             {
@@ -401,12 +460,102 @@ namespace DaggerfallWorkshop.Game.Entity
             FillVitalSigns();
         }
 
+        public static int RandomizeLevel(int startingLevel)
+        {
+            int minLevel = startingLevel - 3;
+            int maxLevel = startingLevel + 3;
+            int randomRoll = DFRandom.random_range_inclusive(1, 100);
+            while (randomRoll <= 5 || randomRoll > 95)
+            {                
+                if (randomRoll <= 5) minLevel--;
+                if (randomRoll > 95) maxLevel++;
+                randomRoll = DFRandom.random_range_inclusive(1, 100);
+            }
+            int finalLevel = DFRandom.random_range_inclusive(minLevel, maxLevel);
+            if (finalLevel < 1) finalLevel = 1;
+            else if (finalLevel > 100) finalLevel = 100; // Just in case...
+
+            return finalLevel;
+        }
+
+        public static bool MonsterHasEquipment(int careerIndex, out int variant)
+        {
+            variant = -1;
+            switch ((MonsterCareers)careerIndex)
+            {
+                case MonsterCareers.Orc:
+                    variant = 0;
+                    return true;
+
+                case MonsterCareers.AncientLich:
+                case MonsterCareers.DaedraLord:
+                case MonsterCareers.DaedraSeducer:
+                case MonsterCareers.Daedroth:
+                case MonsterCareers.Dremora:
+                case MonsterCareers.FireDaedra:
+                case MonsterCareers.FireDaemon:
+                case MonsterCareers.FrostDaedra:
+                case MonsterCareers.Gargoyle:
+                case MonsterCareers.Giant:
+                case MonsterCareers.Goblin:
+                case MonsterCareers.Lich:
+                case MonsterCareers.Lizardman:
+                case MonsterCareers.LizardWarrior:
+                case MonsterCareers.Minotaur:
+                case MonsterCareers.Ogre:
+                case MonsterCareers.OrcSergeant:
+                case MonsterCareers.OrcShaman:
+                case MonsterCareers.OrcWarlord:
+                case MonsterCareers.SkeletalSoldier:
+                case MonsterCareers.SkeletalWarrior:
+                case MonsterCareers.Vampire:
+                case MonsterCareers.VampireAncient:
+                case MonsterCareers.Centaur:
+                    variant = 1;
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        public static int GetNewClassCareerIndex(int careerID)
+        {
+            switch (careerID)
+            {
+                case (int)ClassCareers.Spy:
+                    return 18;
+                default:
+                    return 19;
+            }
+        }
+
+        public static int GetSkillProficiencyBonus(DFCareer career, int skill)
+        {
+            if (career.PrimarySkill1 == (DFCareer.Skills)skill ||
+                career.PrimarySkill2 == (DFCareer.Skills)skill ||
+                career.PrimarySkill3 == (DFCareer.Skills)skill)
+                return 30;
+            if (career.MajorSkill1 == (DFCareer.Skills)skill ||
+                career.MajorSkill2 == (DFCareer.Skills)skill ||
+                career.MajorSkill3 == (DFCareer.Skills)skill)
+                return 20;
+            if (career.MinorSkill1 == (DFCareer.Skills)skill ||
+                career.MinorSkill2 == (DFCareer.Skills)skill ||
+                career.MinorSkill3 == (DFCareer.Skills)skill ||
+                career.MinorSkill4 == (DFCareer.Skills)skill ||
+                career.MinorSkill5 == (DFCareer.Skills)skill ||
+                career.MinorSkill6 == (DFCareer.Skills)skill)
+                return 10;
+            return 0;
+        }
+
         public void SetEnemyEquipment(int variant)
         {
             // Assign the enemies starting equipment.
             AssignEnemyEquipment(GameManager.Instance.PlayerEntity, this, variant);
 
-            // Initialize armor values to 100 (no armor)
+            // Initialize armor values to 0 (no armor)
             for (int i = 0; i < ArmorValues.Length; i++)
             {
                 ArmorValues[i] = 0;
@@ -501,6 +650,14 @@ namespace DaggerfallWorkshop.Game.Entity
                 case (int)MonsterCareers.Dragonling:
                 case (int)MonsterCareers.Horse_Invalid:             // (grouped as undead in classic)
                 case (int)MonsterCareers.Dragonling_Alternate:      // (grouped as undead in classic)
+                case (int)MonsterCareers.Bat:
+                case (int)MonsterCareers.Wolf:
+                case (int)MonsterCareers.SnowWolf:
+                case (int)MonsterCareers.Dog:
+                case (int)MonsterCareers.BloodSpider:
+                case (int)MonsterCareers.Boar:
+                case (int)MonsterCareers.MountainLion:
+                case (int)MonsterCareers.Mudcrab:
                     return DFCareer.EnemyGroups.Animals;
                 case (int)MonsterCareers.Imp:
                 case (int)MonsterCareers.Spriggan:
@@ -517,6 +674,17 @@ namespace DaggerfallWorkshop.Game.Entity
                 case (int)MonsterCareers.OrcWarlord:
                 case (int)MonsterCareers.Dreugh:                    // (grouped as undead in classic)
                 case (int)MonsterCareers.Lamia:                     // (grouped as undead in classic)
+                case (int)MonsterCareers.Goblin:
+                case (int)MonsterCareers.Homunculus:
+                case (int)MonsterCareers.Lizardman:
+                case (int)MonsterCareers.LizardWarrior:
+                case (int)MonsterCareers.Medusa:
+                case (int)MonsterCareers.Grotesque:
+                case (int)MonsterCareers.MountainNymph:
+                case (int)MonsterCareers.Minotaur:
+                case (int)MonsterCareers.Troll:
+                case (int)MonsterCareers.LandDreugh:
+                case (int)MonsterCareers.Ogre:
                     return DFCareer.EnemyGroups.Humanoid;
                 case (int)MonsterCareers.SkeletalWarrior:
                 case (int)MonsterCareers.Zombie:                    // (grouped as animal in classic)
@@ -527,17 +695,33 @@ namespace DaggerfallWorkshop.Game.Entity
                 case (int)MonsterCareers.VampireAncient:
                 case (int)MonsterCareers.Lich:
                 case (int)MonsterCareers.AncientLich:
+                case (int)MonsterCareers.SkeletalSoldier:
+                case (int)MonsterCareers.GloomWraith:
+                case (int)MonsterCareers.FadedGhost:
+                case (int)MonsterCareers.KingLysandus:
+                case (int)MonsterCareers.Ghoul:
+                case (int)MonsterCareers.DireGhoul:
                     return DFCareer.EnemyGroups.Undead;
                 case (int)MonsterCareers.FrostDaedra:
                 case (int)MonsterCareers.FireDaedra:
                 case (int)MonsterCareers.Daedroth:
                 case (int)MonsterCareers.DaedraSeducer:
                 case (int)MonsterCareers.DaedraLord:
+                case (int)MonsterCareers.HellHound:
+                case (int)MonsterCareers.FireDaemon:
+                case (int)MonsterCareers.Dremora:
+                case (int)MonsterCareers.Scamp:
                     return DFCareer.EnemyGroups.Daedra;
                 case (int)MonsterCareers.FireAtronach:
                 case (int)MonsterCareers.IronAtronach:
                 case (int)MonsterCareers.FleshAtronach:
                 case (int)MonsterCareers.IceAtronach:
+                case (int)MonsterCareers.IronGolem:
+                case (int)MonsterCareers.Wisp:
+                case (int)MonsterCareers.IceGolem:
+                case (int)MonsterCareers.StoneGolem:
+                case (int)MonsterCareers.CenturionSphere:
+                case (int)MonsterCareers.SteamCenturion:
                     return DFCareer.EnemyGroups.None;
 
                 default:
@@ -557,6 +741,16 @@ namespace DaggerfallWorkshop.Game.Entity
                     case (int)ClassCareers.Thief:
                     case (int)ClassCareers.Assassin:
                     case (int)ClassCareers.Nightblade:
+                    case (int)ClassCareers.Druid:
+                    case (int)ClassCareers.RogueRider:
+                    case (int)ClassCareers.NecroAcolyte:
+                    case (int)ClassCareers.RogueDruid:
+                    case (int)ClassCareers.BountyHunter:
+                    case (int)ClassCareers.ThiefRider:
+                    case (int)ClassCareers.NecroGlaive:
+                    case (int)ClassCareers.NecroAssassin:
+                    case (int)ClassCareers.DarkBrotherhood:
+                    case (int)ClassCareers.WitchDefender:
                         return DFCareer.Skills.Streetwise;
                     default:
                         return DFCareer.Skills.Etiquette;
@@ -569,6 +763,8 @@ namespace DaggerfallWorkshop.Game.Entity
                 case (int)MonsterCareers.OrcSergeant:
                 case (int)MonsterCareers.OrcShaman:
                 case (int)MonsterCareers.OrcWarlord:
+                case (int)MonsterCareers.Goblin:
+                case (int)MonsterCareers.Troll:
                     return DFCareer.Skills.Orcish;
 
                 case (int)MonsterCareers.Harpy:
@@ -576,6 +772,8 @@ namespace DaggerfallWorkshop.Game.Entity
 
                 case (int)MonsterCareers.Giant:
                 case (int)MonsterCareers.Gargoyle:
+                case (int)MonsterCareers.Grotesque:
+                case (int)MonsterCareers.Ogre:
                     return DFCareer.Skills.Giantish;
 
                 case (int)MonsterCareers.Dragonling:
@@ -584,6 +782,8 @@ namespace DaggerfallWorkshop.Game.Entity
 
                 case (int)MonsterCareers.Nymph:
                 case (int)MonsterCareers.Lamia:
+                case (int)MonsterCareers.Medusa:
+                case (int)MonsterCareers.MountainNymph:
                     return DFCareer.Skills.Nymph;
 
                 case (int)MonsterCareers.FrostDaedra:
@@ -591,16 +791,24 @@ namespace DaggerfallWorkshop.Game.Entity
                 case (int)MonsterCareers.Daedroth:
                 case (int)MonsterCareers.DaedraSeducer:
                 case (int)MonsterCareers.DaedraLord:
+                case (int)MonsterCareers.HellHound:
+                case (int)MonsterCareers.FireDaemon:
+                case (int)MonsterCareers.Dremora:
+                case (int)MonsterCareers.Scamp:
                     return DFCareer.Skills.Daedric;
 
                 case (int)MonsterCareers.Spriggan:
+                case (int)MonsterCareers.Wisp:
                     return DFCareer.Skills.Spriggan;
 
                 case (int)MonsterCareers.Centaur:
+                case (int)MonsterCareers.Minotaur:
                     return DFCareer.Skills.Centaurian;
 
                 case (int)MonsterCareers.Imp:
                 case (int)MonsterCareers.Dreugh:
+                case (int)MonsterCareers.Homunculus:
+                case (int)MonsterCareers.LandDreugh:
                     return DFCareer.Skills.Impish;
 
                 case (int)MonsterCareers.Vampire:

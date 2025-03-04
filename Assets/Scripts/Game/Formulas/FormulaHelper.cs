@@ -137,7 +137,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                 return del(agility);
 
             // ProjectN: doubled AGI toHit bonus and malus, DFU was AGI / 10 - 5;
-            return (int)Mathf.Floor((float)agility - 40) / 5f;
+            return (int)Mathf.Floor((float)(agility - 40) / 5f);
         }
 
         public static int HitPointsModifier(int endurance)
@@ -267,7 +267,7 @@ namespace DaggerfallWorkshop.Game.Formulas
         // and a sprinkle of LUC.
         public static int CalculateInteriorLockpickingChance(int lockvalue, PlayerEntity player)
         {
-            int chance = (lockpickingSkill + 
+            int chance = (player.Skills.GetLiveSkillValue(DFCareer.Skills.Lockpicking) + 
                           SmallStatModifier(player.Stats.LiveIntelligence) + 
                           MinimumStatModifier(player.Stats.LiveLuck)) - 
                          (5 * lockvalue);
@@ -280,7 +280,7 @@ namespace DaggerfallWorkshop.Game.Formulas
         // and a sprinkle of LUC.
         public static int CalculateExteriorLockpickingChance(int lockvalue, PlayerEntity player)
         {
-            int chance = (lockpickingSkill + 
+            int chance = (player.Skills.GetLiveSkillValue(DFCareer.Skills.Lockpicking) +
                           SmallStatModifier(player.Stats.LiveIntelligence) + 
                           MinimumStatModifier(player.Stats.LiveLuck)) - 
                          (5 * lockvalue);
@@ -317,7 +317,8 @@ namespace DaggerfallWorkshop.Game.Formulas
         }
         
         // Calculate chance of stealth skill hiding the user.
-        // ProjectN: Added AGI and LUC to the calculation
+        // ProjectN: Added AGI and LUC to the calculation.
+        // ProjectN: Adding shoes type and encumbrance level to the calculation.
         public static int CalculateStealthChance(float distanceToTarget, DaggerfallEntityBehaviour target)
         {
             int chance = 2 * ((int)(distanceToTarget / MeshReader.GlobalScale) * (target.Entity.Skills.GetLiveSkillValue(DFCareer.Skills.Stealth) >> 10) + (SmallStatModifier(target.Entity.Stats.LiveAgility) + MinimumStatModifier(target.Entity.Stats.LiveLuck)));
@@ -582,6 +583,8 @@ namespace DaggerfallWorkshop.Game.Formulas
                 case Weapons.Mace:
                 case Weapons.Warhammer:
                     return 5;
+                case Weapons.Crossbow:
+                    return 8;
                 default:
                     return 0;
             }
@@ -605,6 +608,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                 case Weapons.Wakazashi:
                 case Weapons.ArchersAxe:
                 case Weapons.LightFlail:
+                case Weapons.Crossbow:
                     return 10;
                 case Weapons.Saber:
                 case Weapons.Battle_Axe:
@@ -1498,7 +1502,7 @@ namespace DaggerfallWorkshop.Game.Formulas
                 else if (weapon.GetWeaponSkillID() == DFCareer.Skills.BluntWeapon)
                     damageMod = damageMod * 2;
 
-                if (target is EnemyEntity)
+                if (attacker is EnemyEntity)
                 {
                     DaggerfallUI.Instance.PopupMessage(TextManager.Instance.GetLocalizedEnemyName((target as EnemyEntity).MobileEnemy.ID) + " " + TextManager.Instance.GetLocalizedText("enemyCriticalStrike"));
                 }
@@ -1731,12 +1735,12 @@ namespace DaggerfallWorkshop.Game.Formulas
                 ApplyConditionDamageThroughPhysicalHit(armor, target, (damage * armorDamageMultiplier), false, weapon);
             }
 
-            // ProjectN: if there's no armor covering that body part, damage clothes instead.
+            // ProjectN: if there's no armor covering that body part, damage clothes instead, but only by 1 damage, or characters wearing no armor would be naked all the time.
             if (damage > 0 && armor == null)
             {
                 DaggerfallUnityItem cloth = target.ItemEquipTable.GetItem(BodyPartsToEquipSlots((BodyParts)struckBodyPart, false));
                 if (cloth != null)
-                    ApplyConditionDamageThroughPhysicalHit(cloth, target, damage, false, weapon);
+                    ApplyConditionDamageThroughPhysicalHit(cloth, target, 1, false, weapon);
             }
         }
 
@@ -1968,12 +1972,10 @@ namespace DaggerfallWorkshop.Game.Formulas
         /// <param name="damage">Damage done by the hit</param>
         public static void OnMonsterHit(EnemyEntity attacker, DaggerfallEntity target, int damage)
         {
-            Action<EnemyEntity, DaggerfallEntity, int> del;
-            if (TryGetOverride("OnMonsterHit", out del))
-            {
-                del(attacker, target, damage);
-                return;
-            }
+            SpellRecord.SpellRecordData spellData;
+            EffectBundleSettings bundle;
+            EntityEffectBundle spell;
+            EntityEffectManager attackerEffectManager;
 
             Diseases[] diseaseListA = { Diseases.Plague };
             Diseases[] diseaseListB = { Diseases.Plague, Diseases.StomachRot, Diseases.BrainFever };
@@ -1992,21 +1994,22 @@ namespace DaggerfallWorkshop.Game.Formulas
                         InflictDisease(attacker, target, diseaseListB);
                     break;
                 case (int)MonsterCareers.GiantBat:
+                case (int)MonsterCareers.Bat:
                     // Classic uses 2% chance, but DF Chronicles says 5% chance. Not sure which was intended.
                     if (Dice100.SuccessRoll(2))
                         InflictDisease(attacker, target, diseaseListB);
                     break;
                 case (int)MonsterCareers.Spider:
                 case (int)MonsterCareers.GiantScorpion:
+                case (int)MonsterCareers.Lizardman:
+                case (int)MonsterCareers.LizardWarrior:
                     EntityEffectManager targetEffectManager = target.EntityBehaviour.GetComponent<EntityEffectManager>();
                     if (targetEffectManager.FindIncumbentEffect<Paralyze>() == null)
                     {
-                        SpellRecord.SpellRecordData spellData;
                         GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(66, out spellData);
-                        EffectBundleSettings bundle;
                         GameManager.Instance.EntityEffectBroker.ClassicSpellRecordDataToEffectBundleSettings(spellData, BundleTypes.Spell, out bundle);
-                        EntityEffectBundle spell = new EntityEffectBundle(bundle, attacker.EntityBehaviour);
-                        EntityEffectManager attackerEffectManager = attacker.EntityBehaviour.GetComponent<EntityEffectManager>();
+                        spell = new EntityEffectBundle(bundle, attacker.EntityBehaviour);
+                        attackerEffectManager = attacker.EntityBehaviour.GetComponent<EntityEffectManager>();
                         attackerEffectManager.SetReadySpell(spell, true);
                     }
                     break;
@@ -2015,12 +2018,13 @@ namespace DaggerfallWorkshop.Game.Formulas
                     if (random <= specialInfectionChance && target.EntityBehaviour.EntityType == EntityTypes.Player)
                     {
                         // Werewolf
-                        EntityEffectBundle bundle = GameManager.Instance.PlayerEffectManager.CreateLycanthropyDisease(LycanthropyTypes.Werewolf);
-                        GameManager.Instance.PlayerEffectManager.AssignBundle(bundle, AssignBundleFlags.SpecialInfection);
+                        EntityEffectBundle entityEffectBundle = GameManager.Instance.PlayerEffectManager.CreateLycanthropyDisease(LycanthropyTypes.Werewolf);
+                        GameManager.Instance.PlayerEffectManager.AssignBundle(entityEffectBundle, AssignBundleFlags.SpecialInfection);
                         Debug.Log("Player infected by werewolf.");
                     }
                     break;
                 case (int)MonsterCareers.Nymph:
+                case (int)MonsterCareers.MountainNymph:
                     FatigueDamage(attacker, target, damage);
                     break;
                 case (int)MonsterCareers.Wereboar:
@@ -2028,12 +2032,14 @@ namespace DaggerfallWorkshop.Game.Formulas
                     if (random <= specialInfectionChance && target.EntityBehaviour.EntityType == EntityTypes.Player)
                     {
                         // Wereboar
-                        EntityEffectBundle bundle = GameManager.Instance.PlayerEffectManager.CreateLycanthropyDisease(LycanthropyTypes.Wereboar);
-                        GameManager.Instance.PlayerEffectManager.AssignBundle(bundle, AssignBundleFlags.SpecialInfection);
+                        EntityEffectBundle entityEffectBundle = GameManager.Instance.PlayerEffectManager.CreateLycanthropyDisease(LycanthropyTypes.Wereboar);
+                        GameManager.Instance.PlayerEffectManager.AssignBundle(entityEffectBundle, AssignBundleFlags.SpecialInfection);
                         Debug.Log("Player infected by wereboar.");
                     }
                     break;
                 case (int)MonsterCareers.Zombie:
+                case (int)MonsterCareers.Ghoul:
+                case (int)MonsterCareers.DireGhoul:
                     // Nothing in classic. DF Chronicles says 2% chance of disease, which seems like it was probably intended.
                     // Diseases listed in DF Chronicles match those of mummy (except missing cholera, probably a mistake)
                     if (Dice100.SuccessRoll(2))
@@ -2049,8 +2055,8 @@ namespace DaggerfallWorkshop.Game.Formulas
                     if (random <= specialInfectionChance && target.EntityBehaviour.EntityType == EntityTypes.Player)
                     {
                         // Inflict stage one vampirism disease
-                        EntityEffectBundle bundle = GameManager.Instance.PlayerEffectManager.CreateVampirismDisease();
-                        GameManager.Instance.PlayerEffectManager.AssignBundle(bundle, AssignBundleFlags.SpecialInfection);
+                        EntityEffectBundle entityEffectBundle = GameManager.Instance.PlayerEffectManager.CreateVampirismDisease();
+                        GameManager.Instance.PlayerEffectManager.AssignBundle(entityEffectBundle, AssignBundleFlags.SpecialInfection);
                         Debug.Log("Player infected by vampire.");
                     }
                     else if (random <= 2.0f)
@@ -2061,6 +2067,34 @@ namespace DaggerfallWorkshop.Game.Formulas
                 case (int)MonsterCareers.Lamia:
                     // Nothing in classic, but DF Chronicles says 2 pts of fatigue damage per health damage
                     FatigueDamage(attacker, target, damage);
+                    break;
+                case (int)MonsterCareers.BloodSpider:
+                    GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(500, out spellData);
+                    GameManager.Instance.EntityEffectBroker.ClassicSpellRecordDataToEffectBundleSettings(spellData, BundleTypes.Spell, out bundle);
+                    spell = new EntityEffectBundle(bundle, attacker.EntityBehaviour);
+                    attackerEffectManager = attacker.EntityBehaviour.GetComponent<EntityEffectManager>();
+                    attackerEffectManager.SetReadySpell(spell, true);
+                    break;
+                case (int)MonsterCareers.GloomWraith:
+                    GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(23, out spellData);
+                    GameManager.Instance.EntityEffectBroker.ClassicSpellRecordDataToEffectBundleSettings(spellData, BundleTypes.Spell, out bundle);
+                    spell = new EntityEffectBundle(bundle, attacker.EntityBehaviour);
+                    attackerEffectManager = attacker.EntityBehaviour.GetComponent<EntityEffectManager>();
+                    attackerEffectManager.SetReadySpell(spell, true);
+                    break;
+                case (int)MonsterCareers.FireDaemon:
+                    GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(501, out spellData);
+                    GameManager.Instance.EntityEffectBroker.ClassicSpellRecordDataToEffectBundleSettings(spellData, BundleTypes.Spell, out bundle);
+                    spell = new EntityEffectBundle(bundle, attacker.EntityBehaviour);
+                    attackerEffectManager = attacker.EntityBehaviour.GetComponent<EntityEffectManager>();
+                    attackerEffectManager.SetReadySpell(spell, true);
+                    break;
+                case (int)MonsterCareers.Wisp:
+                    GameManager.Instance.EntityEffectBroker.GetClassicSpellRecord(502, out spellData);
+                    GameManager.Instance.EntityEffectBroker.ClassicSpellRecordDataToEffectBundleSettings(spellData, BundleTypes.Spell, out bundle);
+                    spell = new EntityEffectBundle(bundle, attacker.EntityBehaviour);
+                    attackerEffectManager = attacker.EntityBehaviour.GetComponent<EntityEffectManager>();
+                    attackerEffectManager.SetReadySpell(spell, true);
                     break;
                 default:
                     break;
@@ -2813,35 +2847,37 @@ namespace DaggerfallWorkshop.Game.Formulas
         /// <param name="luckMod">Player's luck when loot or shops, enemy's luck when it's its equipment.</param>
         /// <returns>MaterialTypes value of material selected.</returns>
         // ProjectN: making the material randomisation unleveled.
-        public static MaterialTypes RandomMaterial(int luck, bool isTownGuard = false, int region = -1, GovernmentType government = GovernmentType.None, DFRegion.LocationTypes location = DFRegion.LocationTypes.None, DFRegion.DungeonTypes dungeon = DFRegion.DungeonTypes.NoDungeon)
+        public static MaterialTypes RandomMaterial(int luck, int levelModifier = 1, bool isTownGuard = false, int region = -1, GovernmentType government = GovernmentType.None, DFRegion.LocationTypes location = DFRegion.LocationTypes.None, DFRegion.DungeonTypes dungeon = DFRegion.DungeonTypes.NoDungeon)
         {
-            int luckMod = (luck - 50) / 5;
+            int luckMod = SmallStatModifier(luck);
             int matRoll = UnityEngine.Random.Range(0, rareMaterial);
-            int matRollModified = matRoll + luckMod;
+            int matRollModified = matRoll + luckMod + levelModifier;
 
-            PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
-            PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
-            if (region == -1)
-                region = playerGPS.CurrentRegionIndex;
-            government = TextManager.Instance.GetCurrentRegionGovernment(region);
-            if (location == DFRegion.LocationTypes.None)
-                location = playerGPS.CurrentLocationType;
-            if (playerEnterExit.IsPlayerInsideDungeon)
-                dungeon = playerGPS.CurrentLocation.MapTableData.DungeonType;
+            Debug.Log("matRoll: " + matRoll + ", luckMod: " + luckMod + ", levelModifier: " + levelModifier);
 
-            matRollModified += GovernmentModifier(government);
-            matRollModified += LocationModifier(location);
-            matRollModified += DungeonModifier(dungeon);
+            // PlayerGPS playerGPS = GameManager.Instance.PlayerGPS;
+            // PlayerEnterExit playerEnterExit = GameManager.Instance.PlayerEnterExit;
+            // if (region == -1)
+            //     region = playerGPS.CurrentRegionIndex;
+            // government = TextManager.Instance.GetCurrentRegionGovernment(region);
+            // if (location == DFRegion.LocationTypes.None)
+            //     location = playerGPS.CurrentLocationType;
+            // if (playerEnterExit.IsPlayerInsideDungeon)
+            //     dungeon = playerGPS.CurrentLocation.MapTableData.DungeonType;
 
-            if (playerEnterExit.IsPlayerInsideOpenShop ||
-               (playerEnterExit.IsPlayerInsideClosedShop))
-            {
-                matRollModified += playerEnterExit.Interior.BuildingData.Quality / 4;
-            }
+            // matRollModified += GovernmentModifier(government);
+            // matRollModified += LocationModifier(location);
+            // matRollModified += DungeonModifier(dungeon);
+
+            // if (playerEnterExit.IsPlayerInsideOpenShop ||
+            //    (playerEnterExit.IsPlayerInsideClosedShop))
+            // {
+            //     matRollModified += playerEnterExit.Interior.BuildingData.Quality / 4;
+            // }
             
             MaterialTypes material;
-            if (matRoll == (rareMaterial - 1)) material = GetRareMaterial(luckMod);
-            else material = GetMaterialType(matRollModified, luckMod);
+            if (matRoll == (rareMaterial - 1)) material = GetRareMaterial(luckMod, levelModifier);
+            else material = GetMaterialType(matRollModified, luckMod, levelModifier);
 
             if (isTownGuard && material > MaterialTypes.Steel)
                 material = MaterialTypes.Steel;
@@ -2850,12 +2886,12 @@ namespace DaggerfallWorkshop.Game.Formulas
             return material;
         }
 
-        public static MaterialTypes GetMaterialType(int matRollModified, int luckMod)
+        public static MaterialTypes GetMaterialType(int matRollModified, int luckMod, int levelModifier)
         {
             MaterialTypes material = MaterialTypes.Iron; // initialize to iron
 
             if (matRollModified >= rareMaterial)
-                material = GetRareMaterial(luckMod);
+                material = GetRareMaterial(luckMod, levelModifier);
             else if (matRollModified >= (rareMaterial - dwarvenChance))
                 material = MaterialTypes.Dwarven;
             else if (matRollModified >= (rareMaterial - glassChance))
@@ -2955,17 +2991,18 @@ namespace DaggerfallWorkshop.Game.Formulas
                 }
             }
 
-        public static MaterialTypes GetRareMaterial(int luck)
+        public static MaterialTypes GetRareMaterial(int luck, int levelModifier)
         {
             int matRoll = UnityEngine.Random.Range(0, rareMaterial);
+            int matRollModified = matRoll + luck + levelModifier;
 
-            if (matRoll == (rareMaterial - 1) || matRoll + luck >= rareMaterial)
+            if (matRoll == (rareMaterial - 1) || matRollModified >= rareMaterial)
                 return MaterialTypes.Daedric;
-            else if (matRoll + luck >= (rareMaterial - ebonyChance))
+            else if (matRollModified >= (rareMaterial - ebonyChance))
                 return MaterialTypes.Ebony;
-            else if (matRoll + luck >= (rareMaterial - adamantiumChance))
+            else if (matRollModified >= (rareMaterial - adamantiumChance))
                 return MaterialTypes.Adamantium;
-            else if (matRoll % 2 == 0)
+            else if (matRollModified % 2 == 0)
                 return MaterialTypes.Mithril;
             else return MaterialTypes.Orcish;            
         }
@@ -2975,11 +3012,11 @@ namespace DaggerfallWorkshop.Game.Formulas
         /// </summary>
         /// <returns>ArmorMaterialTypes value of material selected.</returns>
         // ProjectN: player level is no longer a factor in material randomisation.
-        public static ArmorMaterialTypes RandomArmorMaterial(Armor armor, int luck, bool isTownGuard = false)
+        public static ArmorMaterialTypes RandomArmorMaterial(Armor armor, int luck, int levelModifier = 1, bool isTownGuard = false)
         {
             // Random armor material
             int roll = Dice100.Roll();
-            MaterialTypes armorMaterial = FormulaHelper.RandomMaterial(luck);
+            MaterialTypes armorMaterial = FormulaHelper.RandomMaterial(luck, levelModifier);
 
             // TODO: I need to write some formula for Armor (and item in general) that have to be harder to find
             // in certain areas of the world. Fur is one of those: it should be easier to find in cold areas, while

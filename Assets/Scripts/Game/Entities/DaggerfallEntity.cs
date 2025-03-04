@@ -23,6 +23,7 @@ using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects;
 using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.MagicAndEffects.MagicEffects;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Game.Entity
 {
@@ -943,11 +944,19 @@ namespace DaggerfallWorkshop.Game.Entity
         /// <returns></returns>
         public static DFCareer GetMonsterCareerTemplate(MonsterCareers career)
         {
-            MonsterFile monsterFile = new MonsterFile();
-            if (!monsterFile.Load(Path.Combine(DaggerfallUnity.Instance.Arena2Path, MonsterFile.Filename), FileUsage.UseMemory, true))
-                throw new Exception("Could not load " + MonsterFile.Filename);
+            List<DFCareer> monsterFile = new List<DFCareer>();
+            monsterFile = JsonConvert.DeserializeObject<List<DFCareer>>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, MonsterFile.Filename)));
+            // if (!monsterFile.Load(Path.Combine(WorldMaps.mapPath, MonsterFile.Filename), FileUsage.UseMemory, true))
+            //     throw new Exception("Could not load " + MonsterFile.Filename);
 
-            return monsterFile.GetMonsterClass((int)career);
+            return monsterFile[GetMonsterIndex((int)career)];
+        }
+
+        public static int GetMonsterIndex(int monsterCareer)
+        {
+            if (monsterCareer < 256)
+                return monsterCareer;
+            else return (monsterCareer - 255 + 42);
         }
 
         /// <summary>

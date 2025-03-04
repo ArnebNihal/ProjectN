@@ -262,6 +262,10 @@ namespace DaggerfallWorkshop
                 summary.AtlasedMaterial = false;
                 summary.AnimatedMaterial = summary.ImportedTextures.FrameCount > 1;
             }
+            // else if (archive >= 1500 && archive < 1750)
+            // {
+            //     material = 
+            // }
             else if (dfUnity.MaterialReader.AtlasTextures)
             {
                 material = dfUnity.MaterialReader.GetMaterialAtlas(

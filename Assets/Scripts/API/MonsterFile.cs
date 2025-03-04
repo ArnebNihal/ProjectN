@@ -89,7 +89,7 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         static public string Filename
         {
-            get { return "MONSTER.BSA"; }
+            get { return "Monster.bsa.json"; }
         }
 
         #endregion

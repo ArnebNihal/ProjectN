@@ -324,6 +324,14 @@ namespace MapEditor
             }
 
             EditorGUILayout.EndHorizontal();
+            EditorGUILayout.BeginHorizontal();
+
+            if (GUILayout.Button("Set Location Keys", GUILayout.MaxWidth(dataFieldSmall)))
+            {
+                SetLocationKeys();
+            }
+
+            EditorGUILayout.EndHorizontal();
             // if (GUILayout.Button("Set as current world", GUILayout.MaxWidth(200)))
             // {
             //     SetCurrentWorld();
@@ -1512,6 +1520,112 @@ namespace MapEditor
                 string fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Locations", "map" + l.ToString("00000") + ".json");
                 var json = JsonConvert.SerializeObject(splittedLocations[l], new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
                 File.WriteAllText(fileDataPath, json);
+            }
+        }
+
+        protected void SetLocationKeys()
+        {
+            Worldmap tile = new Worldmap();
+
+            for (int x = 0; x < MapsFile.TileX; x++)
+            {
+                for (int y = 0; y < MapsFile.TileY; y++)
+                {
+                    int tileIndex = x + y * MapsFile.TileX;
+
+                    tile = JsonConvert.DeserializeObject<Worldmap>(File.ReadAllText(Path.Combine(MapEditor.arena2Path, "Maps", "Locations", "map" + tileIndex.ToString("00000") + ".json")));
+
+                    if (tile.LocationCount <= 0)
+                        continue;
+
+                    for (int i = 0; i < tile.MapTable.Length; i++)
+                    {
+                        int resultingKey = 0;
+                        int blocks = tile.Locations[i].Exterior.ExteriorData.Width * tile.Locations[i].Exterior.ExteriorData.Height;
+                        for (int j = 0; j < tile.Locations[i].Exterior.BuildingCount; j++)
+                        {
+                            resultingKey = (resultingKey | GetPartialKey(tile.Locations[i].Exterior.Buildings[j]));
+                        }
+                        tile.MapTable[i].Key = (uint)resultingKey;
+                        tile.Locations[i].MapTableData.Key = (uint)resultingKey;
+                    }
+
+                    string path = Path.Combine(MapEditor.arena2Path, "Maps", "Locations", "map" + tileIndex.ToString("00000") + ".json");
+                    var json = JsonConvert.SerializeObject(tile, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                    File.WriteAllText(path, json);
+                }
+            }
+        }
+
+        protected int GetPartialKey(DFLocation.BuildingData building)
+        {
+            switch (building.BuildingType)
+            {
+                case DFLocation.BuildingTypes.Alchemist:
+                    return 2048;
+                case DFLocation.BuildingTypes.Armorer:
+                    return 1024;
+                case DFLocation.BuildingTypes.Bank:
+                    return 4096;
+                case DFLocation.BuildingTypes.Bookseller:
+                    return 8192;
+                case DFLocation.BuildingTypes.ClothingStore:
+                    return 16384;
+                case DFLocation.BuildingTypes.GemStore:
+                    return 32768;
+                case DFLocation.BuildingTypes.Library:
+                    return 65536;
+                case DFLocation.BuildingTypes.PawnShop:
+                    return 4194304;                
+                case DFLocation.BuildingTypes.Tavern:
+                    return 256;
+                case DFLocation.BuildingTypes.WeaponSmith:
+                    return 512;
+                case DFLocation.BuildingTypes.Temple:
+                    switch (building.FactionId)
+                    {
+                        case 21:
+                            return 2;
+                        case 22:
+                            return 128;
+                        case 24:
+                            return 32;
+                        case 26:
+                            return 1;
+                        case 27:
+                            return 8;
+                        case 29:
+                            return 4;
+                        case 33:
+                            return 64;
+                        case 35:
+                            return 16;
+                        default:
+                            return 0;
+                    }
+                case DFLocation.BuildingTypes.GuildHall:
+                    switch (building.FactionId)
+                    {
+                        case 40:
+                            return 262144;
+                        case 41:
+                            return 2097152;
+                        case 368:
+                        case 408:
+                        case 409:
+                        case 410:
+                        case 411:
+                        case 413:
+                        case 414:
+                        case 415:
+                        case 416:
+                        case 417:
+                            return 131072;
+                        default:
+                            return 0;
+                    }
+                default:
+                    return 0;
             }
         }
 

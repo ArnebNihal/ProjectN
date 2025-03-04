@@ -655,7 +655,11 @@ namespace DaggerfallWorkshop
             meshFilter.sharedMesh = mesh;
 
             // Create material
-            Material material = TextureReplacement.GetMobileBillboardMaterial(archive, GetComponent<MeshFilter>(), ref summary.ImportedTextures) ??
+            Material material;
+            if (archive > 999 && archive < 2000)
+                material = TextureReplacement.GetCustomMobileBillboardMaterial(archive, GetComponent<MeshFilter>(), ref summary.ImportedTextures);
+            else{
+                material = TextureReplacement.GetMobileBillboardMaterial(archive, GetComponent<MeshFilter>(), ref summary.ImportedTextures) ??
                 dfUnity.MaterialReader.GetMaterialAtlas(
                 archive,
                 0,
@@ -668,6 +672,7 @@ namespace DaggerfallWorkshop
                 0,
                 false,
                 true);
+            }
 
             // Update cached record values in case of non-classic texture
             if (summary.RecordSizes == null || summary.RecordSizes.Length == 0)

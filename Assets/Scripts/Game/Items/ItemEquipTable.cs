@@ -642,6 +642,7 @@ namespace DaggerfallWorkshop.Game.Items
                 case Weapons.Staff:
                 case Weapons.Flail:
                 case Weapons.Warhammer:
+                case Weapons.Crossbow:
                     return ItemHands.Both;
 
                 case Weapons.Short_Bow:

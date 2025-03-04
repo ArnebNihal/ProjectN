@@ -481,7 +481,7 @@ namespace DaggerfallWorkshop.Utility
             GameObject go,
             DFBlock.RdbObject[] editorObjects,
             DFRegion.DungeonTypes dungeonType,
-            float monsterPower,
+            float dungeonLevel,
             ref DFBlock blockData,
             GameObject[] startMarkers,
             int monsterVariance = 4,
@@ -514,21 +514,24 @@ namespace DaggerfallWorkshop.Utility
             if (!alternateRandomEnemySelection) // Classic enemy selection
             {
                 // Set up enemy lists used by classic
-                DFRandom.srand(GameManager.Instance.PlayerGPS.CurrentLocation.Dungeon.RecordElement.Header.LocationId);
+                // DFRandom.srand(GameManager.Instance.PlayerGPS.CurrentLocation.Dungeon.RecordElement.Header.LocationId);
+                // ProjectN: I don't want fixed enemies FOREVER, I'll set the seed to month number, thus every month the
+                // monster placement should change.
+                DFRandom.srand(DateTime.Now.Second / DaggerfallDateTime.SecondsPerMonth);
                 MobileTypes[] DungeonWaterEnemiesToPlace = new MobileTypes[256];
                 MobileTypes[] DungeonNonWaterEnemiesToPlace = new MobileTypes[256];
 
                 for (int i = 0; i < 256; ++i)
-                    DungeonNonWaterEnemiesToPlace[i] = ChooseRandomEnemyType(RandomEncounters.EncounterTables[(int)dungeonType]);
+                    DungeonNonWaterEnemiesToPlace[i] = ChooseRandomEnemyType(RandomEncounters.EncounterTables[(int)dungeonType], (int)dungeonLevel);
                 for (int i = 0; i < 256; ++i)
-                    DungeonWaterEnemiesToPlace[i] = ChooseRandomEnemyType(RandomEncounters.EncounterTables[19]);
+                    DungeonWaterEnemiesToPlace[i] = ChooseRandomEnemyType(RandomEncounters.EncounterTables[19], (int)dungeonLevel);
 
                 // Iterate editor flats for enemies
                 for (int i = 0; i < editorObjects.Length; i++)
                 {
                     // Add random enemy objects
                     if (editorObjects[i].Resources.FlatResource.TextureRecord == randomMonsterFlatIndex)
-                        AddRandomRDBEnemyClassic(editorObjects[i], dungeonType, monsterPower, monsterVariance, randomEnemiesNode.transform, ref blockData, startMarkers, serialize, DungeonWaterEnemiesToPlace, DungeonNonWaterEnemiesToPlace);
+                        AddRandomRDBEnemyClassic(editorObjects[i], dungeonType, dungeonLevel, monsterVariance, randomEnemiesNode.transform, ref blockData, startMarkers, serialize, DungeonWaterEnemiesToPlace, DungeonNonWaterEnemiesToPlace);
                 }
             }
             else // Alternate enemy selection (more randomized)
@@ -538,7 +541,7 @@ namespace DaggerfallWorkshop.Utility
                 {
                     // Add random enemy objects
                     if (editorObjects[i].Resources.FlatResource.TextureRecord == randomMonsterFlatIndex)
-                        AddRandomRDBEnemy(editorObjects[i], dungeonType, monsterPower, monsterVariance, randomEnemiesNode.transform, ref blockData, startMarkers, serialize);
+                        AddRandomRDBEnemy(editorObjects[i], dungeonType, dungeonLevel, monsterVariance, randomEnemiesNode.transform, ref blockData, startMarkers, serialize);
                 }
             }
         }
@@ -1422,38 +1425,72 @@ namespace DaggerfallWorkshop.Utility
         }
 
         // Recreation of how classic chooses an enemy type from the random encounter tables
-        private static MobileTypes ChooseRandomEnemyType(RandomEncounterTable table)
+        private static MobileTypes ChooseRandomEnemyType(RandomEncounterTable table, int dungeonLevel)
         {
-            int playerLevel = GameManager.Instance.PlayerEntity.Level;
+            // int playerLevel = GameManager.Instance.PlayerEntity.Level;
             int minTableIndex = 0;
+            int lowEnd = dungeonLevel - 3;
+            int highEnd = dungeonLevel + 3;
             int maxTableIndex = table.Enemies.Length;
 
-            int random = DFRandom.random_range_inclusive(1, 100);
-            if (random > 95 && playerLevel <= 5)
+            if (lowEnd < 0)
             {
-                maxTableIndex = playerLevel + 2;
+                highEnd -= lowEnd;
+                lowEnd = 0;
             }
-            else if (random > 80)
+            if (highEnd > maxTableIndex)
             {
-                maxTableIndex = playerLevel + 1;
-            }
-            else
-            {
-                minTableIndex = playerLevel - 3;
-                maxTableIndex = playerLevel + 3;
-            }
-            if (minTableIndex < 0)
-            {
-                minTableIndex = 0;
-                maxTableIndex = 5;
-            }
-            else if (maxTableIndex > 19)
-            {
-                minTableIndex = 14;
-                maxTableIndex = 19;
-            }
+                lowEnd -= (highEnd - maxTableIndex);
+            }                
 
-            return table.Enemies[DFRandom.random_range_inclusive(minTableIndex, maxTableIndex)];
+            int random = DFRandom.random_range_inclusive(1, 100);
+            int succRoll = 50;
+
+            if (random > 95)
+            {
+                succRoll = 96;
+                while (succRoll > 95 && highEnd < maxTableIndex)
+                {
+                    highEnd++;
+                    succRoll = DFRandom.random_range_inclusive(1, 100);
+                }
+            }
+            if (random <= 25)
+            {
+                succRoll = 25;
+                while (succRoll <= 25 && lowEnd > minTableIndex)
+                {
+                    lowEnd--;
+                    succRoll = DFRandom.random_range_inclusive(1, 100);
+                }
+            }
+            
+
+            // if (random > 95 && playerLevel <= 5)
+            // {
+            //     maxTableIndex = playerLevel + 2;
+            // }
+            // else if (random > 80)
+            // {
+            //     maxTableIndex = playerLevel + 1;
+            // }
+            // else
+            // {
+            //     minTableIndex = playerLevel - 3;
+            //     maxTableIndex = playerLevel + 3;
+            // }
+            // if (minTableIndex < 0)
+            // {
+            //     minTableIndex = 0;
+            //     maxTableIndex = 5;
+            // }
+            // else if (maxTableIndex > 19)
+            // {
+            //     minTableIndex = 14;
+            //     maxTableIndex = 19;
+            // }
+
+            return table.Enemies[DFRandom.random_range_inclusive(minTableIndex, (maxTableIndex - 1))];
         }
 
         private static void AddFixedRDBEnemy(DFBlock.RdbObject obj, Transform parent, ref DFBlock blockData, GameObject[] startMarkers, bool serialize)

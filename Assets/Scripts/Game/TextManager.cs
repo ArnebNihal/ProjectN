@@ -373,8 +373,11 @@ namespace DaggerfallWorkshop.Game
                 string[] enemyNames = GetLocalizedTextList("enemyNames", exception: true);
                 if (enemyID < 128)
                     return enemyNames[enemyID];
-                else
+                else if (enemyID < 256)
                     return enemyNames[43 + enemyID - 128];
+                else if (enemyID < 384)
+                    return enemyNames[62 + enemyID - 256];
+                else return enemyNames[97 + enemyID - 384];
             }
             // Handle custom enemies
             else

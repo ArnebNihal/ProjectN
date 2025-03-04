@@ -312,6 +312,63 @@ namespace DaggerfallWorkshop
         Knight,
         Knight_CityWatch,           // Just called Knight in-game, but renamed CityWatch here for uniqueness. HALT!
 
+        // DEX monsters
+        Goblin = 256,
+        Homunculus = 257,
+        Lizardman = 258,
+        LizardWarrior = 259,
+        Bat = 260,
+        Medusa = 261,
+        Wolf = 262,
+        SnowWolf = 263,
+        HellHound = 264,
+        Grotesque = 265,
+        SkeletalSoldier = 266,
+        Dog = 267,
+        MountainNymph = 268,
+        Minotaur = 269,
+        IronGolem = 270,
+        BloodSpider = 271,
+        Troll = 272,
+        GloomWraith = 273,
+        FadedGhost = 274,
+        KingLysandus = 275,
+        FireDaemon = 276,
+        Ghoul = 277,
+        Boar = 278,
+        LandDreugh = 279,
+        MountainLion = 280,
+        Mudcrab = 281,
+        Ogre = 282,
+        Wisp = 283,
+        IceGolem = 284,
+        Dremora = 285,
+        StoneGolem = 286,
+        DireGhoul = 287,
+        Scamp = 288,
+        CenturionSphere = 289,
+        SteamCenturion = 290,
+
+        // ProjectN Classes
+        Spy = 383,
+
+        // DEX enemy classes
+        Druid = 384,
+        Guard = 385,
+        KnightRider = 386,
+        RogueRider = 387,
+        NecroAcolyte = 388,
+        RogueDruid = 389,
+        BountyHunter = 390,
+        RoyalKnight = 391,
+        ThiefRider = 392,
+        NecroGlaive = 393,
+        NecroAssassin = 394,
+        DarkBrotherhood = 395,
+        WitchDefender = 396,
+        SpellswordRider = 397,
+        ArcherRider = 398,
+
         // No enemy type
         None = (int)0xffff,
     }
@@ -358,6 +415,7 @@ namespace DaggerfallWorkshop
         Daedra,             // Daedra (daedroth, fire, frost, lord, seducer)
         Golem,              // Golems (flesh, fire, frost, iron)
         Water,              // Water creatures (dreugh, slaughterfish, lamia)
+        Skeletal,           // Skeletal creatures (skeleton soldier and warrior)
         Human,              // A human creature
     }
 
@@ -366,6 +424,7 @@ namespace DaggerfallWorkshop
     /// </summary>
     public enum MobileTeams
     {
+        Random = -1,
         PlayerEnemy,
         PlayerAlly,
         Vermin,
@@ -538,8 +597,47 @@ namespace DaggerfallWorkshop
         Battleaxe,
         Battleaxe_Magic,
         Bow,
+        Crossbow,
         Melee,
         Werecreature,
+        DaggerExotic,
+        DaggerExotic_Magic,
+        TantoExotic,
+        TantoExotic_Magic,
+        StaffExotic,
+        StaffExotic_Magic,
+        ShortswordExotic,
+        ShortswordExotic_Magic,
+        WakazashiExotic,
+        WakazashiExotic_Magic,
+        BroadswordExotic,
+        BroadswordExotic_Magic,
+        SaberExotic,
+        SaberExotic_Magic,
+        LongswordExotic,
+        LongswordExotic_Magic,
+        KatanaExotic,
+        KatanaExotic_Magic,
+        ClaymoreExotic,
+        ClaymoreExotic_Magic,
+        Dai_KatanaExotic,
+        Dai_KatanaExotic_Magic,
+        MaceExotic,
+        MaceExotic_Magic,
+        FlailExotic,
+        FlailExotic_Magic,
+        WarhammerExotic,
+        WarhammerExotic_Magic,
+        Battle_AxeExotic,
+        Battle_AxeExotic_Magic,
+        War_AxeExotic,
+        War_AxeExotic_Magic,
+        Short_BowExotic,
+        Short_BowExotic_Magic,
+        Long_BowExotic,
+        Long_BowExotic_Magic,
+        CrossbowExotic,
+        CrossbowExotic_Magic
     }
 
     /// <summary>

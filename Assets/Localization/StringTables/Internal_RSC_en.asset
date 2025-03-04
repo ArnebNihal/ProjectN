@@ -27555,6 +27555,39 @@ MonoBehaviour:
       it is better not to[/left]\\n     waste his or your time asking why.[/left]\""
     m_Metadata:
       m_Items: []
+  - m_Id: 584308965959593984
+    m_Localized: 'over there, just %di and keep going[/record]
+
+      that way, just
+      %di and keep going[/record]
+
+      ...ah yes, just %di and keep going[/record]
+
+      not
+      far from here, just %di and keep going[/record]
+
+      over there, you should
+      %di and walk a bit[/record]
+
+      that way, you should %di and walk a bit[/record]
+
+      ...ah
+      yes, you should %di and walk a bit[/record]
+
+      not far from here, you should
+      %di and walk a bit[/record]
+
+      over there, %di and walk a bit[/record]
+
+      that
+      way, %di and walk a bit[/record]
+
+      ...ah yes, %di and walk a bit[/record]
+
+      not
+      far from here, %di and walk a bit[/record]'
+    m_Metadata:
+      m_Items: []
   references:
     version: 1
     00000000:

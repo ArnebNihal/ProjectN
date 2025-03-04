@@ -91,6 +91,13 @@ namespace DaggerfallWorkshop.Game
         // Opening and closing hours by building type
         public static byte[] openHours  = {  7,  8,  9,  8,  0,  9, 10, 10,  9,  6,  9, 11,  9,  9,  0,  0, 10, 0 };
         public static byte[] closeHours = { 22, 16, 19, 15, 25, 21, 19, 20, 18, 23, 23, 23, 20, 20, 25, 25, 16, 0 };
+        public static uint[] customActivableModel = { 41116,     // Fireplace
+                                                      41117,     // Fireplace - corner
+                                                      41220,     // Fountain
+                                                      41221,     // Fountain
+                                                      41222,     // Fountain
+                                                      41606,      // Tent
+                                                    };
 
         const int PrivatePropertyId = 37;
 
@@ -180,8 +187,8 @@ namespace DaggerfallWorkshop.Game
         /// <param name="modelID">The model ID of the object to check.</param>
         public static bool HasCustomActivation(uint modelID)
         {
-            string goModelName = GameObjectHelper.GetGoModelName(modelID);
-            return HasCustomActivation(goModelName);
+            // string goModelName = GameObjectHelper.GetGoModelName(modelID);
+            return customActivableModel.Contains(modelID);
         }
 
         /// <summary>
@@ -923,6 +930,7 @@ namespace DaggerfallWorkshop.Game
         void CheckBillboardActivation(RaycastHit hit)
         {
             DaggerfallBillboard flat = hit.transform.GetComponent<DaggerfallBillboard>();
+            Debug.Log("flat: " + flat);
             if (flat)
             {
                 if (hit.distance > DefaultActivationDistance)

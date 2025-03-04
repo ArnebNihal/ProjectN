@@ -293,7 +293,8 @@ namespace DaggerfallWorkshop.Game.Items
         Long_Bow = 130,
         Arrow = 131,
         ArchersAxe = 288,
-        LightFlail = 289
+        LightFlail = 289,
+        Crossbow = 315
     }
 
     public enum MagicItemSubTypes                   // Not mapped to a specific item template index

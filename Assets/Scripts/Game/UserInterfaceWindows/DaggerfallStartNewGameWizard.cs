@@ -193,6 +193,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             createCharBiographyWindow.OnClose += CreateCharBiographyWindow_OnClose;
                 
             createCharBiographyWindow.ClassIndex = characterDocument.classIndex;
+            createCharBiographyWindow.CharacterAge = characterDocument.age;
             wizardStage = WizardStages.BiographyQuestions;
             uiManager.PushWindow(createCharBiographyWindow);
         }

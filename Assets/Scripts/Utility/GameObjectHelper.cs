@@ -22,6 +22,7 @@ using DaggerfallWorkshop.Game.Questing;
 using DaggerfallWorkshop.Game.Serialization;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Utility.AssetInjection;
+using System.Linq;
 
 namespace DaggerfallWorkshop.Utility
 {
@@ -43,6 +44,17 @@ namespace DaggerfallWorkshop.Utility
 
         // Animal sounds range. Matched to classic.
         const float animalSoundMaxDistance = 768 * MeshReader.GlobalScale;
+        public static int[] customActivableBillboard = { 101000,      // Brazier
+                                                         101005,      // Campfire
+                                                         210000,      // Brazier
+                                                         210001,      // Campfire
+                                                         85000,       // Water tile
+                                                         212000,      // Well
+                                                         212002,      // Fountain
+                                                         212008,      // Water pump
+                                                         212009,      // Water pump
+                                                         212003,      // Dry fountain
+                                                       };
 
         public static void AddAnimalAudioSource(GameObject go, int record)
         {
@@ -319,7 +331,7 @@ namespace DaggerfallWorkshop.Utility
             Billboard dfBillboard = go.AddComponent<DaggerfallBillboard>();
             dfBillboard.SetMaterial(archive, record);
 
-            if (PlayerActivate.HasCustomActivation(flatName)) 
+            if (customActivableBillboard.Contains((archive * 1000 + record))) 
             {
                 // Add box collider to flats with actions for raycasting - only flats that can be activated directly need this, so this can possibly be restricted in future
                 // Skip this for flats that already have a collider assigned from elsewhere (e.g. NPC flats)
@@ -591,7 +603,7 @@ namespace DaggerfallWorkshop.Utility
             int[] textureTable = null,
             bool allowExitDoors = true,
             DFRegion.DungeonTypes dungeonType = DFRegion.DungeonTypes.HumanStronghold,
-            float monsterPower = 0.5f,
+            float dungeonLevel = 0.5f,
             int monsterVariance = 4,
             int seed = 0,
             DaggerfallRDBBlock cloneFrom = null,
@@ -630,7 +642,7 @@ namespace DaggerfallWorkshop.Utility
             if (importEnemies)
             {
                 RDBLayout.AddFixedEnemies(go, editorObjects, ref blockData, startMarkers);
-                RDBLayout.AddRandomEnemies(go, editorObjects, dungeonType, monsterPower, ref blockData, startMarkers, monsterVariance, seed);
+                RDBLayout.AddRandomEnemies(go, editorObjects, dungeonType, dungeonLevel, ref blockData, startMarkers, monsterVariance, seed);
             }
 
             // Link action nodes

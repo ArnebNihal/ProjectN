@@ -59,6 +59,7 @@ namespace DaggerfallWorkshop.Game.Entity
         protected int age;
         protected int birthday; // Birthday expressed as DDMMEYYYY
         protected int faceIndex;
+        protected StartGameBehaviour.StartLocation startingState;
         protected PlayerReflexes reflexes;
         protected ItemCollection wagonItems = new ItemCollection();
         protected ItemCollection otherItems = new ItemCollection();
@@ -156,6 +157,7 @@ namespace DaggerfallWorkshop.Game.Entity
         public int Age { get { return age; } }
         public int Birthday { get { return birthday; } }
         public int FaceIndex { get { return faceIndex; } set { faceIndex = value; } }
+        public StartGameBehaviour.StartLocation StartingState { get { return startingState; } set { startingState = value; } }
         public PlayerReflexes Reflexes { get { return reflexes; } set { reflexes = value; } }
         public ItemCollection WagonItems { get { return wagonItems; } set { wagonItems.ReplaceAll(value); } }
         public ItemCollection OtherItems { get { return otherItems; } set { otherItems.ReplaceAll(value); } }
@@ -572,7 +574,7 @@ namespace DaggerfallWorkshop.Game.Entity
                 uint timeOfDay = Minutes % 1440; // 1440 minutes in a day
                 if (GameManager.Instance.PlayerGPS.IsPlayerInLocationRect)
                 {
-                    if (timeOfDay < 360 || timeOfDay > 1080)
+                    if (!DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.SettlementIsActive)
                     {
                         // In a location area at night
                         if (FormulaHelper.RollRandomSpawn_LocationNight() == 0)
@@ -584,7 +586,7 @@ namespace DaggerfallWorkshop.Game.Entity
                 }
                 else
                 {
-                    if (timeOfDay >= 360 && timeOfDay <= 1080)
+                    if (DaggerfallUnity.Instance.WorldTime.DaggerfallDateTime.IsDay)
                     {
                         // Wilderness during day
                         if (FormulaHelper.RollRandomSpawn_WildernessDay() != 0)
@@ -843,6 +845,7 @@ namespace DaggerfallWorkshop.Game.Entity
             this.career = character.career;
             this.name = character.name;
             this.faceIndex = character.faceIndex;
+            this.startingState = StartGameBehaviour.startingState;
             this.stats = character.workingStats;
             this.skills = character.workingSkills;
             this.reflexes = character.reflexes;
@@ -1587,6 +1590,9 @@ namespace DaggerfallWorkshop.Game.Entity
 
                 (int, int) tile =  GameManager.Instance.PlayerGPS.CurrentTile;
                 int tileIndex = tile.Item1 + (tile.Item2 * MapsFile.TileX);
+                if (startingState.primaryPosition == GameManager.Instance.PlayerGPS.CurrentMapPixel && startingState.areaKnowledge.Item1 >= 5)
+                    return true;
+                if (startingState.secondaryPosition == GameManager.Instance.PlayerGPS.CurrentMapPixel && startingState.areaKnowledge.Item2 >= 5)
                 foreach (DaggerfallUnityItem map in inventoryMaps)
                 {
                     if (((map.message / 10000) == tileIndex) &&
@@ -1737,7 +1743,7 @@ namespace DaggerfallWorkshop.Game.Entity
                                 if (Dice100.FailedRoll((powerSum + factionData.GetNumberOfCommonAlliesAndEnemies(factionData.FactionDict[key].id, allies[i]) * 3) / 5 + 70))
                                 {
                                     factionData.EndFactionAllies(factionData.FactionDict[key].id, allies[i]);
-                                    GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, allies[i], -1, 100, 1402); // End faction allies
+                                    GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, allies[i], factionData.FactionDict[key].region, 100, 1402); // End faction allies
                                 }
                             }
                         }
@@ -1757,7 +1763,7 @@ namespace DaggerfallWorkshop.Game.Entity
                                 if (Dice100.SuccessRoll((powerSum + factionData.GetNumberOfCommonAlliesAndEnemies(factionData.FactionDict[key].id, enemies[i]) * 3) / 5))
                                 {
                                     factionData.EndFactionEnemies(factionData.FactionDict[key].id, enemies[i]);
-                                    GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, enemies[i], -1, 100, 1403); // End faction enemies
+                                    GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, enemies[i], factionData.FactionDict[key].region, 100, 1403); // End faction enemies
                                 }
                             }
                         }
@@ -1803,7 +1809,7 @@ namespace DaggerfallWorkshop.Game.Entity
                                         if (random.type == (int)FactionFile.FactionTypes.Province && random.region != -1)
                                             GameManager.Instance.TalkManager.AddNonQuestRumor(random.id, factionData.FactionDict[key].id, random.region, 26, 1481); // Factions start alliance sign message
                                         factionData.StartFactionAllies(factionData.FactionDict[key].id, i, random.id);
-                                        GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, random.id, -1, 100, 1400); // Factions start alliance
+                                        GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, random.id, factionData.FactionDict[key].region, 100, 1400); // Factions start alliance
                                     }
                                 }
                                 break;
@@ -1871,20 +1877,25 @@ namespace DaggerfallWorkshop.Game.Entity
 
                                         if (combinedPower - combinedEnemyPower > combinedEnemyPower)
                                         {
-                                            GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, warEnemy.id, -1, 100, 1408); // War over
+                                            GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, warEnemy.id, factionData.FactionDict[key].region, 100, 1408); // War over
+                                            GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, warEnemy.id, warEnemy.region, 100, 1408); // War over
                                             factionData.ChangePower(factionData.FactionDict[key].id, warEnemy.power / 2);
                                             TurnOnConditionFlag(warEnemy.region, RegionDataFlags.WarLost);
                                             TurnOnConditionFlag(factionData.FactionDict[key].region, RegionDataFlags.WarWon);
                                         }
                                         else if (combinedEnemyPower - combinedPower > combinedPower)
                                         {
-                                            GameManager.Instance.TalkManager.AddNonQuestRumor(warEnemy.id, factionData.FactionDict[key].id, -1, 100, 1408); // War over
+                                            GameManager.Instance.TalkManager.AddNonQuestRumor(warEnemy.id, factionData.FactionDict[key].id, factionData.FactionDict[key].region, 100, 1408); // War over
+                                            GameManager.Instance.TalkManager.AddNonQuestRumor(warEnemy.id, factionData.FactionDict[key].id, warEnemy.region, 100, 1408); // War over
                                             factionData.ChangePower(warEnemy.id, factionData.FactionDict[key].power / 2);
                                             TurnOnConditionFlag(warEnemy.region, RegionDataFlags.WarWon);
                                             TurnOnConditionFlag(factionData.FactionDict[key].region, RegionDataFlags.WarLost);
                                         }
                                         else
-                                            GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, warEnemy.id, -1, 100, 1407); // War started/ongoing
+                                        {
+                                            GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, warEnemy.id, factionData.FactionDict[key].region, 100, 1407); // War started/ongoing
+                                            GameManager.Instance.TalkManager.AddNonQuestRumor(warEnemy.id, factionData.FactionDict[key].id, warEnemy.region, 100, 1407); // War started/ongoing
+                                        }
                                     }
                                     else
                                     {
@@ -1946,7 +1957,8 @@ namespace DaggerfallWorkshop.Game.Entity
                                                 && random.region != -1 && random.type == (int)FactionFile.FactionTypes.Province
                                                 && factionData.IsEnemyStatePermanentUntilWarOver(factionData.FactionDict[key], random))
                                             {
-                                                GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, random.id, -1, 100, 1407); // War started/ongoing
+                                                GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, random.id, factionData.FactionDict[key].region, 100, 1407); // War started/ongoing
+                                                GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, random.id, random.region, 100, 1407); // War started/ongoing
                                                 GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, random.id, factionData.FactionDict[key].region, 28, 1479); // War started sign message
                                                 GameManager.Instance.TalkManager.AddNonQuestRumor(random.id, factionData.FactionDict[key].id, random.region, 28, 1479); // War started sign message
                                                 TurnOnConditionFlag(factionData.FactionDict[key].region, RegionDataFlags.WarBeginning);
@@ -1966,7 +1978,7 @@ namespace DaggerfallWorkshop.Game.Entity
                             if (Dice100.FailedRoll(mod + 70))
                             {
                                 if (factionData.FactionDict[key].region != -1 && factionData.FactionDict[key].type == (int)FactionFile.FactionTypes.Province)
-                                    GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, 0, -1, 12, 1480); // New ruler. Although unused, a regionID is defined for this rumor in classic.
+                                    GameManager.Instance.TalkManager.AddNonQuestRumor(factionData.FactionDict[key].id, 0, factionData.FactionDict[key].region, 12, 1480); // New ruler. Although unused, a regionID is defined for this rumor in classic.
                                 factionData.SetNewRulerData(factionData.FactionDict[key].id);
                                 // if ( PlayerIsRelatedToFaction(factionData.FactionDict[key]) )
                                 // AddNewRumor 1406 // New faction leader

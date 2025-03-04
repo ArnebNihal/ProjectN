@@ -71,6 +71,26 @@ namespace DaggerfallWorkshop.Game.Entity
         Barbarian = 15,
         Warrior = 16,
         Knight = 17,
+
+        // ProjectN enemy classes
+        Spy = 383,
+
+        // DEX enemy classes
+        Druid = 384,
+        Guard = 385,
+        KnightRider = 386,
+        RogueRider = 387,
+        NecroAcolyte = 388,
+        RogueDruid = 389,
+        BountyHunter = 390,
+        RoyalKnight = 391,
+        ThiefRider = 392,
+        NecroGlaive = 393,
+        NecroAssassin = 394,
+        DarkBrotherhood = 395,
+        WitchDefender = 396,
+        SpellswordRider = 397,
+        ArcherRider = 398,
     }
 
     /// <summary>
@@ -173,6 +193,41 @@ namespace DaggerfallWorkshop.Game.Entity
         Dragonling_Alternate = 40,      // Another dragonling. Seems to work fine when spawned in-game.
         Dreugh = 41,
         Lamia = 42,
+        Goblin = 256,
+        Homunculus = 257,
+        Lizardman = 258,
+        LizardWarrior = 259,
+        Bat = 260,
+        Medusa = 261,
+        Wolf = 262,
+        SnowWolf = 263,
+        HellHound = 264,
+        Grotesque = 265,
+        SkeletalSoldier = 266,
+        Dog = 267,
+        MountainNymph = 268,
+        Minotaur = 269,
+        IronGolem = 270,
+        BloodSpider = 271,
+        Troll = 272,
+        GloomWraith = 273,
+        FadedGhost = 274,
+        KingLysandus = 275,
+        FireDaemon = 276,
+        Ghoul = 277,
+        Boar = 278,
+        LandDreugh = 279,
+        MountainLion = 280,
+        Mudcrab = 281,
+        Ogre = 282,
+        Wisp = 283,
+        IceGolem = 284,
+        Dremora = 285,
+        StoneGolem = 286,
+        DireGhoul = 287,
+        Scamp = 288,
+        CenturionSphere = 289,
+        SteamCenturion = 290
     }
 
     /// <summary>

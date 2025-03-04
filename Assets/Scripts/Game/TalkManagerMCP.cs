@@ -74,7 +74,9 @@ namespace DaggerfallWorkshop.Game
 
             public override string Direction()
             {
-                if (parent.currentQuestionListItem.questionType == QuestionType.LocalBuilding || parent.currentQuestionListItem.questionType == QuestionType.Person)
+                if (parent.currentQuestionListItem.questionType == QuestionType.LocalBuilding || 
+                    parent.currentQuestionListItem.questionType == QuestionType.Person ||
+                    parent.currentQuestionListItem.questionType == QuestionType.Thing)
                 {
                     return GameManager.Instance.TalkManager.GetKeySubjectLocationCompassDirection();
                 }
@@ -98,6 +100,10 @@ namespace DaggerfallWorkshop.Game
                 else if (parent.currentQuestionListItem.questionType == QuestionType.OrganizationInfo)
                 {
                     return GameManager.Instance.TalkManager.GetOrganizationInfo(parent.currentQuestionListItem);
+                }
+                else if (parent.currentQuestionListItem.questionType == QuestionType.Thing)
+                {
+                    return GameManager.Instance.TalkManager.GetKeySubjectCardinalDirection();
                 }
                 return TextManager.Instance.GetLocalizedText("resolvingError");
             }

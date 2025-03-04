@@ -278,6 +278,7 @@ namespace DaggerfallWorkshop.Game
                                           0x1A1, 0x28, 0x29, 0x0F, 0x0A, 0x0D, 0x2, 0x0, 0x3, 0x5, 0x6, 0x8, 0xC };
 
         public string LocationOfRegionalBuilding;
+        public (string, string, string) DetailsOfRegionalBuilding;
 
         // quest injected stuff
 
@@ -1140,32 +1141,64 @@ namespace DaggerfallWorkshop.Game
 
         public string DirectionVector2DirectionHintString(Vector2 vecDirectionToTarget)
         {
+            Vector2 vecPlayerFacing = new Vector2(GameManager.Instance.MainCamera.transform.forward.x, GameManager.Instance.MainCamera.transform.forward.z);
             float angle = Mathf.Acos(Vector2.Dot(vecDirectionToTarget, Vector2.right) / vecDirectionToTarget.magnitude) / Mathf.PI * 180.0f;
+            float facing = Mathf.Acos(Vector2.Dot(vecPlayerFacing, Vector2.right) / vecPlayerFacing.magnitude) / Mathf.PI * 180.0f;
             if (vecDirectionToTarget.y < 0)
                 angle = 180.0f + (180.0f - angle);
+            if (vecPlayerFacing.y < 0)
+                facing = 180.0f + (180.0f - facing);
+            bool clockWise = angle > facing;
+            float difference = Mathf.Abs(angle - facing);
+            Debug.Log("angle: " + angle + ", facing: " + facing + "difference: " + difference);
 
-            if ((angle >= 0.0f && angle < 22.5f) || (angle >= 337.5f && angle <= 360.0f))
-                return TextManager.Instance.GetLocalizedText("east");
-            else if (angle >= 22.5f && angle < 67.5f)
-                return TextManager.Instance.GetLocalizedText("northeast");
-            else if (angle >= 67.5f && angle < 112.5f)
-                return TextManager.Instance.GetLocalizedText("north");
-            else if (angle >= 112.5f && angle < 157.5f)
-                return TextManager.Instance.GetLocalizedText("northwest");
-            else if (angle >= 157.5f && angle < 202.5f)
-                return TextManager.Instance.GetLocalizedText("west");
-            else if (angle >= 202.5f && angle < 247.5f)
-                return TextManager.Instance.GetLocalizedText("southwest");
-            else if (angle >= 247.5f && angle < 292.5f)
-                return TextManager.Instance.GetLocalizedText("south");
-            else if (angle >= 292.5f && angle < 337.5f)
-                return TextManager.Instance.GetLocalizedText("southeast");
+            if ((difference >= 0.0f && difference < 22.5f) || (difference >= 337.5f && difference <= 360.0f))
+                return TextManager.Instance.GetLocalizedText("forward");
+            else if (difference >= 157.5f && difference < 202.5f)
+                return TextManager.Instance.GetLocalizedText("backward");
+            else if ((difference >= 67.5f && difference < 112.5f && !clockWise) ||
+                     (difference >= 247.5f && difference < 292.5f && clockWise))
+                return TextManager.Instance.GetLocalizedText("right");
+            else if ((difference >= 67.5f && difference < 112.5f && clockWise) ||
+                     (difference >= 247.5f && difference < 292.5f && !clockWise))
+                return TextManager.Instance.GetLocalizedText("left");
+            else if ((difference >= 22.5f && difference < 67.5f && !clockWise) ||
+                     (difference >= 292.5f && difference < 337.5f && clockWise))
+                return TextManager.Instance.GetLocalizedText("forwardright");
+            else if ((difference >= 22.5f && difference < 67.5f && clockWise) ||
+                     (difference >= 292.5f && difference < 337.5f && !clockWise))
+                return TextManager.Instance.GetLocalizedText("forwardleft");
+            else if ((difference >= 112.5f && difference < 157.5f && !clockWise) ||
+                     (difference >= 202.5f && difference < 247.5f && clockWise))
+                return TextManager.Instance.GetLocalizedText("backwardright");
+            else if ((difference >= 112.5f && difference < 157.5f && clockWise) ||
+                     (difference >= 202.5f && difference < 247.5f && !clockWise))
+                return TextManager.Instance.GetLocalizedText("backwardleft");
+
+            // if ((angle >= 0.0f && angle < 22.5f) || (angle >= 337.5f && angle <= 360.0f))
+            //     return TextManager.Instance.GetLocalizedText("east");
+            // else if (angle >= 22.5f && angle < 67.5f)
+            //     return TextManager.Instance.GetLocalizedText("northeast");
+            // else if (angle >= 67.5f && angle < 112.5f)
+            //     return TextManager.Instance.GetLocalizedText("north");
+            // else if (angle >= 112.5f && angle < 157.5f)
+            //     return TextManager.Instance.GetLocalizedText("northwest");
+            // else if (angle >= 157.5f && angle < 202.5f)
+            //     return TextManager.Instance.GetLocalizedText("west");
+            // else if (angle >= 202.5f && angle < 247.5f)
+            //     return TextManager.Instance.GetLocalizedText("southwest");
+            // else if (angle >= 247.5f && angle < 292.5f)
+            //     return TextManager.Instance.GetLocalizedText("south");
+            // else if (angle >= 292.5f && angle < 337.5f)
+            //     return TextManager.Instance.GetLocalizedText("southeast");
             else
                 return TextManager.Instance.GetLocalizedText("resolvingError");
         }
 
         public string GetKeySubjectLocationCompassDirection()
         {
+            if (currentKeySubjectType == KeySubjectType.Thing)
+                return GetCardinalCompassDirection();
 
             if (dictQuestInfo.ContainsKey(currentQuestionListItem.questID)
                 && dictQuestInfo[currentQuestionListItem.questID].resourceInfo.ContainsKey(currentQuestionListItem.key)
@@ -1174,7 +1207,7 @@ namespace DaggerfallWorkshop.Game
             {
                 dictQuestInfo[currentQuestionListItem.questID].resourceInfo[currentQuestionListItem.key].questPlaceResourceHintTypeReceived = QuestResourceInfo.BuildingLocationHintTypeGiven.ReceivedDirectionalHints;
             }
-
+            
             return GetBuildingCompassDirection(currentKeySubjectBuildingKey);
         }
 
@@ -1258,6 +1291,34 @@ namespace DaggerfallWorkshop.Game
             return TextManager.Instance.GetLocalizedText("resolvingError");
         }
 
+        public string GetCardinalCompassDirection()
+        {
+            Vector2 playerPos;
+            float scale = MapsFile.WorldMapTerrainDim * MeshReader.GlobalScale;
+            playerPos.x = ((GameManager.Instance.PlayerGPS.transform.position.x) % scale) / scale;
+            playerPos.y = ((GameManager.Instance.PlayerGPS.transform.position.z) % scale) / scale;
+            Vector2 direction = new Vector2(-1, -1);
+            switch (currentQuestionListItem.key)
+            {
+                case "North":
+                    direction = new Vector2(playerPos.x, 0);
+                    break;
+                case "South":
+                    direction = new Vector2(playerPos.x, playerPos.y + 10);
+                    break;
+                case "West":
+                    direction = new Vector2(playerPos.x - 10, playerPos.y);
+                    break;
+                case "East":
+                    direction = new Vector2(playerPos.x + 10, playerPos.y);
+                    break;
+                default:
+                    break;
+            }
+            Vector2 vecDirectionToTarget = direction - playerPos;
+            return DirectionVector2DirectionHintString(vecDirectionToTarget);
+        }
+
         public void MarkKeySubjectLocationOnMap()
         {
             BuildingInfo buildingInfo = listBuildings.Find(x => x.buildingKey == currentKeySubjectBuildingKey);
@@ -1306,7 +1367,8 @@ namespace DaggerfallWorkshop.Game
                     question = ExpandRandomTextRecord(7225 + toneIndex);
                     break;
                 case QuestionType.Thing:
-                    question = "Not implemented"; // Classic did not implement this either -> ProjectN: could this be used for random artifact quests?
+                    currentKeySubjectType = KeySubjectType.Thing;
+                    question = ExpandRandomTextRecord(7225 + toneIndex); // Classic did not implement this either -> ProjectN: could this be used for random artifact quests? For now, implementing it to ask for cardinal directions.
                     break;
                 case QuestionType.Regional:
                     currentKeySubjectType = KeySubjectType.Building;
@@ -1461,7 +1523,8 @@ namespace DaggerfallWorkshop.Game
                     // show only in affected regions (crime wave, new ruler) are seen everywhere, and their regionID data goes unused.
                     // The ruler messages seem relevant for everyone to say, and are commonly seen in classic, so for DFU the regionID component is removed.
                     // Crime waves, though, should only be talked about for the affected regions.
-                    if (entry.regionID != -1 && entry.regionID != GameManager.Instance.PlayerGPS.CurrentRegionIndex)
+                    // ProjectN: stuff
+                    if (entry.regionID != -1 && !IsWithinBorderRange(GameManager.Instance.PlayerGPS.CurrentRegionIndex, entry.regionID, GetGenericRange()))
                         continue;
 
                     // skip sign rumors if talking
@@ -1670,7 +1733,13 @@ namespace DaggerfallWorkshop.Game
         public string GetKeySubjectBuildingDirection()
         {
             markLocationOnMap = false; // When preprocessing messages in ExpandRandomTextRecord() do not reveal location accidentally (no %loc macro resolving)
-            return ExpandRandomTextRecord(7333);
+            return ExpandRandomTextRecord(7334);
+        }
+
+        public string GetKeySubjectCardinalDirection()
+        {
+            markLocationOnMap = false;
+            return ExpandRandomTextRecord(7334);
         }
 
         public string GetKeySubjectBuildingOnMap()
@@ -1685,10 +1754,11 @@ namespace DaggerfallWorkshop.Game
         public string GetKeySubjectBuildingHint()
         {
             string answer;
+            PlayerEntity playerEntity = GameManager.Instance.PlayerEntity;
 
             // Decide if npc gives directional hints or marks building on map, always only give directional hints if player is inside
             float randomFloat = UnityEngine.Random.Range(0.0f, 1.0f);
-            if (randomFloat > ChanceToRevealLocationOnMap || GameManager.Instance.IsPlayerInside)
+            if (randomFloat > ChanceToRevealLocationOnMap || GameManager.Instance.IsPlayerInside || !playerEntity.PlayerHasTownMap(playerEntity.Items))
             {
                 answer = GetKeySubjectBuildingDirection();
             }
@@ -1857,7 +1927,7 @@ namespace DaggerfallWorkshop.Game
                                      0x21, 0x22, 0x23, 0x24, 0x27, 0x00, 0x0B, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x0A, 0x0C };
 
             DFLocation location = new DFLocation();
-            if (GetLocationWithRegionalBuilding(lookUpIndexes[listItem.index], FactionsAndBuildings[listItem.index], ref location))
+            if (GetLocationWithRegionalBuilding(lookUpIndexes[listItem.index], FactionsAndBuildings[listItem.index], ref location, out DetailsOfRegionalBuilding))
             {
                 LocationOfRegionalBuilding = location.Name;
                 return true;
@@ -1866,33 +1936,91 @@ namespace DaggerfallWorkshop.Game
             return false;
         }
 
-        public bool GetLocationWithRegionalBuilding(byte index, short faction, ref DFLocation location)
+        public bool GetLocationWithRegionalBuilding(byte index, short faction, ref DFLocation location, out (string, string, string) details)
         {
             PlayerGPS gps = GameManager.Instance.PlayerGPS;
             int locationsWithRegionalBuildingCount = 0;
+            int[] searchOrder = { 4, 1, 7, 3, 5, 0, 2, 6, 8};
+            details = (string.Empty, string.Empty, string.Empty);
 
             // Get how many locations in the region exist with the building being asked about
-            for (int i = 0; i < gps.CurrentRegion.LocationCount; i++)
+            for (int t = 0; t < 9; t++)
             {
-                locationsWithRegionalBuildingCount += CheckLocationKeyForRegionalBuilding(gps.CurrentRegion.MapTable[i].Key, index, faction);
-            }
-            if (locationsWithRegionalBuildingCount > 0)
-            {
-                int locationToChoose = UnityEngine.Random.Range(0, locationsWithRegionalBuildingCount) + 1;
-                // Get the location
-                for (int i = 0; i < gps.CurrentRegion.LocationCount; i++)
+                for (int i = 0; i < WorldMaps.WorldMap[searchOrder[t]].LocationCount; i++)
                 {
-                    locationToChoose -= CheckLocationKeyForRegionalBuilding(gps.CurrentRegion.MapTable[i].Key, index, faction);
-                    if (locationToChoose == 0)
-                    {
-                        location = WorldMaps.GetLocation(WorldMaps.GetRelativeTile(gps.CurrentMapPixel), i);
-                        return true;
-                    }
+                    locationsWithRegionalBuildingCount += CheckLocationKeyForRegionalBuilding(WorldMaps.WorldMap[searchOrder[t]].MapTable[i].Key, index, faction);
                 }
-                return false;
+                if (locationsWithRegionalBuildingCount > 0)
+                {
+                    int locationToChoose = UnityEngine.Random.Range(0, locationsWithRegionalBuildingCount) + 1;
+                    // Get the location
+                    for (int i = 0; i < WorldMaps.WorldMap[searchOrder[t]].LocationCount; i++)
+                    {
+                        locationToChoose -= CheckLocationKeyForRegionalBuilding(WorldMaps.WorldMap[searchOrder[t]].MapTable[i].Key, index, faction);
+                        if (locationToChoose == 0)
+                        {
+                            location = WorldMaps.GetLocation(searchOrder[t], i);
+                            details = (GetLocationDirection(gps.CurrentMapPixel, MapsFile.GetPixelFromPixelID(location.Exterior.ExteriorData.MapId)), GetRelativeDistance((int)DaggerfallDungeon.CalculateDistance(gps.CurrentMapPixel, MapsFile.GetPixelFromPixelID(location.Exterior.ExteriorData.MapId))), location.RegionName);
+                            return true;
+                        }
+                    }
+                    // return false;
+                }
             }
-
             return false;
+        }
+
+        public string GetLocationDirection(DFPosition startingPosition, DFPosition destination)
+        {
+            int cardinalStrictness = 5;
+            byte direction;
+            int xDiff = Math.Abs(startingPosition.X - destination.X);
+            int yDiff = Math.Abs(startingPosition.Y - destination.Y);
+
+            if (startingPosition.X > destination.X)
+            {
+                if (yDiff <= xDiff / cardinalStrictness)
+                    return TextManager.Instance.GetLocalizedText("west");
+            }
+            if (startingPosition.X < destination.X)
+            {
+                if (yDiff <= xDiff / cardinalStrictness)
+                    return TextManager.Instance.GetLocalizedText("east");
+            }
+            if (startingPosition.Y > destination.Y)
+            {
+                if (xDiff <= yDiff / cardinalStrictness)
+                    return TextManager.Instance.GetLocalizedText("north");
+            }
+            if (startingPosition.Y < destination.Y)
+            {
+                if (xDiff <= yDiff / cardinalStrictness)
+                    return TextManager.Instance.GetLocalizedText("south");
+            }
+            if (startingPosition.X > destination.X)
+            {
+                if (startingPosition.Y > destination.Y)
+                    return TextManager.Instance.GetLocalizedText("northwest");
+                else return TextManager.Instance.GetLocalizedText("southwest");
+            }
+            else
+            {
+                if (startingPosition.Y > destination.Y)
+                    return TextManager.Instance.GetLocalizedText("northeast");
+                else return TextManager.Instance.GetLocalizedText("southeast");
+            }
+        }
+
+        public string GetRelativeDistance(int distance)
+        {
+            if (distance < 12)
+                return "really close";
+            if (distance < 25)
+                return "a day from here";
+            if (distance < 100)
+                return "a few days from here";
+            else
+                return "quite far from here";
         }
 
         public int CheckLocationKeyForRegionalBuilding(uint key, byte index, short faction)
@@ -1984,7 +2112,7 @@ namespace DaggerfallWorkshop.Game
                     break;
                 case QuestionType.LocalBuilding:
                 case QuestionType.Person:
-                case QuestionType.Thing: // Never reached since there are no "where is"-type questions for things in classic
+                case QuestionType.Thing:
                     answer = GetAnswerWhereIs(listItem);
                     break;
                 case QuestionType.Regional:
@@ -2585,6 +2713,69 @@ namespace DaggerfallWorkshop.Game
         public bool WorkAvailable
         {
             get { return npcsWithWork.Count != 0; }
+        }
+
+        public static bool IsWithinBorderRange(int region1, int region2, int range = 1)
+        {
+            Debug.Log("region1: " + WorldData.WorldSetting.RegionNames[region1] + ", region2: " + WorldData.WorldSetting.RegionNames[region2] + ", range: " + range);
+            if (region1 == region2) return true;
+
+            List<int> borderingRegions = new List<int>();
+            int index = 0;
+            int whereToStart = 0;
+            int counting = 0;
+            List<int> regionStillToCheck = new List<int>();
+            while (WorldData.WorldSetting.regionBorders[region1 * 20 + index] != 408)
+            {
+                if (region2 == WorldData.WorldSetting.regionBorders[region1 * 20 + index])
+                    return true;
+                borderingRegions.Add(WorldData.WorldSetting.regionBorders[region1 * 20 + index]);
+                index++;
+            }
+            for (int i = 0; i < range; i++)
+            {
+                regionStillToCheck = new List<int>();
+                regionStillToCheck = borderingRegions.GetRange(whereToStart, borderingRegions.Count() - counting);
+                foreach (int region in regionStillToCheck)
+                {
+                    int anotherIndex = 0;
+                    while (WorldData.WorldSetting.regionBorders[region * 20 + index] != 408)
+                    {
+                        if (!borderingRegions.Contains(WorldData.WorldSetting.regionBorders[region1 * 20 + anotherIndex]))
+                        {
+                            if (region2 == WorldData.WorldSetting.regionBorders[region1 * 20 + anotherIndex])
+                                return true;
+                            borderingRegions.Add(WorldData.WorldSetting.regionBorders[region1 * 20 + anotherIndex]);
+                            anotherIndex++;
+                        }                    
+                    }
+                    counting += anotherIndex;
+                }
+            }
+            return false;
+        }
+
+        public int GetGenericRange()
+        {
+            if (npcData.isSpyMaster)
+                return 6;
+            if (GameManager.Instance.PlayerGPS.CurrentLocation.Exterior.ExteriorData.PortTownAndUnknown != 0)
+                return 4;
+
+            DFRegion.LocationTypes location = GameManager.Instance.PlayerGPS.CurrentLocationType;
+
+            switch (location)
+            {
+                case DFRegion.LocationTypes.TownCity:
+                    return 3;
+                case DFRegion.LocationTypes.Tavern:
+                case DFRegion.LocationTypes.HomeWealthy:
+                    return 2;
+                case DFRegion.LocationTypes.HomePoor:
+                    return 0;
+                default:
+                    return 1;
+            }
         }
 
         #endregion
@@ -3376,7 +3567,7 @@ namespace DaggerfallWorkshop.Game
 
             string[] buildingNames = TextManager.Instance.GetLocalizedTextList("buildingNames");
             if (buildingNames == null || index < 0 || index > buildingNames.Length - 1)
-                throw new Exception("buildingNames array text not found or idex out of range.");
+                throw new Exception("buildingNames array text not found or index out of range.");
 
             item = new ListItem();
             item.type = ListItemType.Item;
@@ -3468,8 +3659,21 @@ namespace DaggerfallWorkshop.Game
 
         private void AssembleTopicListThing()
         {
-            // Just an empty list as this is never used
             listTopicThing = new List<ListItem>();
+            ListItem item;
+
+            string[] cardinalDirections = { "North" };
+
+            for (int i = 0; i < cardinalDirections.Length; i++)
+            {
+                item = new ListItem();
+                item.type = ListItemType.Item;
+                item.questionType = QuestionType.Thing;
+                // item.npcKnowledgeAboutItem = NPCKnowledgeAboutItem.KnowsAboutItem;
+                item.caption = cardinalDirections[i];
+                item.index = i;
+                listTopicThing.Add(item);
+            }
         }
 
         /// <summary>

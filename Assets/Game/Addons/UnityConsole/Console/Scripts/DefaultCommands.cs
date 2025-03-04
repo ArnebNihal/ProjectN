@@ -25,6 +25,7 @@ using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallWorkshop.Game.Utility.ModSupport.ModSettings;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallConnect.Save;
+using Newtonsoft.Json;
 
 namespace Wenzil.Console
 {
@@ -122,6 +123,7 @@ namespace Wenzil.Console
             ConsoleCommandsDatabase.RegisterCommand(ChangeModSettings.name, ChangeModSettings.description, ChangeModSettings.usage, ChangeModSettings.Execute);
             ConsoleCommandsDatabase.RegisterCommand(PrintSpellList.name, PrintSpellList.description, PrintSpellList.usage, PrintSpellList.Execute);
             ConsoleCommandsDatabase.RegisterCommand(FastFlying.command, FastFlying.description, FastFlying.usage, FastFlying.Execute);
+            ConsoleCommandsDatabase.RegisterCommand(PrintMonsterCareer.command, PrintMonsterCareer.description, PrintMonsterCareer.usage, PrintMonsterCareer.Execute);
         }
 
         private static class DumpRegion
@@ -2851,6 +2853,34 @@ namespace Wenzil.Console
                 }
                 else
                     return "Error - Something went wrong.";
+            }
+        }
+
+        private static class PrintMonsterCareer
+        {
+            public static readonly string command = "printmonster";
+            public static readonly string description = "Print a json with the content of MONSTER.BSA";
+            public static readonly string usage = "";
+
+            public static string Execute(params string[] args)
+            {
+                DFCareer monsterClass = new DFCareer();
+                List<DFCareer> monsterClasses = new List<DFCareer>();
+                MonsterFile monsterFile = new MonsterFile();
+                if (!monsterFile.Load(Path.Combine(DaggerfallUnity.Instance.Arena2Path, MonsterFile.Filename), FileUsage.UseMemory, true))
+                    throw new Exception("Could not load " + MonsterFile.Filename);
+
+                for (int i = 0; i <= 42; i++)
+                {
+                    monsterFile.LoadMonster(i, out monsterClass);
+                    monsterClasses.Add(monsterClass);
+                }
+
+                string path = Path.Combine(Path.Combine(WorldMaps.mapPath, "Monster.bsa.json"));
+                var json = JsonConvert.SerializeObject(monsterClasses, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                File.WriteAllText(path, json);
+
+                return "Success!";
             }
         }
     }

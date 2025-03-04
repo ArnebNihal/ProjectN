@@ -1121,7 +1121,12 @@ namespace DaggerfallWorkshop.Utility
 
         private static string LocationOfRegionalBuilding(IMacroContextProvider mcp)
         {   // %fcn
-            return GameManager.Instance.TalkManager.LocationOfRegionalBuilding;
+            string fcn = GameManager.Instance.TalkManager.LocationOfRegionalBuilding + ", " +
+                         GameManager.Instance.TalkManager.DetailsOfRegionalBuilding.Item2 +
+                         " to the " + GameManager.Instance.TalkManager.DetailsOfRegionalBuilding.Item1;
+            if (GameManager.Instance.TalkManager.DetailsOfRegionalBuilding.Item3 != string.Empty)
+                fcn += ", in " + GameManager.Instance.TalkManager.DetailsOfRegionalBuilding.Item3;
+            return fcn;
         }
 
         private static string LastName(IMacroContextProvider mcp)

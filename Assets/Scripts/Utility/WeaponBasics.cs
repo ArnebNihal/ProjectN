@@ -141,7 +141,7 @@ namespace DaggerfallWorkshop.Utility
                 return GeneralWeaponAnims;
         }
 
-        public static string GetWeaponFilename(WeaponTypes weaponType)
+        public static string GetWeaponFilename(WeaponTypes weaponType, MetalTypes metalType = MetalTypes.Iron)
         {
             switch (weaponType)
             {
@@ -180,7 +180,8 @@ namespace DaggerfallWorkshop.Utility
                 case WeaponTypes.Werecreature:
                     return "WEAPON11.CIF";
                 default:
-                    throw new Exception("Unknown weapon type.");
+                    return "WEAPON" + ((int)weaponType).ToString() + ".PNG";
+                    // throw new Exception("Unknown weapon type.");
             }
         }
 

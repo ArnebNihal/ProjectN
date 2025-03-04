@@ -65,7 +65,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             new List<int> { },                                        // 8."PLACEHOLDER isles",
             new List<int> { 0 },                                      // 9."In which region were you born?"
             new List<int> { 0, 11, 12, 13, 14, 15, 16, 17 },          // 10."What kind of settlement your home was?"
-            new List<int> { 0, 26, 27, 28, 29, 30 },                  // 11."What happened to your parents?"
+            new List<int> { 0, 27, 28, 29, 30, 31 },                  // 11."What happened to your parents?"
             new List<int> { 0 },                                      // 12."How old were you when you left home?"
         };
 
@@ -86,11 +86,18 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         BiogFile biogFile;
         public StartLocQuestions sLQuestions;
         public static DataForBiog dataForBiog;
+        public int age;
 
         public CreateCharBiography(IUserInterfaceManager uiManager, CharacterDocument document)
             : base(uiManager)
         {
             Document = document;
+        }
+
+        public int CharacterAge
+        {
+            get { return age; }
+            set { age = value; }
         }
 
         public class StartLocQuestions
@@ -268,7 +275,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                     switch(answers[answers.Count - 1])
                     {
                         case 1:
-                            questionAnswers[generalQuestionIndex].AddRange(new List<int> { 19, 20, 21, 22, 23, 24 });
+                            questionAnswers[generalQuestionIndex].AddRange(new List<int> { 19, 20, 21, 22, 23, 24, 25 });
                             break;
 
                         case 2:
@@ -284,6 +291,14 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                             questionAnswers[generalQuestionIndex].AddRange(new List<int> { 20, 21, 22 });
                             break;
                     }
+                    if (CharacterAge <= 20 && questionAnswers[generalQuestionIndex].Contains(23))
+                    {
+                        questionAnswers[generalQuestionIndex].Remove(23);
+                    }
+                    if (CharacterAge <= 30 && questionAnswers[generalQuestionIndex].Contains(24))
+                    {
+                        questionAnswers[generalQuestionIndex].Remove(24);
+                    }
                     for (int i = 0; i < buttonCount; i++)
                     {
                         if (i >= questionAnswers[generalQuestionIndex].Count)
@@ -293,6 +308,10 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                         }
                         else
                         {
+                            if (questionAnswers[generalQuestionIndex][i] == 23 && CharacterAge < 30)
+                                sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]] = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Replace("30", CharacterAge.ToString());
+                            if (questionAnswers[generalQuestionIndex][i] == 24 && CharacterAge < 40)
+                                sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]] = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Replace("40", CharacterAge.ToString());
                             sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]] = sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Replace(space, ' ');
                             if (!sLQuestions.Answers[questionAnswers[generalQuestionIndex][i]].Contains(newLine))
                             {
@@ -615,42 +634,49 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                     locationsSelected.Add(tile, locationsList);
                                 }
 
-                                switch (givenAnswers[i])
-                                {
-                                    case 1:    // "Just a baby, I have no memories of it."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (0, 15);
-                                        break;
+                                startingData.areaKnowledge = DetermineAreaKnowledge(givenAnswers[i], out startingData.startsFromPrimary);
+
+                                // switch (givenAnswers[i])
+                                // {
+                                //     case 1:    // "Just a baby, I have no memories of it."
+                                //         startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
+                                //         startingData.areaKnowledge = (0, 15);
+                                //         break;
                                     
-                                    case 2:    // "A child, I have only fragmentary memories of it."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (2, 10);
-                                        break;
+                                //     case 2:    // "A child, I have only fragmentary memories of it."
+                                //         startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
+                                //         startingData.areaKnowledge = (2, 10);
+                                //         break;
 
-                                    case 3:    // "An adolescent."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (5, 10);
-                                        break;
+                                //     case 3:    // "An adolescent."
+                                //         startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
+                                //         startingData.areaKnowledge = (5, 10);
+                                //         break;
 
-                                    case 4:    // "A young adult, but not older than 20."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (8, 5);
-                                        break;
+                                //     case 4:    // "A young adult, but not older than 20."
+                                //         startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
+                                //         startingData.areaKnowledge = (8, 5);
+                                //         break;
 
-                                    case 5:    // "Between 20 and 30 years old."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (10, 2);
-                                        break;
+                                //     case 5:    // "Between 20 and 30 years old."
+                                //         startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
+                                //         startingData.areaKnowledge = (10, 2);
+                                //         break;
 
-                                    case 6:    // "I never left my home, I'm still there."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = true;
-                                        startingData.areaKnowledge = (15, 0);
-                                        break;
+                                //     case 5:    // "Between 30 and 40 years old."
+                                //         startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
+                                //         startingData.areaKnowledge = (10, 2);
+                                //         break;
 
-                                    default:
-                                        startingData.areaKnowledge = (0, 0);
-                                        break;
-                                }
+                                //     case 6:    // "I never left my home, I'm still there."
+                                //         startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = true;
+                                //         startingData.areaKnowledge = (15, 0);
+                                //         break;
+
+                                //     default:
+                                //         startingData.areaKnowledge = (0, 0);
+                                //         break;
+                                // }
 
                                 startingData.startingHouse = ((!startingData.startsFromPrimary && startingData.motherJob == 510) || startingData.startsFromPrimary);
                                 parentsPlace = PickRemoteTownSite(GetWorkPlace(startingData.motherJob).Item1, region, out dataForBiog.MovedtownName, locationsSelected, GetWorkPlace(startingData.motherJob).Item2);
@@ -694,27 +720,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                     }
                                     locationsSelected.Add(tile, locationsList);
                                 }
-                                switch (givenAnswers[i])
-                                {
-                                    case 1:    // "Just a baby, I have no memories of it."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (0, 15);
-                                        break;
-                                    
-                                    case 2:    // "A child, I have only fragmentary memories of it."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (2, 10);
-                                        break;
 
-                                    case 3:    // "An adolescent."
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (5, 10);
-                                        break;
-
-                                    default:
-                                        startingData.areaKnowledge = (0, 0);
-                                        break;
-                                }
+                                startingData.areaKnowledge = DetermineAreaKnowledge(givenAnswers[i], out startingData.startsFromPrimary);
 
                                 // TODO: add the fact that now the player is legally hated in his/her region of origin (or maybe he is hated by a certain faction?).
                                 startingData.startingHouse = !startingData.startsFromPrimary;
@@ -748,22 +755,8 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                     }
                                     locationsSelected.Add(tile, locationsList);
                                 }
-                                switch (givenAnswers[i])
-                                {
-                                    case 1:    // "Just a baby, I have no memories of it."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (0, 15);
-                                        break;
-                                    
-                                    case 2:    // "A child, I have only fragmentary memories of it."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (2, 10);
-                                        break;
-
-                                    default:
-                                        startingData.areaKnowledge = (0, 0);
-                                        break;
-                                }
+                                
+                                startingData.areaKnowledge = DetermineAreaKnowledge(givenAnswers[i], out startingData.startsFromPrimary);
 
                                 startingData.startingHouse = false;
                                 parentsPlace = PickRemoteTownSite(DFLocation.BuildingTypes.Temple, region, out dataForBiog.MovedtownName, locationsSelected, 33);
@@ -807,27 +800,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                     locationsSelected.Add(tile, locationsList);
                                 }
 
-                                switch (givenAnswers[i])
-                                {
-                                    case 1:    // "Just a baby, I have no memories of it."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (0, 15);
-                                        break;
-                                    
-                                    case 2:    // "A child, I have only fragmentary memories of it."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (2, 10);
-                                        break;
-
-                                    case 3:    // "An adolescent."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (5, 10);
-                                        break;
-
-                                    default:
-                                        startingData.areaKnowledge = (0, 0);
-                                        break;
-                                }
+                                startingData.areaKnowledge = DetermineAreaKnowledge(givenAnswers[i], out startingData.startsFromPrimary);
 
                                 startingData.startingHouse = true;
                                 parentsPlace = PickRemoteTownSite(DFLocation.BuildingTypes.AnyHouse, region, out dataForBiog.MovedtownName, locationsSelected);
@@ -860,27 +833,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                                     locationsSelected.Add(tile, locationsList);
                                 }
 
-                                switch (givenAnswers[i])
-                                {
-                                    case 2:    // "A child, I have only fragmentary memories of it."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (2, 10);
-                                        break;
-
-                                    case 3:    // "An adolescent."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (5, 10);
-                                        break;
-
-                                    case 4:    // "A young adult, but not older than 20."                                        
-                                        startingData.startsFromPrimary = dataForBiog.StartsFromPrimary = false;
-                                        startingData.areaKnowledge = (8, 5);
-                                        break;
-
-                                    default:
-                                        startingData.areaKnowledge = (0, 0);
-                                        break;
-                                }
+                                startingData.areaKnowledge = DetermineAreaKnowledge(givenAnswers[i], out startingData.startsFromPrimary);
 
                                 startingData.startingHouse = false;
                                 if (UnityEngine.Random.Range(0, 2) == 0)
@@ -914,6 +867,64 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             Debug.Log("startingData.secondaryPosition: " + startingData.secondaryPosition);
 
             return startingData;
+        }
+
+        public (int, int) DetermineAreaKnowledge(int givenAnswer, out bool startsFromPrimary)
+        {
+            (int, int) areaKnowledge = (0, 0);
+            int knowledgePoints = CharacterAge / 2;
+            int primaryKnowledge = 0;
+            startsFromPrimary = true;
+
+            if (CharacterAge <= 30 && givenAnswer == 6)
+                givenAnswer = 6;
+            if (CharacterAge <= 20 && givenAnswer == 5)
+                givenAnswer = 7;
+
+            switch (givenAnswer)
+            {
+                case 1:    // "Just a baby, I have no memories of it."
+                    startsFromPrimary = false;
+                    break;
+
+                case 2:    // "A child, I have only fragmentary memories of it."
+                    startsFromPrimary = false;
+                    primaryKnowledge = 3;
+                    break;
+
+                case 3:    // "An adolescent."
+                    startsFromPrimary = false;
+                    primaryKnowledge = 7;
+                    break;
+
+                case 4:    // "A young adult, but not older than 20."
+                    startsFromPrimary = false;
+                    primaryKnowledge = 9;
+                    break;
+
+                case 5:    // "Between 20 and 30 years old."
+                    startsFromPrimary = false;
+                    primaryKnowledge = knowledgePoints - 10;
+                    break;
+
+                case 6:    // "Between 30 and 40 years old."
+                    startsFromPrimary = false;
+                    primaryKnowledge = knowledgePoints - 15;
+                    break;
+
+                case 7:    // "I never left my home, I'm still there."
+                    startsFromPrimary = true;
+                    primaryKnowledge = knowledgePoints;
+                    break;
+
+                default:
+                    areaKnowledge = (0, 0);
+                    break;
+            }
+
+            dataForBiog.StartsFromPrimary = startsFromPrimary;
+            areaKnowledge = (primaryKnowledge, knowledgePoints - primaryKnowledge);
+            return areaKnowledge;
         }
 
         public (DFLocation.BuildingTypes, int) GetWorkPlace(int jobType)

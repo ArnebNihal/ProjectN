@@ -1022,7 +1022,116 @@ MonoBehaviour:
       Knight
 
       City
-      Watch'
+      Watch
+
+      Goblin
+
+      Homunculus
+
+      Lizardman
+
+      Lizard Warrior
+
+      Bat
+
+      Medusa
+
+      Wolf
+
+      Snow
+      Wolf
+
+      Hell Hound
+
+      Grotesque
+
+      Skeletal Soldier
+
+      Dog
+
+      Mountain
+      Nymph
+
+      Minotaur
+
+      Iron Golem
+
+      Blood Spider
+
+      Troll
+
+      Gloom
+      Wraith
+
+      Faded Ghost
+
+      King Lysandus
+
+      Fire Daemon
+
+      Ghoul
+
+      Boar
+
+      Land
+      Dreugh
+
+      Mountain Lion
+
+      Mudcrab
+
+      Ogre
+
+      Will-o''-wisp
+
+      Ice
+      Golem
+
+      Dremora
+
+      Stone Golem
+
+      Dire Ghoul
+
+      Scamp
+
+      Centurion
+      Sphere
+
+      Steam Centurion
+
+      Druid
+
+      Guard
+
+      Knight Rider
+
+      Rogue
+      Rider
+
+      Necromancer Acolyte
+
+      Rogue Druid
+
+      Bounty Hunter
+
+      Royal
+      Knight
+
+      Thief Rider
+
+      Necromancer Glaivier
+
+      Necromancer Assassin
+
+      Dark
+      Slayer
+
+      Witch Defender
+
+      Spellsword Rider
+
+      Archer Rider'
     m_Metadata:
       m_Items: []
   - m_Id: 184
@@ -3777,7 +3886,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 848
-    m_Localized: Town maps are automatically used when trying to open automap while being in the correct location.
+    m_Localized: Town maps are automatically used when trying to open automap while
+      being in the correct location.
     m_Metadata:
       m_Items: []
   - m_Id: 849
@@ -3825,7 +3935,8 @@ MonoBehaviour:
     m_Metadata:
       m_Items: []
   - m_Id: 860
-    m_Localized: You already targeted this one, it could be wiser not to attract too much attention.
+    m_Localized: You already targeted this one, it could be wiser not to attract
+      too much attention.
     m_Metadata:
       m_Items: []
   - m_Id: 861
@@ -5035,7 +5146,7 @@ MonoBehaviour:
       The Atronach
 
       The Thief
-      
+
       The Serpent'
     m_Metadata:
       m_Items: []
@@ -5059,6 +5170,238 @@ MonoBehaviour:
       m_Items: []
   - m_Id: 318184563599208448
     m_Localized: '{0} the {1}{2} of {3:00}'
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582277954673373184
+    m_Localized: Goblin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582278300388880384
+    m_Localized: Homunculus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582278433142796288
+    m_Localized: Lizard Man
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582278557432606720
+    m_Localized: Lizard Warrior
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582278704895946752
+    m_Localized: Bat
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582278981246054400
+    m_Localized: Medusa
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279079061417984
+    m_Localized: Wolf
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279126012456960
+    m_Localized: Snow Wolf
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279218618494976
+    m_Localized: Hell Hound
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279308267548672
+    m_Localized: Grotesque
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279442640465920
+    m_Localized: Skeletal Soldier
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279523712167936
+    m_Localized: Dog
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279619770118144
+    m_Localized: Mountain Nymph
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279721645568000
+    m_Localized: Minotaur
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279867104030720
+    m_Localized: Iron Golem
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582279969960947712
+    m_Localized: Blood Spider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280072427794432
+    m_Localized: Troll
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280140807532544
+    m_Localized: Gloom Wraith
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280262836613120
+    m_Localized: Faded Ghost
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280343849594880
+    m_Localized: King Lysandus
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280455992700928
+    m_Localized: Fire Daemon
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280519951642624
+    m_Localized: Ghoul
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280603187605504
+    m_Localized: Boar
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280671462486016
+    m_Localized: Land Dreugh
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280866451484672
+    m_Localized: Mountain Lion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582280943274356736
+    m_Localized: Mudcrab
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281019572940800
+    m_Localized: Ogre
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281066385567744
+    m_Localized: Will-o'-wisp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281211709812736
+    m_Localized: Ice Golem
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281353204658176
+    m_Localized: Dremora
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281757715918848
+    m_Localized: Stone Golem
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281821762940928
+    m_Localized: Dire Ghoul
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281905951010816
+    m_Localized: Scamp
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582281952834940928
+    m_Localized: Centurion Sphere
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582284383438303232
+    m_Localized: Steam Centurion
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582284470063263744
+    m_Localized: Druid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582284611902042112
+    m_Localized: Guard
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582284672086110208
+    m_Localized: Knight Rider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582284764679565312
+    m_Localized: Rogue Rider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582284850679574528
+    m_Localized: Necromancer Acolyte
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582284936180461568
+    m_Localized: Rogue Druid
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285041109364736
+    m_Localized: Bounty Hunter
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285130515148800
+    m_Localized: Royal Knight
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285222731116544
+    m_Localized: Thief Rider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285315391680512
+    m_Localized: Necromancer Glaivier
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285401198751744
+    m_Localized: Necromancer Assassin
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285498603073536
+    m_Localized: Dark Slayer
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285567154778112
+    m_Localized: Witch Defender
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285648381669376
+    m_Localized: Spellsword Rider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 582285727339442176
+    m_Localized: Archer Rider
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584687783689908224
+    m_Localized: go straight
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584695844760514560
+    m_Localized: turn around
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584695984355340288
+    m_Localized: turn right
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584696052072378368
+    m_Localized: turn left
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584706511399874560
+    m_Localized: go straight and to the right
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584706716211933184
+    m_Localized: go straight and to the left
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584706835497938944
+    m_Localized: turn around and to the left
+    m_Metadata:
+      m_Items: []
+  - m_Id: 584707298284859392
+    m_Localized: turn around and to the right
     m_Metadata:
       m_Items: []
   references:

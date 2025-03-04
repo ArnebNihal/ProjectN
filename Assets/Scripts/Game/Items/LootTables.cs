@@ -175,8 +175,9 @@ namespace DaggerfallWorkshop.Game.Items
         /// </summary>
         /// <param name="matrix">Loot chance matrix.</param>
         /// <param name="playerEntity">Player entity.</param>
+        /// <param name="levelModifer">Bonus to loot based on area/monster level/etc...
         /// <returns>DaggerfallUnityItem array.</returns>
-        public static DaggerfallUnityItem[] GenerateRandomLoot(LootChanceMatrix matrix, PlayerEntity playerEntity)
+        public static DaggerfallUnityItem[] GenerateRandomLoot(LootChanceMatrix matrix, PlayerEntity playerEntity, int levelModifier = 1)
         {
             // Notes: The first part of the DF Chronicles explanation of how loot is generated does not match the released game.
             // It says the chance for each item category is the matrix amount * the level of the NPC. Actual behavior in the
@@ -199,7 +200,7 @@ namespace DaggerfallWorkshop.Game.Items
 
             // Random gold
             // ProjectN: eliminating player level from calculation
-            int goldCount = Random.Range(matrix.MinGold, matrix.MaxGold + 1);
+            int goldCount = Random.Range(matrix.MinGold, matrix.MaxGold + levelModifier);
             if (goldCount > 0)
             {
                 items.Add(ItemBuilder.CreateGoldPieces(goldCount));
@@ -209,7 +210,7 @@ namespace DaggerfallWorkshop.Game.Items
             chance = matrix.WP;
             while (Dice100.SuccessRoll((int)chance))
             {
-                item = ItemBuilder.CreateRandomWeapon(luck);
+                item = ItemBuilder.CreateRandomWeapon(luck, levelModifier);
                 item.currentCondition = (int)(item.maxCondition * UnityEngine.Random.Range(0.2f, 0.75f));
                 items.Add(item);
                 chance *= 0.5f;
@@ -219,7 +220,7 @@ namespace DaggerfallWorkshop.Game.Items
             chance = matrix.AM;
             while (Dice100.SuccessRoll((int)chance))
             {
-                item = ItemBuilder.CreateRandomArmor(luck, playerEntity.Gender, playerEntity.Race);
+                item = ItemBuilder.CreateRandomArmor(luck, playerEntity.Gender, playerEntity.Race, levelModifier);
                 item.currentCondition = (int)(item.maxCondition * UnityEngine.Random.Range(0.2f, 0.75f));
                 items.Add(item);
                 chance *= 0.5f;
