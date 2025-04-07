@@ -36,20 +36,40 @@ namespace MapEditor
 
         // routeGenerationOrder set the order in which trails are generated
         public static int[] routeGenerationOrder = { 0, 1, 2, 6, 8, 5, 3, 11, 12, 9, 4, 7, 10};
+        public Roadsign signData;
+        List<int[]> tempSignData = new List<int[]>();
+
+        public class Roadsign
+        {
+            public List<string> locNames;
+            public Dictionary<int, DFPosition> signPosition;
+            public Dictionary<int, string[][]> roadsign;
+
+            public Roadsign()
+            {
+                this.locNames = new List<string>();
+                this.signPosition = new Dictionary<int, DFPosition>();
+                this.roadsign = new Dictionary<int, string[][]>();
+            }
+        }
 
         public class RoutedLocation
         {
+            public string name;
             public DFPosition position;
             public List<(ulong, float)> locDistance;
             public TrailTypes trailPreference;
             public byte completionLevel;
+            public DFRegion.LocationTypes locType;
 
             public RoutedLocation()
             {
+                this.name = string.Empty;                       // Name of routed location to use in roadsigns
                 this.position = new DFPosition(0, 0);           // The coordinates of the location to route
                 this.locDistance = new List<(ulong, float)>();  // Item1 refers to a location to reach, Item2 to the distance to that location
                 this.trailPreference = TrailTypes.None;         // The type of trail this location will generate, if there aren't others
                 this.completionLevel = 0;                       // An indicator of how many locations have been reached starting from this position
+                this.locType = DFRegion.LocationTypes.None;     // Routed location type, to see if it has to be inserted in signpost location list
             }
         }
 
@@ -62,7 +82,7 @@ namespace MapEditor
 
         void Awake()
         {
-        
+            signData = new Roadsign();
         }
 
         void OnGUI()
@@ -101,7 +121,7 @@ namespace MapEditor
             int[] pathData = ClimateInfo.ConvertToArray(ClimateInfo.GetTextureMatrix(xTile, yTile, "trail"));
             
             List<RoutedLocation> routedLocationsComplete = new List<RoutedLocation>();
-            (byte, byte)[,] trailMap = new (byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
+            (byte, byte, byte)[,] trailMap = new (byte, byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
             trailMap = LoadExistingTrails(pathData);
 
             // First we set values for routedLocations, to have a reference for which locations must be routed and in which way
@@ -237,7 +257,7 @@ namespace MapEditor
 
                     swapLoc.locDistance.Sort((a, b) => a.Item2.CompareTo(b.Item2));
                     for (int sld = 0; sld < swapLoc.locDistance.Count; sld++)
-                        Debug.Log("swapLoc.locDistance[" + sld + "].Item1: " + swapLoc.locDistance[sld].Item1);
+                        // Debug.Log("swapLoc.locDistance[" + sld + "].Item1: " + swapLoc.locDistance[sld].Item1);
                     swapList.Add(swapLoc);
                     // Debug.Log("swapList[0].locDistance[0].Item1: " + swapList[0].locDistance[0].Item1);
                 }
@@ -312,7 +332,7 @@ namespace MapEditor
             }
 
             routedLocationsComplete = routedLocCompSwap;
-
+            string[][] roadpostData = new string[8][];
             
             string trailDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "TrailData", "trailData_" + xTile + "_" + yTile + ".json");
             var json = JsonConvert.SerializeObject(routedLocationsComplete, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
@@ -322,14 +342,29 @@ namespace MapEditor
             // and falling back to longer trails if adjacent pixels have a too steep rise/decline
             foreach (RoutedLocation locToRoute1 in routedLocationsComplete)
             {
+                string strtName, arrvName = string.Empty;
+                
+                strtName = locToRoute1.name;
+                int strtNameIndex = signData.locNames.FindIndex(x => x.Equals(strtName));
+
                 foreach ((ulong, float) destination in locToRoute1.locDistance)
                 {
-                    Debug.Log("locToRoute1.locDistance.Count: " + locToRoute1.locDistance.Count);
+                    // Debug.Log("locToRoute1.locDistance.Count: " + locToRoute1.locDistance.Count);
                     List<DFPosition> trail = new List<DFPosition>();
                     List<DFPosition> movementChoice = new List<DFPosition>();
                     int xDirection, yDirection, xDiff, yDiff;
                     DFPosition currentPosition = locToRoute1.position;
                     DFPosition arrivalDestination = MapsFile.GetPixelFromPixelID(destination.Item1);
+
+                    int tileIndex = Worldmaps.GetTileIndex(destination.Item1);
+                    
+                    // Debug.Log("destination.Item1: " + destination.Item1 + ", tileIndex: " + tileIndex);
+                    arrvName = (Worldmaps.GetLocation(Worldmaps.GetTileIndex(destination.Item1), Worldmaps.mapDict[destination.Item1].MapIndex)).Name;
+                    int arrvNameIndex = -1;
+                    if (!signData.locNames.Contains(arrvName))
+                        signData.locNames.Add(arrvName);
+
+                    arrvNameIndex = signData.locNames.FindIndex(y => y.Equals(arrvName));                    
 
                     CalculateDirectionAndDiff(currentPosition, arrivalDestination, out xDirection, out yDirection, out xDiff, out yDiff);
 
@@ -476,7 +511,7 @@ namespace MapEditor
                     }
                     while (!arrivedToDestination && !noWay);
 
-                    trailMap = GenerateTrailMap(trail, trailMap, locToRoute1.trailPreference);
+                    trailMap = GenerateTrailMap(trail, trailMap, locToRoute1.trailPreference, strtNameIndex, arrvNameIndex);
                 }
             }
 
@@ -487,7 +522,7 @@ namespace MapEditor
             {
                 for (int ics = 0; ics < 3; ics++)
                 {
-                    (byte, byte)[,] subTile = GetSubTile(trailMap, ics, ipsilon);
+                    (byte, byte, byte)[,] subTile = GetSubTile(trailMap, ics, ipsilon);
                     fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trail_" + (xTile + ics - 1) + "_" + (yTile + ipsilon - 1) + ".png");
                     trailsByteArray = MapEditor.ConvertToGrayscale(subTile, (int)TrailTypes.None);
                     File.WriteAllBytes(fileDataPath, trailsByteArray);
@@ -534,6 +569,100 @@ namespace MapEditor
                 trailsByteArray = MapEditor.ConvertToGrayscale(tile, true);
                 File.WriteAllBytes(fileDataPath, trailsByteArray);
             }
+
+            foreach (KeyValuePair<int, string[][]> roadsignData in signData.roadsign)
+            {
+                int check = 0;
+                for (int css = 0; css < 8; css++)
+                {
+                    if (roadsignData.Value[css] != null)
+                        check++;
+                }
+                if (check > 2)
+                {
+                    int x = roadsignData.Key % MapsFile.WorldWidth;
+                    int y = roadsignData.Key / MapsFile.WorldWidth;
+                    string tileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trailExp_" + (x / MapsFile.TileDim) + "_" + (y / MapsFile.TileDim) + ".png");
+                    Texture2D tex = new Texture2D(1, 1);
+                    ImageConversion.LoadImage(tex, File.ReadAllBytes(tileDataPath));
+                    int[,] tileToPrint = MapEditor.ConvertToMatrixExp(tex);
+
+                    for (int ics = ((x % MapsFile.TileDim) * 5); ics < (((x + 1) % MapsFile.TileDim) * 5); ics++)
+                    {
+                        for (int ipsilon = ((y % MapsFile.TileDim) * 5); ipsilon < (((y + 1) % MapsFile.TileDim) * 5); ipsilon++)
+                        {
+                            int pixel = tileToPrint[ics, ipsilon];
+                            if (pixel > (byte.MaxValue * byte.MaxValue))
+                            {
+                                pixel -= (byte.MaxValue * byte.MaxValue);
+                                byte road = (byte)(pixel % byte.MaxValue);
+                                byte track = (byte)(pixel / byte.MaxValue);
+                                byte crossroad = (byte)(road | track);
+
+                                DFPosition signPosition = GetSignPosition(crossroad);
+                                DFPosition posCorrection = new DFPosition((ics % 5 * 26), (ipsilon % 5 * 26));
+                                signPosition = new DFPosition(signPosition.X + posCorrection.X, signPosition.Y + posCorrection.Y);
+                                Debug.Log("roadsignData.Key: " + roadsignData.Key + ", signPosition: " + signPosition.X + ", " + signPosition.Y);
+                                if (!signData.signPosition.ContainsKey(roadsignData.Key))
+                                    signData.signPosition.Add(roadsignData.Key, signPosition);
+                            }
+                        }
+                    }
+
+                    if (signData.signPosition.ContainsKey(roadsignData.Key))
+                    {
+                        (DFPosition, string[][]) signToPrint;
+                        signToPrint.Item1 = signData.signPosition[roadsignData.Key];
+                        signToPrint.Item2 = roadsignData.Value;
+                        fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "RoadsignData", "signdata_" + roadsignData.Key + ".json");
+                        var signJson = JsonConvert.SerializeObject(signToPrint, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                        File.WriteAllText(fileDataPath, signJson);
+                    }
+                    else Debug.Log("signData.signPosition does not contain key " + roadsignData.Key);
+                }
+            }
+        }
+
+        protected static DFPosition GetSignPosition(byte crossroad)
+        {
+            bool[] freeRoom = new bool[8];
+            DFPosition resultingPos = new DFPosition();
+            
+            for (int i = 0; i < 8; i++)
+            {
+                if (crossroad % 2 != 0)
+                    freeRoom[i] = false;
+                else freeRoom[i] = true;
+
+                crossroad /= 2;
+            }
+
+            int randomPos = UnityEngine.Random.Range(0, 8);
+
+            while (!freeRoom[randomPos])
+                randomPos = UnityEngine.Random.Range(0, 8);
+
+            switch (randomPos)
+            {
+                case 0:
+                    return new DFPosition(10, 13);
+                case 1:
+                    return new DFPosition(11, 14);
+                case 2:
+                    return new DFPosition(13, 13);
+                case 3:
+                    return new DFPosition(14, 12);
+                case 4:
+                    return new DFPosition(13, 10);
+                case 5:
+                    return new DFPosition(12, 9);
+                case 6:
+                    return new DFPosition(10, 10);
+                case 7:
+                    return new DFPosition(9, 11);
+            }
+
+            return resultingPos;
         }
 
         protected DFPosition ConvertToRelative(DFPosition pos)
@@ -542,9 +671,9 @@ namespace MapEditor
             return resultingPos;
         }
 
-        protected (byte, byte)[,] GetSubTile((byte, byte)[,] trailMap, int tileX, int tileY)
+        protected (byte, byte, byte)[,] GetSubTile((byte, byte, byte)[,] trailMap, int tileX, int tileY)
         {
-            (byte, byte)[,] subTile = new (byte, byte)[MapsFile.TileDim, MapsFile.TileDim];
+            (byte, byte, byte)[,] subTile = new (byte, byte, byte)[MapsFile.TileDim, MapsFile.TileDim];
             int X, Y;
             
             for (int y = 0; y < MapsFile.TileDim; y++)
@@ -561,9 +690,9 @@ namespace MapEditor
             return subTile;
         }
 
-        protected (byte, byte)[,] LoadExistingTrails(int[] pathData)
+        protected (byte, byte, byte)[,] LoadExistingTrails(int[] pathData)
         {
-            (byte, byte)[,] existingTrails = new (byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
+            (byte, byte, byte)[,] existingTrails = new (byte, byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
             int xCorrection, yCorrection;
 
             for (int i = 0; i < pathData.Length; i++)
@@ -573,10 +702,9 @@ namespace MapEditor
                     xCorrection = (i % (MapsFile.TileDim * 3));
                     yCorrection = (i / (MapsFile.TileDim * 3));
 
-                    existingTrails[xCorrection, yCorrection] = ((byte)(pathData[i] % (byte.MaxValue + 1)), (byte)(pathData[i] / (byte.MaxValue + 1)));
+                    existingTrails[xCorrection, yCorrection] = ((byte)(pathData[i] % byte.MaxValue), (byte)((pathData[i] / byte.MaxValue) % byte.MaxValue), (byte)((pathData[i] / byte.MaxValue) / byte.MaxValue));
                 }
             }
-
             return existingTrails;
         }
 
@@ -623,17 +751,22 @@ namespace MapEditor
                             int locationType = (int)locationSummary.LocationType;
 
                             DFPosition locPosition = MapsFile.GetPixelFromPixelID(locationSummary.ID);
+                            DFLocation locationData = Worldmaps.GetLocation((x / MapsFile.TileDim) + ((y / MapsFile.TileDim) * 120), locationSummary.MapIndex);
                             locSurroundings.Add(locPosition);
 
                             if (locPosition.X >= xMinMiddle && locPosition.X < xMaxMiddle && locPosition.Y >= yMinMiddle && locPosition.Y < yMaxMiddle)
                             {
+                                location.name = locationData.Name;
                                 location.position = locPosition;
                                 location.locDistance = new List<(ulong, float)>();
                                 location.trailPreference = TrailTypes.None;
                                 location.completionLevel = 0;
+                                location.locType = (DFRegion.LocationTypes)locationType;
 
                                 locationToRoute[locationType].Add(location);
                             }
+                            if (!signData.locNames.Contains(location.name))
+                                signData.locNames.Add(location.name);
                         }
                     }
                 }
@@ -647,9 +780,9 @@ namespace MapEditor
         /// </summary>
         /// <param name="trailTile">Trail tile that is used for every sub-tile creation.</param> 
         /// <param name="trailMap">The generic trail map used to create the sub-tiles.</param>
-        protected int[,] GenerateTile((int, int) trailTile, (byte, byte)[,] trailMap)
+        protected int[,] GenerateTile((int, int) trailTile, (byte, byte, byte)[,] trailMap)
         {
-            Debug.Log("Generating trailTile " + trailTile.Item1 + ", " + trailTile.Item2);
+            // Debug.Log("Generating trailTile " + trailTile.Item1 + ", " + trailTile.Item2);
             int[,] tile = new int[MapsFile.TileDim * 5, MapsFile.TileDim * 5];
             Texture2D tileImage = new Texture2D(1, 1);
             if (File.Exists(Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trailExp_" + trailTile.Item1 + "_" + trailTile.Item2 + ".png")))
@@ -700,6 +833,7 @@ namespace MapEditor
         protected int[,] RefineTileBorder(int[,] tile)
         {
             int tileSize = MapsFile.TileDim * 5;
+            bool isCrossroad;
             for (int x = 0; x < tileSize; x++)
             {
                 for (int y = 0; y < tileSize; y++)
@@ -709,8 +843,9 @@ namespace MapEditor
                         int xBorder = x % 5;
                         int yBorder = y % 5;
                         int x1, x2, x3, y1, y2, y3;
-                        List<byte> road = GetByte(tile[x, y], true);
-                        List<byte> track = GetByte(tile[x, y], false);
+                        isCrossroad = tile[x, y] >= (byte.MaxValue * byte.MaxValue);
+                        List<byte> road = GetByte(tile[x, y], true, isCrossroad);
+                        List<byte> track = GetByte(tile[x, y], false, isCrossroad);
                         List<byte> otherRoad = new List<byte>();
                         List<byte> otherTrack = new List<byte>();
                         List<byte> otherTrail = new List<byte>();
@@ -729,51 +864,51 @@ namespace MapEditor
                                 x2 = x - x % 5 + 2;
                                 x3 = x - x % 5 + 3;
                                 y1 = y - 1;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad);
-                                corresponding2 = GetByte(tile[x2, y1], isRoad);
-                                corresponding3 = GetByte(tile[x3, y1], isRoad);
+                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
+                                corresponding2 = GetByte(tile[x2, y1], isRoad, isCrossroad);
+                                corresponding3 = GetByte(tile[x3, y1], isRoad, isCrossroad);
 
                                 if (xBorder == 1)
                                 {
                                     if (corresponding2.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, isCrossroad, S);
                                         }
                                         else if (!corresponding1.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, isCrossroad, S);
                                         }
                                     }
                                     else if (corresponding3.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x + 2, y], isRoad);
+                                        otherTrail = GetByte(tile[x + 2, y], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding1.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -781,40 +916,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, S);
                                         }
                                         else if (!corresponding2.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, S);
                                         }
                                     }
                                     else if (corresponding3.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, isCrossroad, S);
                                         }
                                         else if (!corresponding2.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, isCrossroad, S);
                                         }
                                     }
                                 }
@@ -822,43 +957,43 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
                                         }
                                         else if (!corresponding3.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
                                         }
                                     }
                                     else if (corresponding1.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 2, y], isRoad);
+                                        otherTrail = GetByte(tile[x - 2, y], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding3.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -876,53 +1011,53 @@ namespace MapEditor
                                 x2 = x - x % 5 + 2;
                                 x3 = x - x % 5 + 3;
                                 y1 = y + 1;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad);
-                                corresponding2 = GetByte(tile[x2, y1], isRoad);
-                                corresponding3 = GetByte(tile[x3, y1], isRoad);
+                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
+                                corresponding2 = GetByte(tile[x2, y1], isRoad, isCrossroad);
+                                corresponding3 = GetByte(tile[x3, y1], isRoad, isCrossroad);
 
                                 if (xBorder == 1)
                                 {
                                     if (corresponding2.Contains(N))
                                     {
                                         // Checking tile[x + 1, y];
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, isCrossroad, N);
                                         }
                                         else if (!corresponding1.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, isCrossroad, N);
                                         }
                                     }
                                     else if (corresponding3.Contains(N))
                                     {
                                         // Checking tile[x + 2, y];
-                                        otherTrail = GetByte(tile[x + 2, y], isRoad);
+                                        otherTrail = GetByte(tile[x + 2, y], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, S);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding1.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, S);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -930,40 +1065,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(N))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, isCrossroad, N);
                                         }
                                         else if (!corresponding2.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, isCrossroad, N);
                                         }
                                     }
                                     else if (corresponding3.Contains(N))
                                     {
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, isCrossroad, N);
                                         }
                                         else if (!corresponding2.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, isCrossroad, N);
                                         }
                                     }
                                 }
@@ -971,43 +1106,43 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad);
+                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
                                         }
                                         else if (!corresponding3.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
                                         }
                                     }
                                     else if (corresponding1.Contains(N))
                                     {
-                                        otherTrail = GetByte(tile[x - 2, y], isRoad);
+                                        otherTrail = GetByte(tile[x - 2, y], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding3.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -1025,51 +1160,51 @@ namespace MapEditor
                                 y1 = y - y % 5 + 1;
                                 y2 = y - y % 5 + 2;
                                 y3 = y - y % 5 + 3;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad);
-                                corresponding2 = GetByte(tile[x1, y2], isRoad);
-                                corresponding3 = GetByte(tile[x1, y3], isRoad);
+                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
+                                corresponding2 = GetByte(tile[x1, y2], isRoad, isCrossroad);
+                                corresponding3 = GetByte(tile[x1, y3], isRoad, isCrossroad);
 
                                 if (yBorder == 1)
                                 {
                                     if (corresponding2.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 1], isRoad);
+                                        otherTrail = GetByte(tile[x, y + 1], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, isCrossroad, E);
                                         }
                                         else if (!corresponding1.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, isCrossroad, E);
                                         }
                                     }
                                     else if (corresponding3.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 2], isRoad);
+                                        otherTrail = GetByte(tile[x, y + 2], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding1.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -1077,40 +1212,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad);
+                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, W);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, E);
                                         }
                                         else if (!corresponding2.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, W);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, E);
                                         }
                                     }
                                     else if (corresponding3.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 1], isRoad);
+                                        otherTrail = GetByte(tile[x, y + 1], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, isCrossroad, E);
                                         }
                                         else if (!corresponding2.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, isCrossroad, E);
                                         }
                                     }
                                 }
@@ -1118,43 +1253,43 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad);
+                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, isCrossroad, E);
                                         }
                                         else if (!corresponding3.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, isCrossroad, E);
                                         }
                                     }
                                     else if (corresponding1.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 2], isRoad);
+                                        otherTrail = GetByte(tile[x, y - 2], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding3.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -1172,51 +1307,51 @@ namespace MapEditor
                                 y1 = y - y % 5 + 1;
                                 y2 = y - y % 5 + 2;
                                 y3 = y - y % 5 + 3;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad);
-                                corresponding2 = GetByte(tile[x1, y2], isRoad);
-                                corresponding3 = GetByte(tile[x1, y3], isRoad);
+                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
+                                corresponding2 = GetByte(tile[x1, y2], isRoad, isCrossroad);
+                                corresponding3 = GetByte(tile[x1, y3], isRoad, isCrossroad);
 
                                 if (yBorder == 1)
                                 {
                                     if (corresponding2.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x , y + 1], isRoad);
+                                        otherTrail = GetByte(tile[x , y + 1], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, isCrossroad, W);
                                         }
                                         else if (!corresponding1.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, isCrossroad, W);
                                         }
                                     }
                                     else if (corresponding3.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 2], isRoad);
+                                        otherTrail = GetByte(tile[x, y + 2], isRoad, isCrossroad);
                                         if (!corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding1.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -1224,40 +1359,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad);
+                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, isCrossroad, W);
                                         }
                                         else if (!corresponding2.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, isCrossroad, W);
                                         }
                                     }
                                     else if (corresponding3.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 1], isRoad);
+                                        otherTrail = GetByte(tile[x, y + 1], isRoad, isCrossroad);
                                         if (!corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, isCrossroad, W);
                                         }
                                         else if (!corresponding2.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, isCrossroad, W);
                                         }
                                     }
                                 }
@@ -1265,43 +1400,43 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad);
+                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, isCrossroad, W);
                                         }
                                         else if (!corresponding3.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, isCrossroad, W);
                                         }
                                     }
                                     else if (corresponding1.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 2], isRoad);
+                                        otherTrail = GetByte(tile[x, y - 2], isRoad, isCrossroad);
                                         if (!corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad, isCrossroad);
                                         }
                                         else if (!corresponding3.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, isCrossroad);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad, isCrossroad);
                                         }
                                         else if (corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, isCrossroad, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad, isCrossroad);
                                         }
                                     }
                                 }
@@ -1310,21 +1445,23 @@ namespace MapEditor
                     }
                 }
             }
-
             return tile;
         }
 
-        protected List<byte> GetByte(int trail, bool road)
+        protected List<byte> GetByte(int trail, bool road, bool isCrossroad)
         {
             List<byte> result = new List<byte>();
             int baseValue = 2;
             int pow = 7;
             byte factor;
+
+            if (isCrossroad) trail -= (byte.MaxValue * byte.MaxValue);
+
             if (road)
-            {
-                trail = trail % 256;
+            {                
+                trail = trail % byte.MaxValue;
             }
-            else trail = trail / 256;
+            else trail = trail / byte.MaxValue;
 
             do{
                 factor = (byte)Math.Pow(baseValue, pow);
@@ -1342,10 +1479,10 @@ namespace MapEditor
             return result;            
         }
 
-        protected int AddByte(int trail, byte trailToAdd, bool isRoad, byte trailToRemove = 0)
+        protected int AddByte(int trail, byte trailToAdd, bool isRoad, bool isCrossroad, byte trailToRemove = 0)
         {
-            List<byte> resultTrack = GetByte(trail, false);
-            List<byte> resultRoad = GetByte(trail, true);
+            List<byte> resultTrack = GetByte(trail, false, isCrossroad);
+            List<byte> resultRoad = GetByte(trail, true, isCrossroad);
 
             resultTrack.Remove(trailToAdd);
             resultTrack.Remove(trailToRemove);
@@ -1353,19 +1490,21 @@ namespace MapEditor
             resultRoad.Remove(trailToRemove);
 
             trail = 0;
-            foreach (byte track in resultTrack) trail += track * 256;
+            foreach (byte track in resultTrack) trail += track * byte.MaxValue;
             foreach (byte road in resultRoad) trail += road;
 
             if (isRoad) trail += trailToAdd;
-            else trail += trailToAdd * 256;
+            else trail += trailToAdd * byte.MaxValue;
+
+            if (isCrossroad) trail += (byte.MaxValue * byte.MaxValue);
 
             return trail;            
         }
 
-        protected int AddByte(int trail, byte trailToAdd1, byte trailToAdd2, bool isRoad, byte trailToRemove = 0)
+        protected int AddByte(int trail, byte trailToAdd1, byte trailToAdd2, bool isRoad, bool isCrossroad, byte trailToRemove = 0)
         {
-            List<byte> resultTrack = GetByte(trail, false);
-            List<byte> resultRoad = GetByte(trail, true);
+            List<byte> resultTrack = GetByte(trail, false, isCrossroad);
+            List<byte> resultRoad = GetByte(trail, true, isCrossroad);
 
             resultTrack.Remove(trailToAdd1);
             resultTrack.Remove(trailToAdd2);
@@ -1375,7 +1514,7 @@ namespace MapEditor
             resultRoad.Remove(trailToRemove);
 
             trail = 0;
-            foreach (byte track in resultTrack) trail += track * 256;
+            foreach (byte track in resultTrack) trail += track * byte.MaxValue;
             foreach (byte road in resultRoad) trail += road;
 
             if (isRoad)
@@ -1385,9 +1524,11 @@ namespace MapEditor
             }
             else
             {
-                trail += trailToAdd1 * 256;
-                trail += trailToAdd2 * 256;
+                trail += trailToAdd1 * byte.MaxValue;
+                trail += trailToAdd2 * byte.MaxValue;
             }
+
+            if (isCrossroad) trail += (byte.MaxValue * byte.MaxValue);
 
             return trail;            
         }
@@ -1432,7 +1573,7 @@ namespace MapEditor
                 {
                     trailAsset -= factor;
 
-                    Debug.Log("factor: " + factor);
+                    // Debug.Log("factor: " + factor);
 
                     switch (factor)
                     {
@@ -1522,7 +1663,7 @@ namespace MapEditor
                 (int, int) start = tileExit[browse];
                 (int, int) arrival = tileExit[browse + 1];
 
-                Debug.Log("start: " + start.Item1 + ", " + start.Item2 + "; arrival: " + arrival.Item1 + ", " + arrival.Item2);
+                // Debug.Log("start: " + start.Item1 + ", " + start.Item2 + "; arrival: " + arrival.Item1 + ", " + arrival.Item2);
 
                 int xDirection, yDirection;
                 bool gotToDestination = false;
@@ -1559,7 +1700,7 @@ namespace MapEditor
 
                     if (stepToRemove.Count > 0)
                     {
-                        Debug.Log("stepToRemove.Count: " + stepToRemove.Count);
+                        // Debug.Log("stepToRemove.Count: " + stepToRemove.Count);
                         foreach ((int, int) stepToRem in stepToRemove)
                         {
                             movementChoice.Remove(stepToRem);
@@ -1668,7 +1809,7 @@ namespace MapEditor
                 if (baseBuffer[trail.Item1, trail.Item2] == 0)
                 {
                     if (trailType == (int)TrailTypes.Track)
-                        baseBuffer[trail.Item1, trail.Item2] = (trailShape * 256);
+                        baseBuffer[trail.Item1, trail.Item2] = (trailShape * byte.MaxValue);
                     else baseBuffer[trail.Item1, trail.Item2] = trailShape;
                 }
                 else
@@ -1682,14 +1823,14 @@ namespace MapEditor
                     byte trackWiP = 0;
                     bool hasTrack = false;
 
-                    if (baseBuffer[trail.Item1, trail.Item2] > 256)
+                    if (baseBuffer[trail.Item1, trail.Item2] > byte.MaxValue)
                     {
-                        trackWiP = (byte)(baseBuffer[trail.Item1, trail.Item2] / 256);
+                        trackWiP = (byte)(baseBuffer[trail.Item1, trail.Item2] / byte.MaxValue);
                         hasTrack = true;
                     }
-                    if (baseBuffer[trail.Item1, trail.Item2] - (trackWiP * 256) > 0)
+                    if (baseBuffer[trail.Item1, trail.Item2] - (trackWiP * byte.MaxValue) > 0)
                     {
-                        roadWiP = (byte)(baseBuffer[trail.Item1, trail.Item2] % 256);
+                        roadWiP = (byte)(baseBuffer[trail.Item1, trail.Item2] % byte.MaxValue);
                         hasRoad = true;
                     }
 
@@ -1700,16 +1841,16 @@ namespace MapEditor
                         if (roadWiP < factor && trackWiP < factor && trailShape >= factor)
                         {
                             if (trailType == (int)TrailTypes.Track)
-                                baseBuffer[trail.Item1, trail.Item2] += (factor * 256);
+                                baseBuffer[trail.Item1, trail.Item2] += (factor * byte.MaxValue);
                             else baseBuffer[trail.Item1, trail.Item2] += factor;
 
-                            if (factor == byte.MaxValue)
-                                Debug.Log("Track set to 255 with roadWiP " + roadWiP + " and trackWiP " + trackWiP);
+                            // if (factor == byte.MaxValue)
+                                // Debug.Log("Track set to 255 with roadWiP " + roadWiP + " and trackWiP " + trackWiP);
                         }
                         else if (roadWiP < factor && trackWiP >= factor && trailShape >= factor && trailType == 1)
                         {
                             baseBuffer[trail.Item1, trail.Item2] += factor;
-                            baseBuffer[trail.Item1, trail.Item2] -= (factor * 256);
+                            baseBuffer[trail.Item1, trail.Item2] -= (factor * byte.MaxValue);
                         }
                         if (roadWiP >= factor) roadWiP -= factor;
                         if (trackWiP >= factor) trackWiP -= factor;
@@ -1719,6 +1860,9 @@ namespace MapEditor
                     }
                     while (pow >= 0 && trailShape >= 0);
                 }
+
+                if (IsCrossRoad(baseBuffer[trail.Item1, trail.Item2]))
+                    baseBuffer[trail.Item1, trail.Item2] += (25 * byte.MaxValue * byte.MaxValue);
             }
 
             return baseBuffer;
@@ -1735,7 +1879,7 @@ namespace MapEditor
             // Setting enter/exit for starting/final trail tile
             if (index == 0 || index == trailToAdd.Count - 1)
             {
-                Debug.Log("index: " + index);
+                // Debug.Log("index: " + index);
                 if (trail.Item1 == 0)
                 {
                     if (trail.Item2 == 0)
@@ -1821,11 +1965,11 @@ namespace MapEditor
                         exits.Item2 = N;
                 }
             }
-            Debug.Log("Returnin trailShape: " + (exits.Item1 + exits.Item2));
+            // Debug.Log("Returnin trailShape: " + (exits.Item1 + exits.Item2));
             return (byte)(exits.Item1 + exits.Item2);
         }
 
-        protected (byte, byte)[,] GenerateTrailMap(List<DFPosition> trail, (byte, byte)[,] trailMap, TrailTypes trailPreference)
+        protected (byte, byte, byte)[,] GenerateTrailMap(List<DFPosition> trail, (byte, byte, byte)[,] trailMap, TrailTypes trailPreference, int strtIndex, int arrvIndex)
         {
             int counter = 0;
             byte trailToPlace1;
@@ -1836,6 +1980,7 @@ namespace MapEditor
             foreach (DFPosition trailSection in trail)
             {
                 int xDir, yDir;
+                xDir = yDir = 0;
                 DFPosition trailSectionConv = ConvertToRelative(trailSection);
 
                 if (trailPreference == TrailTypes.Road)
@@ -1864,20 +2009,26 @@ namespace MapEditor
                     resultingTrailToPlace = OverwriteTrail(trailToPlace2, resultingTrailToPlace);
                 }
 
+                int mapId = MapEditor.GetMapPixelIDFromPosition(trailSection);
+
                 if (trailPreference == TrailTypes.Road)
                 {
-                    trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 = resultingTrailToPlace;
-                    if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 > 0)
-                    {
-                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(resultingTrailToPlace, trailMap[trailSectionConv.X, trailSectionConv.Y].Item2);
-                    }
+                    trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 = resultingTrailToPlace;                    
+                    // if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 > 0)
+                    // {
+                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(resultingTrailToPlace, trailMap[trailSectionConv.X, trailSectionConv.Y].Item2, mapId, strtIndex, arrvIndex, xDir, yDir);
+                    // }
+                    // else
+                    // {
+                    //     signData.roadsign.Add(mapId, );
+                    // }
                 }                    
                 else{
                     trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 = resultingTrailToPlace;
-                    if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 > 0)
-                    {
-                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(trailMap[trailSectionConv.X, trailSectionConv.Y].Item1, resultingTrailToPlace);
-                    }
+                    // if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 > 0)
+                    // {
+                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(trailMap[trailSectionConv.X, trailSectionConv.Y].Item1, resultingTrailToPlace, mapId, strtIndex, arrvIndex, xDir, yDir);
+                    // }
                 }
 
                 counter++;
@@ -1905,17 +2056,18 @@ namespace MapEditor
             }
             while (pow >= 0 && (trail1 >= 0 || trail2 >= 0));
 
-            Debug.Log("OverwriteTrail -> returning " + resultTrail);
+            // Debug.Log("OverwriteTrail -> returning " + resultTrail);
             return resultTrail;
         }
 
-        protected (byte, byte) MergeTrail(byte roadByte, byte trackByte)
+        protected (byte, byte, byte) MergeTrail(byte roadByte, byte trackByte, int mapID, int strtIndex, int arrvIndex, int xDir = 0, int yDir = 0)
         {
-            (byte, byte) result = (0, 0);
+            (byte, byte, byte) result = (0, 0, 0);
             int baseValue = 2;
             int pow = 7;
-            // byte roadWiP = roadByte;
-            // byte trackWiP = 0;
+            result.Item3 = 0;
+            byte roadWiP = roadByte;
+            byte trackWiP = trackByte;
 
             do{
                 byte factor = (byte)Math.Pow(baseValue, pow);
@@ -1932,8 +2084,154 @@ namespace MapEditor
             }
             while (pow >= 0 && (roadByte >= 0 || trackByte >= 0));
 
-            Debug.Log("MergeTrail -> returning " + result);
+            byte direction = GetTrailToPlace(xDir, yDir);
+            GetIndexFromByte((byte)(result.Item1 - direction), out int index1);
+            GetIndexFromByte(direction, out int index2);
+            // Debug.Log("xDir: " + xDir + ", yDir: " + yDir + ", direction: " + direction + ", result.Item1: " + result.Item1 + ", index1: " + index1 + ", index2: " + index2);
+            Debug.Log("signData.locNames.Count: " + signData.locNames.Count + ", strtIndex: " + strtIndex + ", arrvIndex: " + arrvIndex);
+            if (!signData.roadsign.ContainsKey(mapID))
+            {
+                string[][] roadsign = new string[8][];                
+               
+                roadsign[index1] = new string[] { signData.locNames[strtIndex] };
+                roadsign[index2] = new string[] { signData.locNames[arrvIndex] };
+                signData.roadsign.Add(mapID, roadsign);
+            }
+
+            // Debug.Log("roadWiP: " + roadWiP + ", trackWiP: " + trackWiP);
+            if (IsCrossRoad(roadWiP, trackWiP, out byte CRshape))
+            {
+                result.Item3 = 25;
+                int index = 0;
+                List<int> directions = GetIndexesFromByte(CRshape);
+
+                foreach (int dir in directions)
+                {
+                    if (signData.roadsign[mapID][dir] == null)
+                    {
+                        if (dir == index1)
+                            signData.roadsign[mapID][dir] = new string[] { signData.locNames[strtIndex] };
+                        else
+                            signData.roadsign[mapID][dir] = new string[] { signData.locNames[arrvIndex] };
+                    }
+                    else{
+                        if (dir == index1 || dir == index2)
+                        {
+                            List<string> arraySum = signData.roadsign[mapID][dir].ToList();
+                            if (dir == index1)
+                                arraySum.Add(signData.locNames[strtIndex]);
+                            else
+                                arraySum.Add(signData.locNames[arrvIndex]);
+                            signData.roadsign[mapID][dir] = arraySum.ToArray();
+                        }
+                    }
+                }
+            }
+            // Debug.Log("MergeTrail -> returning " + result);
             return result;
+        }
+
+        protected static bool IsCrossRoad(byte road, byte track, out byte shape)
+        {
+            byte result = 0;
+            shape = (byte)(road | track);
+            // Debug.Log("road: " + road + ", track: " + track + ", shape: " + shape);
+
+            for (int shift = 7; shift > 0; shift--)
+            {
+                if ((shape >> shift) % 2 != 0 )
+                {
+                    result++;
+                }
+            }
+            // Debug.Log("result: " + result);
+
+            if (result >= 3)
+                return true;
+            return false;
+        }
+
+        protected static bool IsCrossRoad(int compositeTrail)
+        {
+            byte result = 0;
+            byte trailShape = (byte)(compositeTrail / byte.MaxValue + compositeTrail % byte.MaxValue);
+
+            // Debug.Log("trailShape: " + trailShape);
+            for (int shift = 7; shift > 0; shift--)
+            {
+                if ((trailShape >> shift) % 2 != 0 )
+                {
+                    result++;
+                }
+            }
+            // Debug.Log("result: " + result);
+
+            if (result >= 3)
+                return true;
+            return false;
+        }
+
+        protected static bool IsCrossRoad(byte trailShape)
+        {
+            byte result = 0;
+
+            // Debug.Log("trailShape: " + trailShape);
+            for (int shift = 7; shift > 0; shift--)
+            {
+                if ((trailShape >> shift) % 2 != 0 )
+                {
+                    result++;
+                }
+            }
+            // Debug.Log("result: " + result);
+
+            if (result >= 3)
+                return true;
+            return false;
+        }
+
+        ///<summary>
+        /// Get a 0-7 index from byte IF said byte is a single direction
+        ///</summary>
+        protected static bool GetIndexFromByte(byte direction, out int index)
+        {
+            int count = 0;
+            int result = 0;
+            index = 0;
+            while (direction > 0 && count < 2)
+            {
+                if (direction % 2 > 0)
+                {
+                    index = result;
+                    count++;
+                }
+                result++;
+                direction >>= 1;
+            }
+            // Debug.Log("direction: " + direction + ", index: " + index + ", count: " + count);
+            if (count > 1) return false;
+            return true;
+        }
+
+        ///<summary>
+        /// Get a list of 0-7 indexes from a byte
+        ///</summary>
+        protected static List<int> GetIndexesFromByte(byte shape)
+        {
+            byte result = 0;
+            List<int> indexes = new List<int>();
+            // Debug.Log("shape: " + shape);
+
+            for (int shift = 7; shift > 0; shift--)
+            {
+                if ((shape >> shift) % 2 != 0)
+                {
+                    indexes.Add(result);
+                    // Debug.Log("result: " + result);
+                }
+                result++;
+            }
+            return indexes;
         }
 
         protected byte GetTrailToPlace(int xDir, int yDir)
@@ -2319,7 +2617,7 @@ namespace MapEditor
                     // }
                 }
             }
-            // Debug.Log("location.locDistance.Count: " + location.locDistance.Count);
+            Debug.Log("location.locDistance.Count: " + location.locDistance.Count);
 
             return location;
         }

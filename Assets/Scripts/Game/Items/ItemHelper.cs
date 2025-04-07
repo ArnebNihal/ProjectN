@@ -401,7 +401,8 @@ namespace DaggerfallWorkshop.Game.Items
         {
             if (weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.ArchersAxe) ||
                 weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.LightFlail) ||
-                weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.Crossbow))
+                weapon.IsOfTemplate(ItemGroups.Weapons, (int)Weapons.Crossbow) ||
+                (weapon.ItemGroup == ItemGroups.Weapons && weapon.CurrentVariant != 0))
                 return true;
 
             return false;
@@ -421,6 +422,13 @@ namespace DaggerfallWorkshop.Game.Items
         {
             // Get colour
             int color = (int)item.dyeColor;
+            int[] additionalColors = new int[0];
+            if (item.additionalColors.Length > 0)
+            {
+                additionalColors = new int[item.additionalColors.Length];
+                for (int col = 0; col < item.additionalColors.Length; col++)
+                    additionalColors[col] = (int)item.additionalColors[col];
+            }
 
             // Get archive and record indices
             int archive = item.InventoryTextureArchive;
@@ -433,11 +441,28 @@ namespace DaggerfallWorkshop.Game.Items
                 record = ((int)matType - 1) * 2;
             }
 
+            // Handling corrected boots/sandals
+            if ((item.TemplateIndex == (int)WomensClothing.Boots || 
+                 item.TemplateIndex == (int)WomensClothing.Sandals ||
+                 item.TemplateIndex == (int)MensClothing.Boots ||
+                 item.TemplateIndex == (int)MensClothing.Sandals) && 
+                 item.CurrentVariant != 0)
+                record++;
+
+            if (item.IsOfTemplate(ItemGroups.MensClothing, (int)MensClothing.Long_shirt_unchangeable))
+            {
+                if (item.CurrentVariant == 0) record = 108;
+                else record = 43;
+            }
+            
+
             // Handling exotic variants of weapons
             if (item.ItemGroup == ItemGroups.Weapons && item.CurrentVariant != 0)
             {
                 MaterialTypes matType = ItemBuilder.GetArmorMaterialType(item.nativeMaterialValue);
-                archive = item.TemplateIndex + 10000;
+                if (item.TemplateIndex != (int)Weapons.Crossbow)
+                    archive = item.TemplateIndex + 10000;
+                else archive += 2;
                 record = ((int)matType - 1) * 2;
             }
 
@@ -489,6 +514,11 @@ namespace DaggerfallWorkshop.Game.Items
                 // "Short shirt" template index 202 variants 2 and 5 for human female
                 data.offset = new DaggerfallConnect.Utility.DFPosition(237, 43);
             }
+            // Fix corrected Eodoric for khajiit male
+            if (archive == 242 && record == 9)
+            {
+                data.offset = new DaggerfallConnect.Utility.DFPosition(236, 45);
+            }
 
             // Get mask texture where alpha 0 is umasked areas of image and alpha 1 are masked areas of image
             Texture2D maskTexture;
@@ -536,7 +566,13 @@ namespace DaggerfallWorkshop.Game.Items
                 if (group == ItemGroups.Weapons || group == ItemGroups.Armor)
                     data = ChangeDye(data, dye, DyeTargets.WeaponsAndArmor);
                 else if (item.ItemGroup == ItemGroups.MensClothing || item.ItemGroup == ItemGroups.WomensClothing)
-                    data = ChangeDye(data, dye, DyeTargets.Clothing);
+                {
+                    for (int round = 0; round < item.dyeLevel; round++)
+                    {
+                        if (round != 0) dye = (DyeColors)additionalColors[round - 1];
+                        data = ChangeDye(data, dye, item.dyeTargets[round]);
+                    }
+                }
                 else
                     ImageReader.UpdateTexture(ref data);
             }
@@ -742,7 +778,7 @@ namespace DaggerfallWorkshop.Game.Items
             else
             {
                 // Change dye
-                data = ChangeDye(data, (DyeColors)color, DyeTargets.Clothing);
+                data = ChangeDye(data, (DyeColors)color, DyeTargets.BasicClothing);
             }    
 
             return data;
@@ -1114,6 +1150,8 @@ namespace DaggerfallWorkshop.Game.Items
         {
             switch (material)
             {
+                case MaterialTypes.Leather:
+                    return DyeColors.Leather;
                 case MaterialTypes.Iron:
                     return DyeColors.Iron;
                 case MaterialTypes.Steel:
@@ -1152,6 +1190,8 @@ namespace DaggerfallWorkshop.Game.Items
             MaterialTypes materialType = ItemBuilder.GetArmorMaterialType((int)material);
             switch (materialType)
             {
+                case MaterialTypes.Leather:
+                    return DyeColors.Leather;
                 case MaterialTypes.Iron:
                     return DyeColors.Iron;
                 case MaterialTypes.Steel:

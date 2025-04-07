@@ -677,6 +677,8 @@ namespace DaggerfallConnect.Arena2
                     }
                     else{
                         int intValue = grayscaleMap[offset].r + grayscaleMap[offset].b * (byte.MaxValue + 1);
+                        if (grayscaleMap[offset].g > 0)
+                            intValue += (grayscaleMap[offset].g * (byte.MaxValue * byte.MaxValue));
                         matrix[x, y] = intValue;
                     }
                 }

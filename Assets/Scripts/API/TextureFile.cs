@@ -17,6 +17,8 @@ using UnityEngine.UI;
 using DaggerfallConnect.Utility;
 using Newtonsoft.Json;
 using DaggerfallWorkshop.Utility;
+using DaggerfallWorkshop.Game;
+using DaggerfallWorkshop.Game.Entity;
 #endregion
 
 namespace DaggerfallConnect.Arena2
@@ -378,13 +380,80 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         /// <param name="record">Index of record.</param>
         /// <returns>Offset values for X and Y in DFSize object.</returns>
-        public DFPosition GetOffset(int record)
+        public DFPosition GetOffset(int record, int archive = 0)
         {
             // Validate
             if (record < 0 || record >= header.RecordCount || records == null)
                 return new DFPosition(0, 0);
 
+            if (archive > 9999 && NeedsOffsetCorrection(archive, record, out DFPosition offset))
+                return new DFPosition(records[record].OffsetX + offset.X, records[record].OffsetY + offset.Y);
+
             return new DFPosition(records[record].OffsetX, records[record].OffsetY);
+        }
+
+        public static bool NeedsOffsetCorrection(int archive, int record, out DFPosition offsetMod)
+        {
+            offsetMod = new DFPosition(0, 0);
+            
+            if (GameManager.Instance.PlayerEntity.Gender == Genders.Male)
+                return false;
+
+            bool isLeftHand = (record % 2) == 0;
+
+            switch (archive)
+            {
+                case 10113:
+                case 10116:
+                case 10117:
+                case 10124:
+                case 10127:
+                    offsetMod = (isLeftHand ? new DFPosition(-2, -1) : new DFPosition(0, -2));
+                    return true;
+
+                case 10114:
+                    offsetMod = (isLeftHand ? new DFPosition(-1, -1) : new DFPosition(0, -2));
+                    return true;
+
+                case 10115:
+                    offsetMod = new DFPosition(-2, -2);
+                    return true;
+
+                case 10118:
+                    offsetMod = (isLeftHand ? new DFPosition(0, -2) : new DFPosition(0, -2));
+                    return true;
+
+                case 10119:
+                case 10120:
+                case 10121:
+                    offsetMod = (isLeftHand ? new DFPosition(0, -1) : new DFPosition(0, -2));
+                    return true;
+
+                case 10122:
+                case 10126:
+                case 10128:
+                    offsetMod = new DFPosition(0, -2);
+                    return true;
+
+                case 10123:
+                    offsetMod = new DFPosition(0, -3);
+                    return true;
+
+                case 10125:
+                    offsetMod = new DFPosition(-1, -2);
+                    return true;
+
+                case 10129:
+                    offsetMod = new DFPosition(-2, -1);
+                    return true;
+
+                case 10130:
+                    offsetMod = new DFPosition(1, 0);
+                    return true;
+
+                default:
+                    return false;
+            }
         }
 
         /// <summary>
@@ -462,7 +531,7 @@ namespace DaggerfallConnect.Arena2
             result.Data = fileBytes;
             result.Width = records[record].Width;
             result.Height = records[record].Height;
-
+            
             return result;
         }
 

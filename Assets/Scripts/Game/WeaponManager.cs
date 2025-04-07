@@ -35,7 +35,7 @@ namespace DaggerfallWorkshop.Game
         public const float defaultWeaponReach = 2.25f;
 
         // Equip delay times for weapons
-        public static ushort[] EquipDelayTimes = { 500, 700, 1200, 900, 900, 1800, 1600, 1700, 1700, 3000, 3400, 2000, 2200, 2000, 2200, 2000, 4000, 5000, 0, 1600, 900 };
+        public static ushort[] EquipDelayTimes = { 500, 700, 1200, 900, 900, 1800, 1600, 1700, 1700, 3000, 3400, 2000, 2200, 2000, 2200, 2000, 4000, 5000, 0, 1600, 900, 6000 };
 
         // Max time-length of a trail of mouse positions for attack gestures
         private const float MaxGestureSeconds = 1.0f;
@@ -214,7 +214,7 @@ namespace DaggerfallWorkshop.Game
             if (!IsWeaponAttacking())
             {
                 // If an attack with a bow just finished, set cooldown
-                if (ScreenWeapon.WeaponType == WeaponTypes.Bow && isAttacking)
+                if ((ScreenWeapon.WeaponType == WeaponTypes.Bow || ScreenWeapon.WeaponType == WeaponTypes.Crossbow || ScreenWeapon.WeaponType == WeaponTypes.CrossbowExotic) && isAttacking)
                     cooldownTime = Time.time + FormulaHelper.GetBowCooldownTime(playerEntity);
 
                 isAttacking = false;
@@ -294,7 +294,7 @@ namespace DaggerfallWorkshop.Game
             }
 
             // Get if bow is equipped
-            bool bowEquipped = (ScreenWeapon && ScreenWeapon.WeaponType == WeaponTypes.Bow);
+            bool bowEquipped = (ScreenWeapon && (ScreenWeapon.WeaponType == WeaponTypes.Bow || ScreenWeapon.WeaponType == WeaponTypes.Crossbow || ScreenWeapon.WeaponType == WeaponTypes.CrossbowExotic));
 
             // Handle beginning a new attack
             if (!isAttacking)
@@ -369,7 +369,7 @@ namespace DaggerfallWorkshop.Game
             if (!isAttacking)
                 return;
 
-            if (!isBowSoundFinished && ScreenWeapon.WeaponType == WeaponTypes.Bow && ScreenWeapon.GetCurrentFrame() == 4)
+            if (!isBowSoundFinished && (ScreenWeapon.WeaponType == WeaponTypes.Bow || ScreenWeapon.WeaponType == WeaponTypes.Crossbow || ScreenWeapon.WeaponType == WeaponTypes.CrossbowExotic) && ScreenWeapon.GetCurrentFrame() == 4)
             {
                 ScreenWeapon.PlaySwingSound();
                 isBowSoundFinished = true;
@@ -381,14 +381,14 @@ namespace DaggerfallWorkshop.Game
                 bool suppressCombatVoices = racialOverride != null && racialOverride.SuppressOptionalCombatVoices;
 
                 // Chance to play attack voice
-                if (DaggerfallUnity.Settings.CombatVoices && !suppressCombatVoices && ScreenWeapon.WeaponType != WeaponTypes.Bow && Dice100.SuccessRoll(20))
+                if (DaggerfallUnity.Settings.CombatVoices && !suppressCombatVoices && ScreenWeapon.WeaponType != WeaponTypes.Bow && ScreenWeapon.WeaponType != WeaponTypes.Crossbow && ScreenWeapon.WeaponType != WeaponTypes.CrossbowExotic && Dice100.SuccessRoll(20))
                     ScreenWeapon.PlayAttackVoice();
 
                 // Transfer damage.
                 bool hitEnemy = false;
 
                 // Non-bow weapons
-                if (ScreenWeapon.WeaponType != WeaponTypes.Bow)
+                if (ScreenWeapon.WeaponType != WeaponTypes.Bow && ScreenWeapon.WeaponType != WeaponTypes.Crossbow && ScreenWeapon.WeaponType != WeaponTypes.CrossbowExotic)
                     MeleeDamage(ScreenWeapon, out hitEnemy);
                 // Bow weapons
                 else
@@ -416,7 +416,7 @@ namespace DaggerfallWorkshop.Game
                 playerEntity.DecreaseFatigue(swingWeaponFatigueLoss);
 
                 // Play swing sound if attack didn't hit an enemy.
-                if (!hitEnemy && ScreenWeapon.WeaponType != WeaponTypes.Bow)
+                if (!hitEnemy && ScreenWeapon.WeaponType != WeaponTypes.Bow && ScreenWeapon.WeaponType != WeaponTypes.Crossbow && ScreenWeapon.WeaponType != WeaponTypes.CrossbowExotic)
                     ScreenWeapon.PlaySwingSound();
                 else
                 {
@@ -705,25 +705,34 @@ namespace DaggerfallWorkshop.Game
 
             usingRightHand = !usingRightHand;
             if (usingRightHand)
-                DaggerfallUI.Instance.PopupMessage(TextManager.Instance.GetLocalizedText("usingRightHand"));
-            else
-                DaggerfallUI.Instance.PopupMessage(TextManager.Instance.GetLocalizedText("usingLeftHand"));
-
-            if (DaggerfallUnity.Settings.BowLeftHandWithSwitching)
             {
-                int switchDelay = 0;
-                if (currentRightHandWeapon != null)
-                    switchDelay += EquipDelayTimes[currentRightHandWeapon.GroupIndex] - 500;
-                if (currentLeftHandWeapon != null)
-                    switchDelay += EquipDelayTimes[currentLeftHandWeapon.GroupIndex] - 500;
-                if (switchDelay > 0)
-                {
-                    if (UsingRightHand)
-                        EquipCountdownRightHand += switchDelay / BowSwitchDivisor;
-                    else
-                        EquipCountdownLeftHand += switchDelay / BowSwitchDivisor;
-                }
+                FPSWeapon.FlipHorizontalMelee(true);
+                DaggerfallUI.Instance.PopupMessage(TextManager.Instance.GetLocalizedText("usingRightHand"));
             }
+            else
+            {
+                if (currentLeftHandWeapon.TemplateIndex != (int)Weapons.Long_Bow &&
+                    currentLeftHandWeapon.TemplateIndex != (int)Weapons.Short_Bow)
+                    FPSWeapon.FlipHorizontalMelee(false);
+                    
+                DaggerfallUI.Instance.PopupMessage(TextManager.Instance.GetLocalizedText("usingLeftHand"));
+            }
+
+            // if (DaggerfallUnity.Settings.BowLeftHandWithSwitching)
+            // {
+            int switchDelay = 0;
+            if (currentRightHandWeapon != null)
+                switchDelay += EquipDelayTimes[currentRightHandWeapon.GroupIndex] - 500;
+            if (currentLeftHandWeapon != null)
+                switchDelay += EquipDelayTimes[currentLeftHandWeapon.GroupIndex] - 500;
+            if (switchDelay > 0)
+            {
+                if (UsingRightHand)
+                    EquipCountdownRightHand += switchDelay / BowSwitchDivisor;
+                else
+                    EquipCountdownLeftHand += switchDelay / BowSwitchDivisor;
+            }
+            // }
 
             ApplyWeapon();
         }

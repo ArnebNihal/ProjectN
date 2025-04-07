@@ -16,6 +16,7 @@ using DaggerfallConnect;
 using DaggerfallConnect.Utility;
 using DaggerfallConnect.Arena2;
 using DaggerfallWorkshop.Game;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Utility
 {
@@ -27,6 +28,25 @@ namespace DaggerfallWorkshop.Utility
     /// </summary>
     public static class ImageReader
     {
+
+        public struct Record
+        {
+            public long Position;
+            public Int16 OffsetX;
+            public Int16 OffsetY;
+            public Int16 Width;
+            public Int16 Height;
+            public int Compression;
+            public UInt32 RecordSize;
+            public UInt32 DataOffset;
+            public Boolean IsNormal;
+            public UInt16 FrameCount;
+            public Int16 Unknown1;
+            public Int16 ScaleX;
+            public Int16 ScaleY;
+            public DFBitmap[] Frames;
+        }
+
         #region Public Methods
 
         /// <summary>
@@ -228,6 +248,41 @@ namespace DaggerfallWorkshop.Utility
             return newColors;
         }
 
+        public static void PrintTextureRecord(TextureFile textureFile)
+        {
+            Record record;
+
+            for (int i = 0; i < textureFile.RecordCount; i++)
+            {
+                record = new Record();
+                record.Position = 0;
+                DFPosition offset = textureFile.GetOffset(i);
+                record.OffsetX = (short)offset.X;
+                record.OffsetY = (short)offset.Y;
+                DFSize size = textureFile.GetSize(i);
+                record.Width = (short)size.Width;
+                record.Height = (short)size.Height;
+                record.Compression = 0;
+                record.RecordSize = 0;
+                record.DataOffset = 0;
+                record.IsNormal = false;
+                record.FrameCount = 1;
+                record.Unknown1 = 0;
+                DFSize scale = textureFile.GetScale(i);
+                record.ScaleX = (short)scale.Width;
+                record.ScaleY = (short)scale.Height;
+                record.Frames = null;
+
+                string path = Path.Combine(WorldMaps.texturePath, "ArchiveRecord", "TEXTURE." + (i + 113 + 10000).ToString("0000000"));
+                if (!File.Exists(path))
+                {
+                    var jsonRecord = JsonConvert.SerializeObject(record, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                    File.WriteAllText(path, jsonRecord);
+                }
+            }
+            
+        }
+
         /// <summary>
         /// Reads any Daggerfall image file to ImageData package.
         /// </summary>
@@ -283,6 +338,9 @@ namespace DaggerfallWorkshop.Utility
                         textureFile = new TextureFile(Path.Combine(dfUnity.Arena2Path, filename), FileUsage.UseMemory, true);
                         textureFile.LoadPalette(Path.Combine(dfUnity.Arena2Path, textureFile.PaletteName));
                         dfBitmap = textureFile.GetDFBitmap(record, frame);
+
+                        if (textureNumber == 233 || textureNumber == 234)
+                            PrintTextureRecord(textureFile);
                     }
                     else
                     {
@@ -301,7 +359,7 @@ namespace DaggerfallWorkshop.Utility
                             dfBitmapAllFrames[i] = textureFile.GetDFBitmap(record, i);
                         }
                     }
-                    imageData.offset = textureFile.GetOffset(record);
+                    imageData.offset = textureFile.GetOffset(record, textureNumber);
                     Debug.Log("imageData.offset for " + textureNumber + "." + record +  ": " + imageData.offset);
                     imageData.scale = textureFile.GetScale(record);
                     // Debug.Log("imageData.scale: " + imageData.scale);

@@ -513,6 +513,7 @@ namespace DaggerfallWorkshop
     public enum MetalTypes
     {
         // ProjectN: moved Orcish to be on par with Mithril
+        Leather = -1,
         None,
         Iron,
         Steel,
@@ -534,6 +535,7 @@ namespace DaggerfallWorkshop
     /// </summary>
     public enum DyeColors
     {
+        None = -1,
         // Clothing dyes
         Blue = 0,
         Grey = 1,
@@ -547,13 +549,14 @@ namespace DaggerfallWorkshop
         Green = 9,
         Olive = 10,
         Amber = 11,
+        DarkGrey = 12,
 
         // 10-14 Unknown or not observed
 
         // Weapon and armour dyes
         Iron = 15,
         Steel = 16,
-        Chain = 18, // This enum kept for compatibility with older saves
+        Leather = 17,
         Unchanged = 18,
         SilverOrElven = 18, // This enum kept for compatibility with older saves
         Silver = 18,
@@ -572,8 +575,27 @@ namespace DaggerfallWorkshop
     /// </summary>
     public enum DyeTargets
     {
-        Clothing,
+        BasicClothing,
         WeaponsAndArmor,
+        SteelClothing,      // Formal Brassiere 4
+        YellowClothing,     // Edoric
+        LeatherClothing,    // Shoes and boots
+        RedClothing,        // Sandals, Vest and others
+        BlackClothing,      // Khajiit Suit
+        GreenClothing,      // Vest
+        LightBrownClothing, // Casual Pants 19 and Formal Cloak
+        PurpleClothing,     // Just a third level for dresses 39 and 40
+        DarkBrownClothing   // Kimono
+    }
+
+    public enum ClothCraftsmanship
+    {
+        None = -1,
+        Cheap,
+        Normal,
+        Fancy,
+        Extravagant,
+        Exquisite
     }
 
     /// <summary>

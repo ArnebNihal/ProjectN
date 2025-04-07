@@ -35,6 +35,10 @@ namespace DaggerfallWorkshop.Game.Items
         public string shortName;
         public int nativeMaterialValue;
         public DyeColors dyeColor;
+        public DyeColors[] additionalColors;
+        public DyeTargets[] dyeTargets;
+        public int dyeLevel;
+        public ClothCraftsmanship craftsmanship;
         public float weightInKg;
         public int drawOrder;
         public int value;
@@ -551,6 +555,10 @@ namespace DaggerfallWorkshop.Game.Items
             worldTextureRecord = itemTemplate.worldTextureRecord;
             nativeMaterialValue = 0;
             dyeColor = DyeColors.Unchanged;
+            additionalColors = new DyeColors[] { DyeColors.Unchanged, DyeColors.Unchanged, DyeColors.Unchanged };
+            dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.BasicClothing, DyeTargets.BasicClothing, DyeTargets.BasicClothing };
+            dyeLevel = 0;
+            craftsmanship = ClothCraftsmanship.None;
             weightInKg = itemTemplate.baseWeight;
             drawOrder = itemTemplate.drawOrderOrEffect;
             currentVariant = 0;
@@ -559,6 +567,7 @@ namespace DaggerfallWorkshop.Game.Items
             flags = 0;
             currentCondition = itemTemplate.hitPoints;
             maxCondition = itemTemplate.hitPoints;
+            // Using unknown2 to record the value of an eventual second colour; experimental.
             unknown2 = 0;
             typeDependentData = 0;
             enchantmentPoints = itemTemplate.enchantmentPoints;
@@ -602,6 +611,10 @@ namespace DaggerfallWorkshop.Game.Items
             worldTextureRecord = record;
             nativeMaterialValue = materialValue;
             dyeColor = DyeColors.Unchanged;
+            additionalColors = new DyeColors[] { DyeColors.Unchanged, DyeColors.Unchanged, DyeColors.Unchanged };
+            dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.BasicClothing, DyeTargets.BasicClothing, DyeTargets.BasicClothing };
+            dyeLevel = 0;
+            craftsmanship = ClothCraftsmanship.None;
             weightInKg = itemTemplate.baseWeight;
             drawOrder = itemTemplate.drawOrderOrEffect;
             currentVariant = 0;
@@ -719,24 +732,34 @@ namespace DaggerfallWorkshop.Game.Items
                 case (int)MensClothing.Plain_robes:
                 case (int)MensClothing.Short_shirt:
                 case (int)MensClothing.Short_shirt_with_belt:
+                case (int)MensClothing.Short_shirt_with_sash:
                 case (int)MensClothing.Long_shirt:
                 case (int)MensClothing.Long_shirt_with_belt:
+                case (int)MensClothing.Long_shirt_with_sash:
                 case (int)MensClothing.Short_shirt_closed_top:
                 case (int)MensClothing.Short_shirt_closed_top2:
                 case (int)MensClothing.Long_shirt_closed_top:
                 case (int)MensClothing.Long_shirt_closed_top2:
+                case (int)MensClothing.Short_tunic:
+                case (int)MensClothing.Short_tunic_fit:
+                case (int)MensClothing.Short_shirt_closed_top3:
+                case (int)MensClothing.Long_shirt_closed_top3:
                 case (int)WomensClothing.Casual_cloak:
                 case (int)WomensClothing.Formal_cloak:
                 case (int)WomensClothing.Strapless_dress:
                 case (int)WomensClothing.Plain_robes:
                 case (int)WomensClothing.Short_shirt:
                 case (int)WomensClothing.Short_shirt_belt:
+                case (int)WomensClothing.Short_shirt_sash:
                 case (int)WomensClothing.Long_shirt:
                 case (int)WomensClothing.Long_shirt_belt:
+                case (int)WomensClothing.Long_shirt_sash:
                 case (int)WomensClothing.Short_shirt_closed:
                 case (int)WomensClothing.Short_shirt_closed_belt:
+                case (int)WomensClothing.Short_shirt_closed_sash:
                 case (int)WomensClothing.Long_shirt_closed:
                 case (int)WomensClothing.Long_shirt_closed_belt:
+                case (int)WomensClothing.Long_shirt_closed_sash:
                     canChangeVariant = true;
                     break;
             }
@@ -763,6 +786,10 @@ namespace DaggerfallWorkshop.Game.Items
             data.shortName = shortName;
             data.nativeMaterialValue = nativeMaterialValue;
             data.dyeColor = dyeColor;
+            data.additionalColors = additionalColors;
+            data.dyeTargets = dyeTargets;
+            data.dyeLevel = dyeLevel;
+            data.craftsmanship = craftsmanship;
             data.weightInKg = weightInKg;
             data.drawOrder = drawOrder;
             data.value1 = value;
@@ -924,6 +951,7 @@ namespace DaggerfallWorkshop.Game.Items
                 case (int)Weapons.War_Axe:
                 case (int)Weapons.ArchersAxe:
                     return (int)DaggerfallConnect.DFCareer.ProficiencyFlags.Axes;
+                case (int)Weapons.LightFlail:
                 case (int)Weapons.Flail:
                 case (int)Weapons.Mace:
                 case (int)Weapons.Warhammer:
@@ -931,6 +959,7 @@ namespace DaggerfallWorkshop.Game.Items
                     return (int)DaggerfallConnect.DFCareer.ProficiencyFlags.BluntWeapons;
                 case (int)Weapons.Short_Bow:
                 case (int)Weapons.Long_Bow:
+                case (int)Weapons.Crossbow:
                     return (int)DaggerfallConnect.DFCareer.ProficiencyFlags.MissileWeapons;
 
                 default:
@@ -1537,6 +1566,10 @@ namespace DaggerfallWorkshop.Game.Items
             worldTextureRecord = other.worldTextureRecord;
             nativeMaterialValue = other.nativeMaterialValue;
             dyeColor = other.dyeColor;
+            additionalColors = other.additionalColors;
+            dyeTargets = other.dyeTargets;
+            dyeLevel = other.dyeLevel;
+            craftsmanship = other.craftsmanship;
             weightInKg = other.weightInKg;
             drawOrder = other.drawOrder;
             currentVariant = other.currentVariant;
@@ -1593,6 +1626,10 @@ namespace DaggerfallWorkshop.Game.Items
             worldTextureRecord = worldRecord;
             nativeMaterialValue = itemRecord.ParsedData.material;
             dyeColor = (DyeColors)itemRecord.ParsedData.color;
+            additionalColors = ParseAdditionalColors(itemRecord.ParsedData.additionalColors);
+            dyeTargets = ParseDyeTargets(itemRecord.ParsedData.dyeTargets);
+            dyeLevel = itemRecord.ParsedData.dyeLevel;
+            craftsmanship = itemRecord.ParsedData.craftsmanship;
             weightInKg = (float)itemRecord.ParsedData.weight * 0.25f;
             drawOrder = itemTemplate.drawOrderOrEffect;
             value = (int)itemRecord.ParsedData.value;
@@ -1650,6 +1687,26 @@ namespace DaggerfallWorkshop.Game.Items
             dyeColor = DaggerfallUnity.Instance.ItemHelper.GetDyeColor(this);
         }
 
+        internal DyeColors[] ParseAdditionalColors(byte[] additionalColors)
+        {
+            DyeColors[] parsedDyeColors = new DyeColors[additionalColors.Length];
+            for (int i = 0; i < additionalColors.Length; i++)
+            {
+                parsedDyeColors[i] = (DyeColors)additionalColors[i];
+            }
+            return parsedDyeColors;
+        }
+
+        internal DyeTargets[] ParseDyeTargets(byte[] dyeTargets)
+        {
+            DyeTargets[] parsedDyeTargets = new DyeColors[dyeTargets.Length];
+            for (int i = 0; i < dyeTargets.Length; i++)
+            {
+                parsedDyeTargets[i] = (DyeColors)dyeTargets[i];
+            }
+            return parsedDyeTargets;
+        }
+
         /// <summary>
         /// Creates from a serialized item.
         /// </summary>
@@ -1659,6 +1716,7 @@ namespace DaggerfallWorkshop.Game.Items
             shortName = data.shortName;
             nativeMaterialValue = data.nativeMaterialValue;
             dyeColor = data.dyeColor;
+            additionalColors = data.additionalColors;
             weightInKg = data.weightInKg;
             drawOrder = data.drawOrder;
             value = data.value1;

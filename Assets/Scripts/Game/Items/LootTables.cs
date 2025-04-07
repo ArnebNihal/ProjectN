@@ -250,7 +250,7 @@ namespace DaggerfallWorkshop.Game.Items
             chance = matrix.CL;
             while (Dice100.SuccessRoll((int)chance))
             {
-                item = ItemBuilder.CreateRandomClothing(playerEntity.Gender, playerEntity.Race);
+                item = ItemBuilder.CreateRandomClothing(playerEntity.Gender, playerEntity.Race, levelModifier);
                 item.currentCondition = (int)(item.maxCondition * UnityEngine.Random.Range(0.2f, 0.75f));
                 items.Add(item);
                 chance *= 0.5f;

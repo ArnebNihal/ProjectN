@@ -9,6 +9,7 @@
 // Notes:
 //
 
+using UnityEngine;
 using System;
 using System.Collections.Generic;
 using DaggerfallWorkshop.Game.Items;
@@ -107,6 +108,16 @@ namespace DaggerfallWorkshop.Utility
             new WeaponAnimation() {Record = 0, NumFrames = 4, FramePerSecond = BowAnimSpeed, Alignment = WeaponAlignment.Right, Offset = 0f},
         };
 
+        public static WeaponAnimation[] CrossbowWeaponAnims = new WeaponAnimation[]
+        {
+            new WeaponAnimation() {Record = 0, NumFrames = 1, FramePerSecond = IdleAnimSpeed, Alignment = WeaponAlignment.Right, Offset = 0f},
+            new WeaponAnimation() {Record = 0, NumFrames = 6, FramePerSecond = BowAnimSpeed, Alignment = WeaponAlignment.Right, Offset = 0f},
+            new WeaponAnimation() {Record = 0, NumFrames = 6, FramePerSecond = BowAnimSpeed, Alignment = WeaponAlignment.Right, Offset = 0f},
+            new WeaponAnimation() {Record = 0, NumFrames = 6, FramePerSecond = BowAnimSpeed, Alignment = WeaponAlignment.Right, Offset = 0f},
+            new WeaponAnimation() {Record = 0, NumFrames = 6, FramePerSecond = BowAnimSpeed, Alignment = WeaponAlignment.Right, Offset = 0f},
+            new WeaponAnimation() {Record = 0, NumFrames = 6, FramePerSecond = BowAnimSpeed, Alignment = WeaponAlignment.Right, Offset = 0f},
+        };
+
         // Animations for werecreature - alignment changes
         public static WeaponAnimation[] WerecreatureWeaponAnims = new WeaponAnimation[]
         {
@@ -135,6 +146,8 @@ namespace DaggerfallWorkshop.Utility
                 return MagicBattleAxeWeaponAnims;
             else if (weaponType == WeaponTypes.Bow)
                 return BowWeaponAnims;
+            else if (weaponType == WeaponTypes.Crossbow || weaponType == WeaponTypes.CrossbowExotic)
+                return CrossbowWeaponAnims;
             else if (weaponType == WeaponTypes.Werecreature)
                 return WerecreatureWeaponAnims;
             else
@@ -180,7 +193,8 @@ namespace DaggerfallWorkshop.Utility
                 case WeaponTypes.Werecreature:
                     return "WEAPON11.CIF";
                 default:
-                    return "WEAPON" + ((int)weaponType).ToString() + ".PNG";
+                    Debug.Log("Trying to use texture " + "WEAPON" + ((int)weaponType).ToString() + ".CIF");
+                    return ((int)weaponType).ToString() + "/WEAPON" + ((int)weaponType).ToString() + ".CIF";
                     // throw new Exception("Unknown weapon type.");
             }
         }

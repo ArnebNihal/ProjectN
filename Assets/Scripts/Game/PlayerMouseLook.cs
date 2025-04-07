@@ -244,7 +244,7 @@ namespace DaggerfallWorkshop.Game
                 return;
 
             // Suppress mouse look if player is swinging weapon
-            if (InputManager.Instance.HasAction(InputManager.Actions.SwingWeapon) && DaggerfallUnity.Settings.WeaponSwingMode == 0 && GameManager.Instance.WeaponManager.ScreenWeapon.WeaponType != WeaponTypes.Bow)
+            if (InputManager.Instance.HasAction(InputManager.Actions.SwingWeapon) && DaggerfallUnity.Settings.WeaponSwingMode == 0 && GameManager.Instance.WeaponManager.ScreenWeapon.WeaponType != WeaponTypes.Bow && GameManager.Instance.WeaponManager.ScreenWeapon.WeaponType != WeaponTypes.Crossbow && GameManager.Instance.WeaponManager.ScreenWeapon.WeaponType != WeaponTypes.CrossbowExotic)
                 applyLook = false;
 
             if (applyLook)

@@ -487,12 +487,16 @@ namespace DaggerfallWorkshop.Game.Items
                 case MensClothing.Priest_robes:
                 case MensClothing.Short_shirt:
                 case MensClothing.Short_shirt_with_belt:
+                case MensClothing.Short_shirt_with_sash:
                 case MensClothing.Long_shirt:
                 case MensClothing.Long_shirt_with_belt:
+                case MensClothing.Long_shirt_with_sash:
                 case MensClothing.Short_shirt_closed_top:
                 case MensClothing.Short_shirt_closed_top2:
+                case MensClothing.Short_shirt_closed_top3:
                 case MensClothing.Long_shirt_closed_top:
                 case MensClothing.Long_shirt_closed_top2:
+                case MensClothing.Long_shirt_closed_top3:
                 case MensClothing.Open_Tunic:
                 case MensClothing.Anticlere_Surcoat:
                 case MensClothing.Challenger_Straps:
@@ -544,12 +548,16 @@ namespace DaggerfallWorkshop.Game.Items
                 case WomensClothing.Priestess_robes:
                 case WomensClothing.Short_shirt:
                 case WomensClothing.Short_shirt_belt:
+                case WomensClothing.Short_shirt_sash:
                 case WomensClothing.Long_shirt:
                 case WomensClothing.Long_shirt_belt:
+                case WomensClothing.Long_shirt_sash:
                 case WomensClothing.Short_shirt_closed:
                 case WomensClothing.Short_shirt_closed_belt:
+                case WomensClothing.Short_shirt_closed_sash:
                 case WomensClothing.Long_shirt_closed:
                 case WomensClothing.Long_shirt_closed_belt:
+                case WomensClothing.Long_shirt_closed_sash:
                 case WomensClothing.Short_shirt_unchangeable:
                 case WomensClothing.Long_shirt_unchangeable:
                 case WomensClothing.Open_tunic:
@@ -647,7 +655,7 @@ namespace DaggerfallWorkshop.Game.Items
 
                 case Weapons.Short_Bow:
                 case Weapons.Long_Bow:
-                    return DaggerfallUnity.Settings.BowLeftHandWithSwitching ? ItemHands.LeftOnly : ItemHands.Both;
+                    return ItemHands.LeftOnly;
             }
 
             // Compare against supported armor types

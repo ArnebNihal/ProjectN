@@ -63,7 +63,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
         Checkbox swapHealthAndFatigue;
         Checkbox invertMouseVertical;
         HorizontalSlider mouseSmoothing;
-        Checkbox leftHandWeapons;
+        // Checkbox leftHandWeapons;
         Checkbox playerNudity;
         HorizontalSlider weaponSwingMode;
         Checkbox sdfFontRendering;
@@ -549,7 +549,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
 
             x = 165;
             optionPos = 60;
-            leftHandWeapons = AddOption(x, "leftHandWeapons", GetLeftHandWeapons());
+            // leftHandWeapons = AddOption(x, "leftHandWeapons", GetLeftHandWeapons());
             playerNudity = AddOption(x, "playerNudity", DaggerfallUnity.Settings.PlayerNudity);
 
             // Setup mods checkboxes
@@ -888,7 +888,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             DaggerfallUnity.Settings.SwapHealthAndFatigueColors = swapHealthAndFatigue.IsChecked;
             DaggerfallUnity.Settings.InvertMouseVertical = invertMouseVertical.IsChecked;
             DaggerfallUnity.Settings.MouseLookSmoothingFactor = SettingsManager.GetMouseLookSmoothingFactor(mouseSmoothing.ScrollIndex);
-            DaggerfallUnity.Settings.Handedness = GetHandedness(leftHandWeapons.IsChecked);
+            // DaggerfallUnity.Settings.Handedness = GetHandedness(leftHandWeapons.IsChecked);
             DaggerfallUnity.Settings.PlayerNudity = playerNudity.IsChecked;
             DaggerfallUnity.Settings.WeaponSwingMode = weaponSwingMode.ScrollIndex;
             DaggerfallUnity.Settings.EnableController = enableController.IsChecked;

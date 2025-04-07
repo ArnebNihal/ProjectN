@@ -2870,6 +2870,11 @@ namespace MapEditor
             return regionIndex;
         }
 
+        public static int GetMapPixelIDFromPosition(DFPosition position)
+        {
+            return (position.X + position.Y * 7680);
+        }
+
         public static DFLocation GetDFLocationFromPixelData(PixelData sourcePixel)
         {
             DFLocation createdLocation = new DFLocation();
@@ -3235,9 +3240,18 @@ namespace MapEditor
                         }
                         else
                         {
-                            green = 0;
-                            red = (byte)(value % 256);
-                            blue = (byte)(value / 256);
+                            if (value >= (byte.MaxValue * byte.MaxValue))
+                            {
+                                green = 25;
+                                red = (byte)((value - (byte.MaxValue * byte.MaxValue)) % byte.MaxValue);
+                                blue = (byte)((value - (byte.MaxValue * byte.MaxValue)) / byte.MaxValue);
+                            }
+                            else
+                            {
+                                green = 0;
+                                red = (byte)(value % byte.MaxValue);
+                                blue = (byte)(value / byte.MaxValue);
+                            }
                         }
                     }
 
@@ -3273,7 +3287,7 @@ namespace MapEditor
             return grayscaleBuffer;
         }
 
-        public static byte[] ConvertToGrayscale((byte, byte)[,] map, int trailType)
+        public static byte[] ConvertToGrayscale((byte, byte, byte)[,] map, int trailType)
         {
             Texture2D grayscaleImage = new Texture2D(map.GetLength(0), map.GetLength(1));
             Color32[] grayscaleMap = new Color32[map.Length];
@@ -3283,28 +3297,29 @@ namespace MapEditor
                 for (int y = 0; y < map.GetLength(1); y++)
                 {
                     int offset = (((map.GetLength(1) - y - 1) * map.GetLength(0)) + x);
-                    int value = 0;
                     int r = 0;
                     int g = 0;
                     int b = 0;
                     
-                    if (trailType == 1)
-                        value = map[x, y].Item1;
-                    else if (trailType == 2) 
-                        value = map[x, y].Item2;
-                    else if (map[x, y].Item1 != 0 || map[x, y].Item2 != 0)
-                    {
+                    // if (trailType == 1)
+                    // {
+                    //     value = map[x, y].Item1;
+                    // }
+                    // else if (trailType == 2) 
+                    //     value = map[x, y].Item2;
+                    // else if (map[x, y].Item1 != 0 || map[x, y].Item2 != 0)
+                    // {
                        r = map[x, y].Item1;
-                       g = byte.MaxValue;
+                       g = map[x, y].Item3;
                        b = map[x, y].Item2;
-                    }
+                    // }
                     
-                    if (trailType == 0)
-                    {
+                    // if (trailType == 0)
+                    // {
+                    //     grayscaleMap[offset] = new Color32((byte)r, (byte)g, (byte)b, 255);
+                    // }
+                    // else
                         grayscaleMap[offset] = new Color32((byte)r, (byte)g, (byte)b, 255);
-                    }
-                    else
-                        grayscaleMap[offset] = new Color32((byte)value, (byte)value, (byte)value, 255);
                 }
             }
             grayscaleImage.SetPixels32(grayscaleMap);
@@ -3358,6 +3373,22 @@ namespace MapEditor
                     int offset = (((imageToTranslate.height - y - 1) * imageToTranslate.width) + x);
                     byte value = grayscaleMap[offset].g;
                     matrix[x, y] = value;
+                }
+            }
+            return matrix;
+        }
+
+        public static int[,] ConvertToMatrixExp(Texture2D imageToTranslate)
+        {
+            Color32[] grayscaleMap = imageToTranslate.GetPixels32();
+            // byte[] buffer = imageToTranslate.GetRawTextureData();
+            int[,] matrix = new int[imageToTranslate.width, imageToTranslate.height];
+            for (int x = 0; x < imageToTranslate.width; x++)
+            {
+                for (int y = 0; y < imageToTranslate.height; y++)
+                {
+                    int offset = (((imageToTranslate.height - y - 1) * imageToTranslate.width) + x);
+                    matrix[x, y] = grayscaleMap[offset].r + grayscaleMap[offset].b * byte.MaxValue + grayscaleMap[offset].g * byte.MaxValue * byte.MaxValue;
                 }
             }
             return matrix;
@@ -3508,7 +3539,7 @@ namespace MapEditor
         {
             // Read location
             DFLocation dfLocation = new DFLocation();
-            // Debug.Log("Getting location from region " + region + ", location n." + location);
+            Debug.Log("Getting location from region " + region + ", location n." + location);
             dfLocation = Worldmaps.Worldmap[region].Locations[location];
 
             // Store indices
@@ -3755,7 +3786,7 @@ namespace MapEditor
                     summary.MapID = Worldmaps.Worldmap[region].Locations[location].Exterior.RecordElement.Header.LocationId;
                     locationIdList.Add(summary.MapID);
                     summary.RegionIndex = region;
-                    summary.MapIndex = Worldmaps.Worldmap[region].Locations[location].LocationIndex;
+                    summary.MapIndex = Worldmaps.Worldmap[region].MapIdLookup[mapTable.MapId];
 
                     summary.LocationType = mapTable.LocationType;
                     summary.DungeonType = mapTable.DungeonType;

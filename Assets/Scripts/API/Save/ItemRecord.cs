@@ -13,6 +13,7 @@ using System;
 using System.IO;
 using DaggerfallConnect.Utility;
 using DaggerfallConnect.FallExe;
+using DaggerfallWorkshop;
 
 namespace DaggerfallConnect.Save
 {
@@ -59,6 +60,10 @@ namespace DaggerfallConnect.Save
             public UInt16 image2;                   // 3D world image. These were used in the Daggerfall demo.
             public UInt16 material;
             public Byte color;
+            public Byte[] additionalColors;
+            public byte[] dyeTargets;
+            public byte dyeLevel;
+            public ClothCraftsmanship craftsmanship;
             public UInt32 weight;
             public UInt16 enchantmentPoints;
             public UInt16 message;

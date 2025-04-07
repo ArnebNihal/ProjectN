@@ -87,6 +87,7 @@ namespace DaggerfallConnect
 
         /// <summary>
         /// Location index.
+        /// TODO: this is probably incorrect now; correct it or remove any reference to it.
         /// </summary>
         public int LocationIndex;
 

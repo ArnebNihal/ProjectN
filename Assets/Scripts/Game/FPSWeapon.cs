@@ -208,7 +208,9 @@ namespace DaggerfallWorkshop.Game
             }
 
             // Do not change if already playing attack animation, unless releasing an arrow (bow & state=up->down)
-            if (!IsPlayingOneShot() || (WeaponType == WeaponTypes.Bow && weaponState == WeaponStates.StrikeUp && state == WeaponStates.StrikeDown))
+            if (!IsPlayingOneShot() || ((WeaponType == WeaponTypes.Bow && weaponState == WeaponStates.StrikeUp && state == WeaponStates.StrikeDown) ||
+                                        (WeaponType == WeaponTypes.Crossbow && weaponState == WeaponStates.StrikeUp && state == WeaponStates.StrikeDown) ||
+                                        (WeaponType == WeaponTypes.CrossbowExotic && weaponState == WeaponStates.StrikeUp && state == WeaponStates.StrikeDown)))
                 ChangeWeaponState(state);
         }
 
@@ -217,7 +219,7 @@ namespace DaggerfallWorkshop.Game
             weaponState = state;
 
             // Only reset frame to 0 for bows if idle state
-            if (WeaponType != WeaponTypes.Bow || state == WeaponStates.Idle)
+            if (WeaponType != WeaponTypes.Bow || WeaponType != WeaponTypes.Crossbow || WeaponType != WeaponTypes.CrossbowExotic || state == WeaponStates.Idle)
                 currentFrame = animTicks = 0;
 
             UpdateWeapon();
@@ -230,7 +232,7 @@ namespace DaggerfallWorkshop.Game
 
         public int GetHitFrame()
         {
-            if (WeaponType == WeaponTypes.Bow)
+            if (WeaponType == WeaponTypes.Bow || WeaponType == WeaponTypes.Crossbow || WeaponType == WeaponTypes.CrossbowExotic)
                 return 5;
             else
                 return 2;
@@ -294,6 +296,12 @@ namespace DaggerfallWorkshop.Game
             }
         }
 
+        public static void FlipHorizontalMelee(bool isRight)
+        {
+            WeaponManager weaponManager = GameManager.Instance.WeaponManager;
+            weaponManager.ScreenWeapon.FlipHorizontal = !isRight;
+        }
+
         #region Private Methods
 
         private bool IsPlayingOneShot()
@@ -318,7 +326,7 @@ namespace DaggerfallWorkshop.Game
             }
 
             // Handle bow with no arrows
-            if (!GameManager.Instance.WeaponManager.Sheathed && WeaponType == WeaponTypes.Bow)
+            if (!GameManager.Instance.WeaponManager.Sheathed && WeaponType == WeaponTypes.Bow || !GameManager.Instance.WeaponManager.Sheathed && WeaponType == WeaponTypes.Crossbow || !GameManager.Instance.WeaponManager.Sheathed && WeaponType == WeaponTypes.CrossbowExotic)
             {
                 if (GameManager.Instance.PlayerEntity.Items.GetItem(Items.ItemGroups.Weapons, (int)Items.Weapons.Arrow, allowQuestItem: false) == null)
                 {
@@ -339,7 +347,7 @@ namespace DaggerfallWorkshop.Game
 
             // Store rect and anim
             int weaponAnimRecordIndex;
-            if (WeaponType == WeaponTypes.Bow)
+            if (WeaponType == WeaponTypes.Bow || WeaponType == WeaponTypes.Crossbow || WeaponType == WeaponTypes.CrossbowExotic)
                 weaponAnimRecordIndex = 0; // Bow has only 1 animation
             else
                 weaponAnimRecordIndex = weaponAnims[(int)weaponState].Record;
@@ -499,7 +507,7 @@ namespace DaggerfallWorkshop.Game
                             if (IsPlayingOneShot())
                             {
                                 ChangeWeaponState(WeaponStates.Idle);   // If this is a one-shot anim go to queued weapon state
-                                if (WeaponType == WeaponTypes.Bow)
+                                if (WeaponType == WeaponTypes.Crossbow || WeaponType == WeaponTypes.CrossbowExotic)
                                     ShowWeapon = false;                 // Immediately hide bow so its idle frame doesn't show before it is hidden for its cooldown
                             }
                             else if (WeaponType == WeaponTypes.Bow && !DaggerfallUnity.Settings.BowDrawback)

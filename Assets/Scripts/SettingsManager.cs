@@ -533,7 +533,7 @@ namespace DaggerfallWorkshop
             EnemyInfighting = GetBool(sectionEnhancements, "EnemyInfighting");
             EnhancedCombatAI = GetBool(sectionEnhancements, "EnhancedCombatAI");
             GuildQuestListBox = GetBool(sectionEnhancements, "GuildQuestListBox");
-            BowLeftHandWithSwitching = GetBool(sectionEnhancements, "BowLeftHandWithSwitching");
+            // BowLeftHandWithSwitching = GetBool(sectionEnhancements, "BowLeftHandWithSwitching");
             LoiterLimitInHours = GetInt(sectionEnhancements, "LoiterLimitInHours");
         }
 
@@ -714,7 +714,7 @@ namespace DaggerfallWorkshop
             SetBool(sectionEnhancements, "EnemyInfighting", EnemyInfighting);
             SetBool(sectionEnhancements, "EnhancedCombatAI", EnhancedCombatAI);
             SetBool(sectionEnhancements, "GuildQuestListBox", GuildQuestListBox);
-            SetBool(sectionEnhancements, "BowLeftHandWithSwitching", BowLeftHandWithSwitching);
+            // SetBool(sectionEnhancements, "BowLeftHandWithSwitching", BowLeftHandWithSwitching);
             SetInt(sectionEnhancements, "LoiterLimitInHours", LoiterLimitInHours);
 
             // Write settings to persistent file

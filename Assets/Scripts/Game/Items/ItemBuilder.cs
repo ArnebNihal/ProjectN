@@ -77,6 +77,9 @@ namespace DaggerfallWorkshop.Game.Items
             Khajiit = 3,
         }
 
+        /// <summary>
+        /// Every clothing dye.
+        /// </summary>
         public static DyeColors[] clothingDyes = {
             DyeColors.Blue,
             DyeColors.Grey,
@@ -89,7 +92,58 @@ namespace DaggerfallWorkshop.Game.Items
             DyeColors.Yellow,
             DyeColors.Green,
             DyeColors.Olive,
-            DyeColors.Amber
+            DyeColors.Amber,
+            DyeColors.DarkGrey
+        };
+
+        /// <summary>
+        /// Every metal dye.
+        /// </summary>
+        public static DyeColors[] metalDyes = {
+            DyeColors.Iron,
+            DyeColors.Steel,
+            DyeColors.Silver,
+            DyeColors.Elven,
+            DyeColors.Glass,
+            DyeColors.Dwarven,
+            DyeColors.Orcish,
+            DyeColors.Mithril,
+            DyeColors.Adamantium,
+            DyeColors.Ebony,
+            DyeColors.Daedric
+        };
+
+        /// <summary>
+        /// Cheap clothing dye.
+        /// </summary>
+        public static DyeColors[] cheapClothingDyes = {
+            DyeColors.Grey,
+            DyeColors.DarkBrown,
+            DyeColors.LightBrown,
+            DyeColors.White,
+            DyeColors.Olive,
+        };
+
+        /// <summary>
+        /// Fancy clothing dye.
+        /// </summary>
+        public static DyeColors[] fancyClothingDyes = {
+            DyeColors.Blue,
+            DyeColors.Red,
+            DyeColors.Purple,
+            DyeColors.Aquamarine,
+            DyeColors.Yellow,
+            DyeColors.Green,
+            DyeColors.Amber,
+            DyeColors.DarkGrey
+        };
+
+        public static DyeColors[] workClothingDyes = {
+            DyeColors.Grey,
+            DyeColors.DarkBrown,
+            DyeColors.LightBrown,
+            DyeColors.DarkGrey,
+            DyeColors.Leather
         };
 
         #endregion
@@ -99,6 +153,26 @@ namespace DaggerfallWorkshop.Game.Items
         public static DyeColors RandomClothingDye()
         {
             return clothingDyes[UnityEngine.Random.Range(0, clothingDyes.Length)];
+        }
+
+        public static DyeColors RandomMetalDye()
+        {
+            return metalDyes[UnityEngine.Random.Range(0, metalDyes.Length)];
+        }
+
+        public static DyeColors RandomCheapClothingDye()
+        {
+            return cheapClothingDyes[UnityEngine.Random.Range(0, cheapClothingDyes.Length)];
+        }
+
+        public static DyeColors RandomFancyClothingDye()
+        {
+            return fancyClothingDyes[UnityEngine.Random.Range(0, fancyClothingDyes.Length)];
+        }
+
+        public static DyeColors RandomWorkClothingDye()
+        {
+            return workClothingDyes[UnityEngine.Random.Range(0, workClothingDyes.Length)];
         }
 
         /// <summary>
@@ -220,7 +294,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// </summary>
         /// <param name="gender">Gender of player</param>
         /// <returns>DaggerfallUnityItem.</returns>
-        public static DaggerfallUnityItem CreateRandomClothing(Genders gender, Races race)
+        public static DaggerfallUnityItem CreateRandomClothing(Genders gender, Races race, int qualityMod = 0)
         {
             // Create random clothing by gender, including any custom items registered as clothes
             ItemGroups genderClothingGroup = (gender == Genders.Male) ? ItemGroups.MensClothing : ItemGroups.WomensClothing;
@@ -237,9 +311,11 @@ namespace DaggerfallWorkshop.Game.Items
                 newItem = CreateItem(genderClothingGroup, customItemTemplates[groupIndex - enumArray.Length]);
 
             SetRace(newItem, race);
+            SetClothQuality(newItem, qualityMod, out ClothCraftsmanship clothCraftsmanship);
 
-            // Random dye colour
-            newItem.dyeColor = RandomClothingDye();
+            // In ProjectN, the colour is chosed with the variant
+            // SetClothColors(newItem, clothCraftsmanship);
+            // newItem.dyeColor = RandomClothingDye();
 
             // Random variant
             SetVariant(newItem, UnityEngine.Random.Range(0, newItem.TotalVariants));
@@ -393,7 +469,6 @@ namespace DaggerfallWorkshop.Game.Items
         {
             // Create item
             int groupIndex = DaggerfallUnity.Instance.ItemHelper.GetGroupIndex(ItemGroups.Weapons, (int)weapon);
-            Debug.Log("Creating weapon with group index " + groupIndex);
             DaggerfallUnityItem newItem = new DaggerfallUnityItem(ItemGroups.Weapons, groupIndex);
 
             if (weapon == Weapons.Arrow)
@@ -422,10 +497,11 @@ namespace DaggerfallWorkshop.Game.Items
             int chances = 1;
 
             if (IsFromThisArea(weapon))
-                chances = 10;
+                chances = 900;
             else if (playerGPS.IsPlayerInTown(true) && playerGPS.CurrentLocation.Exterior.ExteriorData.PortTownAndUnknown != 0)
-                chances = 4;
+                chances = 500;
 
+            Debug.Log("Getting weapon variant");
             if (DFRandom.random_range_inclusive(1, 1000) <= chances)
                 return 1;
 
@@ -646,6 +722,8 @@ namespace DaggerfallWorkshop.Game.Items
             }
             
             ApplyWeaponMaterial(newItem, material);
+            int variant = GetWeaponVariant(newItem, material);
+            SetVariant(newItem, variant);
             
             return newItem;
         }
@@ -660,9 +738,9 @@ namespace DaggerfallWorkshop.Game.Items
             // Female characters use archive - 1 (i.e. 233 rather than 234) for weapons
             if (GameManager.Instance.PlayerEntity.Gender == Genders.Female)
             {
-                if (!GameManager.Instance.ItemHelper.IsNewWeapon(weapon))
+                if (!GameManager.Instance.ItemHelper.IsNewWeapon(weapon) || weapon.TemplateIndex == (int)Weapons.Crossbow)
                     weapon.PlayerTextureArchive -= 1;
-            }                
+            }
         }
 
         /// <summary>
@@ -963,7 +1041,6 @@ namespace DaggerfallWorkshop.Game.Items
                 multiplier = 4;
                 material = (MaterialTypes)nativeMaterialValue;
             }
-
             else
             {
                 ArmorTypes armor = GetArmorType(nativeMaterialValue);
@@ -1438,14 +1515,944 @@ namespace DaggerfallWorkshop.Game.Items
             item.PlayerTextureArchive += offset;
         }
 
+        public static void SetClothQuality(DaggerfallUnityItem item, int quality, out ClothCraftsmanship clothCraftsmanship)
+        {
+            int[] tier = new int[4];
+            clothCraftsmanship = ClothCraftsmanship.Cheap;
+            for (int i = 0; i < 4; i++)
+            {
+                tier[i] = UnityEngine.Random.Range(0, 100) + quality;
+                if (tier[i] >= 80)
+                    clothCraftsmanship++;
+            }
+
+            item.craftsmanship = clothCraftsmanship;
+            switch (clothCraftsmanship)
+            {
+                case ClothCraftsmanship.Cheap:
+                    item.shortName = "Cheap " + item.shortName;
+                    break;
+                case ClothCraftsmanship.Normal:
+                    item.value *= 2;
+                    item.maxCondition *= 3;
+                    item.enchantmentPoints *= 2;
+                    break;
+                case ClothCraftsmanship.Fancy:
+                    item.shortName = "Fancy " + item.shortName;
+                    item.value *= 5;
+                    item.maxCondition *= 2;
+                    item.enchantmentPoints *= 5;
+                    break;
+                case ClothCraftsmanship.Extravagant:
+                    item.shortName = "Extravagant " + item.shortName;
+                    item.value *= 10;
+                    item.maxCondition *= 2;
+                    item.enchantmentPoints *= 7;
+                    break;
+                case ClothCraftsmanship.Exquisite:
+                    item.shortName = "Exquisite " + item.shortName;
+                    item.value *= 20;
+                    item.maxCondition *= 3;
+                    item.enchantmentPoints *= 10;
+                    break;
+            }
+        }
+
+        public static void SetClothDyeData(DaggerfallUnityItem item)
+        {
+            if (item.ItemGroup == ItemGroups.WomensClothing)
+            {
+                if (item.TemplateIndex == (int)WomensClothing.Brassier ||
+                    item.TemplateIndex == (int)WomensClothing.Peasant_blouse ||
+                   (item.TemplateIndex == (int)WomensClothing.Casual_pants && item.CurrentVariant == 4) ||
+                    item.TemplateIndex == (int)WomensClothing.Casual_cloak ||
+                   (item.TemplateIndex == (int)WomensClothing.Evening_gown && item.CurrentVariant == 0) ||
+                    item.TemplateIndex == (int)WomensClothing.Loincloth ||
+                    item.TemplateIndex == (int)WomensClothing.Plain_robes ||
+                    item.TemplateIndex == (int)WomensClothing.Priestess_robes ||
+                    item.TemplateIndex == (int)WomensClothing.Open_tunic ||
+                   (item.TemplateIndex == (int)WomensClothing.Tights && item.CurrentVariant == 0))
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Formal_brassier &&
+                        (item.CurrentVariant == 0 || item.CurrentVariant == 3))
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Formal_brassier && item.CurrentVariant == 1)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.SteelClothing };
+                    item.dyeLevel = 1;
+                }
+                else if ((item.TemplateIndex == (int)WomensClothing.Formal_brassier && item.CurrentVariant == 2) ||
+                         (item.TemplateIndex == (int)WomensClothing.Casual_pants && item.CurrentVariant == 3))
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.LightBrownClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Formal_brassier && item.CurrentVariant == 4)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.RedClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Eodoric ||
+                        (item.TemplateIndex == (int)WomensClothing.Formal_eodoric && item.CurrentVariant != 0))
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.YellowClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Shoes ||
+                         item.TemplateIndex == (int)WomensClothing.Tall_boots ||
+                         item.TemplateIndex == (int)WomensClothing.Boots ||
+                        (item.TemplateIndex == (int)WomensClothing.Casual_pants && item.CurrentVariant < 3) ||
+                        (item.TemplateIndex == (int)WomensClothing.Tights && item.CurrentVariant == 1))
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.LeatherClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Sandals)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.RedClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Casual_pants && item.CurrentVariant == 3)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.LightBrownClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Formal_cloak ||
+                         item.TemplateIndex == (int)WomensClothing.Evening_gown && item.CurrentVariant == 1)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.LightBrownClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Khajiit_suit)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BlackClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Formal_eodoric && item.CurrentVariant == 0)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.YellowClothing, DyeTargets.BasicClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Day_gown && item.CurrentVariant == 0)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.PurpleClothing, DyeTargets.BlackClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Day_gown && item.CurrentVariant == 1)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.RedClothing, DyeTargets.PurpleClothing, DyeTargets.BlackClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Casual_dress ||
+                         item.TemplateIndex == (int)WomensClothing.Strapless_dress ||
+                         item.TemplateIndex == (int)WomensClothing.Long_skirt ||
+                         item.TemplateIndex == (int)WomensClothing.Short_shirt_unchangeable ||
+                         item.TemplateIndex == (int)WomensClothing.Long_shirt_unchangeable)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.LightBrownClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Short_shirt ||
+                         item.TemplateIndex == (int)WomensClothing.Long_shirt ||
+                         item.TemplateIndex == (int)WomensClothing.Short_shirt_closed ||
+                         item.TemplateIndex == (int)WomensClothing.Long_shirt_closed)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.GreenClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Short_shirt_belt ||
+                         item.TemplateIndex == (int)WomensClothing.Long_shirt_belt ||
+                         item.TemplateIndex == (int)WomensClothing.Short_shirt_closed_belt ||
+                         item.TemplateIndex == (int)WomensClothing.Long_shirt_closed_belt)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.LightBrownClothing, DyeTargets.YellowClothing, DyeTargets.GreenClothing };
+                    item.dyeLevel = 4;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Short_shirt_sash ||
+                         item.TemplateIndex == (int)WomensClothing.Long_shirt_sash ||
+                         item.TemplateIndex == (int)WomensClothing.Short_shirt_closed_sash ||
+                         item.TemplateIndex == (int)WomensClothing.Long_shirt_closed_sash)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.RedClothing, DyeTargets.GreenClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Wrap)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.RedClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Vest && item.CurrentVariant == 0)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.GreenClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)WomensClothing.Vest && item.CurrentVariant == 1)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.RedClothing };
+                    item.dyeLevel = 1;
+                }
+                else return;
+            }
+            else
+            {
+                if ((item.TemplateIndex == (int)MensClothing.Straps && item.CurrentVariant != 3) ||
+                     item.TemplateIndex == (int)MensClothing.Challenger_Straps ||
+                     item.TemplateIndex == (int)MensClothing.Champion_straps)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.LeatherClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Armbands ||
+                         item.TemplateIndex == (int)MensClothing.Fancy_Armbands ||
+                         item.TemplateIndex == (int)MensClothing.Eodoric)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.YellowClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Kimono)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.DarkBrownClothing, DyeTargets.LightBrownClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Sash ||
+                         item.TemplateIndex == (int)MensClothing.Sandals)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.RedClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Shoes ||
+                         item.TemplateIndex == (int)MensClothing.Tall_Boots ||
+                         item.TemplateIndex == (int)MensClothing.Boots ||
+                        (item.TemplateIndex == (int)MensClothing.Casual_pants && item.CurrentVariant < 3) ||
+                        (item.TemplateIndex == (int)MensClothing.Breeches && item.CurrentVariant == 0))
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.LeatherClothing };
+                    item.dyeLevel = 1;
+                }
+                else if ((item.TemplateIndex == (int)MensClothing.Casual_pants && item.CurrentVariant == 3) ||
+                         (item.TemplateIndex == (int)MensClothing.Breeches && item.CurrentVariant == 1))
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.LightBrownClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Short_skirt ||
+                         item.TemplateIndex == (int)MensClothing.Casual_cloak ||
+                         item.TemplateIndex == (int)MensClothing.Loincloth ||
+                         item.TemplateIndex == (int)MensClothing.Plain_robes ||
+                         item.TemplateIndex == (int)MensClothing.Priest_robes ||
+                         item.TemplateIndex == (int)MensClothing.Open_Tunic)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Formal_cloak ||
+                         item.TemplateIndex == (int)MensClothing.Dwynnen_surcoat)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.LightBrownClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Khajiit_suit)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BlackClothing };
+                    item.dyeLevel = 1;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Short_tunic ||
+                         item.TemplateIndex == (int)MensClothing.Short_tunic_fit ||
+                         item.TemplateIndex == (int)MensClothing.Short_shirt ||
+                         item.TemplateIndex == (int)MensClothing.Long_shirt ||
+                         item.TemplateIndex == (int)MensClothing.Short_shirt_closed_top ||
+                         item.TemplateIndex == (int)MensClothing.Long_shirt_closed_top)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.GreenClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Reversible_tunic)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Toga ||
+                         item.TemplateIndex == (int)MensClothing.Wrap)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.RedClothing };
+                    item.dyeLevel = 2;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Formal_tunic)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.YellowClothing, DyeTargets.BasicClothing, DyeTargets.RedClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Short_shirt_with_belt ||
+                         item.TemplateIndex == (int)MensClothing.Long_shirt_with_belt ||
+                         item.TemplateIndex == (int)MensClothing.Short_shirt_closed_top2 ||
+                         item.TemplateIndex == (int)MensClothing.Long_shirt_closed_top2)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.LightBrownClothing, DyeTargets.YellowClothing, DyeTargets.GreenClothing };
+                    item.dyeLevel = 4;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Short_shirt_with_sash ||
+                         item.TemplateIndex == (int)MensClothing.Long_shirt_with_sash ||
+                         item.TemplateIndex == (int)MensClothing.Short_shirt_closed_top3 ||
+                         item.TemplateIndex == (int)MensClothing.Long_shirt_closed_top3)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.RedClothing, DyeTargets.GreenClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Long_Skirt ||
+                         item.TemplateIndex == (int)MensClothing.Short_shirt_unchangeable ||
+                         item.TemplateIndex == (int)MensClothing.Long_shirt_unchangeable)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BasicClothing, DyeTargets.LightBrownClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 3;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Anticlere_Surcoat)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.GreenClothing, DyeTargets.BasicClothing, DyeTargets.LightBrownClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 4;
+                }
+                else if (item.TemplateIndex == (int)MensClothing.Vest)
+                {
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.BlackClothing, DyeTargets.YellowClothing };
+                    item.dyeLevel = 2;
+                }
+            }
+        }
+
+        public static void SetClothColors(DaggerfallUnityItem item, ClothCraftsmanship clothCraftsmanship)
+        {
+            if (item.TemplateIndex == (int)WomensClothing.Brassier ||
+               (item.TemplateIndex == (int)WomensClothing.Formal_brassier && item.CurrentVariant == 2) ||
+                item.TemplateIndex == (int)WomensClothing.Casual_cloak ||
+                item.TemplateIndex == (int)WomensClothing.Loincloth ||
+                item.TemplateIndex == (int)WomensClothing.Vest ||
+                item.TemplateIndex == (int)MensClothing.Sash ||
+                item.TemplateIndex == (int)MensClothing.Short_skirt ||
+                item.TemplateIndex == (int)MensClothing.Casual_cloak ||
+                item.TemplateIndex == (int)MensClothing.Loincloth)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomWorkClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Formal_brassier &&
+                    (item.CurrentVariant == 0 || item.CurrentVariant == 3))
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomWorkClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomWorkClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Formal_brassier && item.CurrentVariant == 1)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = DyeColors.Iron;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = DyeColors.Steel;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Peasant_blouse ||
+                     item.TemplateIndex == (int)WomensClothing.Khajiit_suit ||
+                    (item.TemplateIndex == (int)WomensClothing.Evening_gown && item.CurrentVariant == 0) ||
+                     item.TemplateIndex == (int)WomensClothing.Plain_robes ||
+                     item.TemplateIndex == (int)WomensClothing.Priestess_robes ||
+                     item.TemplateIndex == (int)WomensClothing.Open_tunic ||
+                    (item.TemplateIndex == (int)WomensClothing.Tights && item.CurrentVariant == 0) ||
+                     item.TemplateIndex == (int)MensClothing.Khajiit_suit ||
+                     item.TemplateIndex == (int)MensClothing.Plain_robes ||
+                     item.TemplateIndex == (int)MensClothing.Priest_robes ||
+                     item.TemplateIndex == (int)MensClothing.Open_Tunic)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Eodoric ||
+                    (item.TemplateIndex == (int)WomensClothing.Formal_eodoric && (item.CurrentVariant == 1 || item.CurrentVariant == 2)) ||
+                     item.TemplateIndex == (int)MensClothing.Armbands ||
+                     item.TemplateIndex == (int)MensClothing.Fancy_Armbands ||
+                     item.TemplateIndex == (int)MensClothing.Eodoric)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = DyeColors.Yellow;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                    case ClothCraftsmanship.Extravagant:
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Shoes ||
+                     item.TemplateIndex == (int)WomensClothing.Tall_boots ||
+                     item.TemplateIndex == (int)WomensClothing.Boots ||
+                     item.TemplateIndex == (int)WomensClothing.Sandals ||
+                     item.TemplateIndex == (int)MensClothing.Shoes ||
+                     item.TemplateIndex == (int)MensClothing.Tall_Boots ||
+                     item.TemplateIndex == (int)MensClothing.Boots ||
+                     item.TemplateIndex == (int)MensClothing.Sandals)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = DyeColors.LightBrown;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = DyeColors.Leather;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = DyeColors.DarkBrown;
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Casual_pants ||
+                    (item.TemplateIndex == (int)WomensClothing.Tights && item.CurrentVariant == 1) ||
+                     item.TemplateIndex == (int)MensClothing.Casual_pants)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = DyeColors.LightBrown;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = DyeColors.Leather;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Formal_cloak ||
+                     item.TemplateIndex == (int)MensClothing.Formal_cloak ||
+                     item.TemplateIndex == (int)MensClothing.Dwynnen_surcoat)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = DyeColors.LightBrown;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Formal_eodoric && item.CurrentVariant == 0)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = DyeColors.Yellow;
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = DyeColors.Yellow;
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = DyeColors.Yellow;
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Evening_gown && item.CurrentVariant == 1)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = DyeColors.LightBrown;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Day_gown)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        item.additionalColors[1] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        item.additionalColors[1] = DyeColors.DarkGrey;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomClothingDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        item.additionalColors[1] = DyeColors.DarkGrey;
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        item.additionalColors[1] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Casual_dress ||
+                     item.TemplateIndex == (int)WomensClothing.Strapless_dress ||
+                     item.TemplateIndex == (int)WomensClothing.Long_skirt ||
+                     item.TemplateIndex == (int)WomensClothing.Short_shirt_unchangeable ||
+                     item.TemplateIndex == (int)WomensClothing.Long_shirt_unchangeable ||
+                     item.TemplateIndex == (int)MensClothing.Long_Skirt ||
+                     item.TemplateIndex == (int)MensClothing.Short_shirt_unchangeable ||
+                     item.TemplateIndex == (int)MensClothing.Long_shirt_unchangeable)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = DyeColors.LightBrown;
+                        item.additionalColors[1] = DyeColors.Iron;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = DyeColors.Yellow;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Short_shirt ||
+                     item.TemplateIndex == (int)WomensClothing.Long_shirt ||
+                     item.TemplateIndex == (int)WomensClothing.Short_shirt_closed ||
+                     item.TemplateIndex == (int)WomensClothing.Long_shirt_closed ||
+                     item.TemplateIndex == (int)WomensClothing.Wrap ||
+                     item.TemplateIndex == (int)MensClothing.Short_tunic ||
+                     item.TemplateIndex == (int)MensClothing.Short_tunic_fit ||
+                     item.TemplateIndex == (int)MensClothing.Toga ||
+                     item.TemplateIndex == (int)MensClothing.Short_shirt ||
+                     item.TemplateIndex == (int)MensClothing.Short_shirt_closed_top ||
+                     item.TemplateIndex == (int)MensClothing.Long_shirt_closed_top ||
+                     item.TemplateIndex == (int)MensClothing.Wrap)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Short_shirt_belt ||
+                     item.TemplateIndex == (int)WomensClothing.Long_shirt_belt ||
+                     item.TemplateIndex == (int)WomensClothing.Short_shirt_closed_belt ||
+                     item.TemplateIndex == (int)WomensClothing.Long_shirt_closed_belt ||
+                     item.TemplateIndex == (int)MensClothing.Short_shirt_with_belt ||
+                     item.TemplateIndex == (int)MensClothing.Short_shirt_closed_top2 ||
+                     item.TemplateIndex == (int)MensClothing.Long_shirt_closed_top2)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = DyeColors.LightBrown;
+                        item.additionalColors[1] = DyeColors.Iron;
+                        item.additionalColors[2] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = DyeColors.Yellow;
+                        item.additionalColors[2] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        item.additionalColors[2] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        item.additionalColors[2] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        item.additionalColors[2] = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)WomensClothing.Short_shirt_sash ||
+                     item.TemplateIndex == (int)WomensClothing.Long_shirt_sash ||
+                     item.TemplateIndex == (int)WomensClothing.Short_shirt_closed_sash ||
+                     item.TemplateIndex == (int)WomensClothing.Long_shirt_closed_sash ||
+                     item.TemplateIndex == (int)MensClothing.Short_shirt_with_sash ||
+                     item.TemplateIndex == (int)MensClothing.Short_shirt_closed_top3 ||
+                     item.TemplateIndex == (int)MensClothing.Long_shirt_closed_top3)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = DyeColors.LightBrown;
+                        item.additionalColors[1] = RandomCheapClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        item.additionalColors[1] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        break;
+                }
+            }
+            else if ((item.TemplateIndex == (int)MensClothing.Straps && item.CurrentVariant < 3) ||
+                      item.TemplateIndex == (int)MensClothing.Champion_straps ||
+                      item.TemplateIndex == (int)MensClothing.Challenger_Straps)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = DyeColors.LightBrown;
+                        item.additionalColors[0] = DyeColors.Iron;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = DyeColors.Leather;
+                        item.additionalColors[0] = DyeColors.Yellow;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                }
+            }
+            else if ((item.TemplateIndex == (int)MensClothing.Straps && item.CurrentVariant == 3) ||
+                      item.TemplateIndex == (int)MensClothing.Vest)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = DyeColors.Iron;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = DyeColors.DarkGrey;
+                        item.additionalColors[0] = DyeColors.Yellow;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)MensClothing.Kimono)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = DyeColors.LightBrown;
+                        item.additionalColors[1] = DyeColors.Iron;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomWorkClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        item.additionalColors[1] = DyeColors.Yellow;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomClothingDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)MensClothing.Reversible_tunic)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomWorkClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomWorkClothingDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)MensClothing.Formal_tunic)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomWorkClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomClothingDye();
+                        item.additionalColors[0] = RandomWorkClothingDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomFancyClothingDye();
+                        item.additionalColors[1] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        break;
+                }
+            }
+            else if (item.TemplateIndex == (int)MensClothing.Anticlere_Surcoat)
+            {
+                switch (clothCraftsmanship)
+                {
+                    case ClothCraftsmanship.Cheap:
+                        item.dyeColor = RandomCheapClothingDye();
+                        item.additionalColors[0] = RandomWorkClothingDye();
+                        item.additionalColors[1] = DyeColors.LightBrown;
+                        item.additionalColors[2] = DyeColors.Iron;
+                        break;
+                    case ClothCraftsmanship.Normal:
+                        item.dyeColor = RandomWorkClothingDye();
+                        item.additionalColors[0] = RandomCheapClothingDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        item.additionalColors[2] = DyeColors.Yellow;
+                        break;
+                    case ClothCraftsmanship.Fancy:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomClothingDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        item.additionalColors[2] = RandomMetalDye();
+                        break;
+                    case ClothCraftsmanship.Extravagant:
+                        item.dyeColor = RandomFancyClothingDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        item.additionalColors[1] = RandomFancyClothingDye();
+                        item.additionalColors[2] = RandomClothingDye();
+                        break;
+                    case ClothCraftsmanship.Exquisite:
+                        item.dyeColor = RandomMetalDye();
+                        item.additionalColors[0] = RandomMetalDye();
+                        item.additionalColors[1] = RandomClothingDye();
+                        item.additionalColors[2] = RandomMetalDye();
+                        break;
+                }
+            }
+            else item.dyeColor = RandomClothingDye();
+        }
+
         public static void SetVariant(DaggerfallUnityItem item, int variant)
         {
             // Range check
             int totalVariants = item.ItemTemplate.variants;
             if (variant < 0 || variant >= totalVariants)
                 return;
-
-            Debug.Log("Setting variant, item.LongName: " + item.LongName);
 
             // Clamp to appropriate variant based on material family
             if (item.IsOfTemplate(ItemGroups.Armor, (int)Armor.Cuirass))
@@ -1547,81 +2554,14 @@ namespace DaggerfallWorkshop.Game.Items
                 else
                     variant = (int)GetArmorMaterialType(item.nativeMaterialValue);
             }
-            else if (item.IsOfTemplate(ItemGroups.WomensClothing, (int)WomensClothing.Formal_brassier))
+            // Women's clothing variants
+            else if (item.ItemGroup == ItemGroups.WomensClothing ||
+                     item.ItemGroup == ItemGroups.MensClothing)
             {
-                if (variant == 1)   // Spiked "Metal" Formal Brasserie
-                {
-                    int metalTypes = Enum.GetNames(typeof(MetalTypes)).Length;
-                    int randomRoll = UnityEngine.Random.Range(0, 66 + 100);
-                    int chances = 0;
-                    for (int metal = 0; metal < metalTypes; metal++)
-                    {
-                        chances += metal;
-                        if (randomRoll < chances)
-                        {
-                            item.shortName = "Metal-Hued " + item.shortName;
-                            item.dyeColor = DaggerfallUnity.Instance.ItemHelper.GetWeaponDyeColor((MaterialTypes)(metalTypes - metal));
-                            item.value *= (metalTypes - metal) * (metalTypes - metal) + 1;
-                            item.maxCondition *= (metalTypes - metal);
-                            item.enchantmentPoints *= (metalTypes - metal);
-                        }
-                    }                    
-                }
-                else if (variant == 2) // "Coconuts" Formal Brasserie
-                {
-                    int randomRoll = UnityEngine.Random.Range(0, 100);
-                    if (randomRoll < 90)
-                        item.dyeColor = DyeColors.DarkBrown;
-                    else{
-                        item.shortName = "Fancy " + item.shortName;
-                        while (item.dyeColor == DyeColors.DarkBrown)
-                        {
-                            item.dyeColor = RandomClothingDye();
-                        }
-                        item.value *= 5;
-                        item.maxCondition *= 2;
-                        item.enchantmentPoints *= 5;
-                    }
-                }
+                SetClothDyeData(item);
+                SetClothColors(item, item.craftsmanship);                
             }
-            if (item.IsOfTemplate(ItemGroups.WomensClothing, (int)WomensClothing.Eodoric))
-            {
-                int randomRoll = UnityEngine.Random.Range(0, 100);
-                if (randomRoll == 99)
-                {
-                    int metalTypes = Enum.GetNames(typeof(MetalTypes)).Length;
-                    int randRoll = UnityEngine.Random.Range(0, 66);
-                    int chances = 0;
-                    for (int metal = 0; metal < metalTypes; metal++)
-                    {
-                        chances += metal;
-                        if (randRoll < chances)
-                        {
-                            item.shortName = "Metal-Hued " + item.shortName;
-                            item.dyeColor = DaggerfallUnity.Instance.ItemHelper.GetWeaponDyeColor((MaterialTypes)(metalTypes - metal));
-                            item.value *= (metalTypes - metal) * (metalTypes - metal) + 1;
-                            item.maxCondition *= (metalTypes - metal);
-                            item.enchantmentPoints *= (metalTypes - metal);
-                        }
-                    }
-                }
-                if (randomRoll >= 90)
-                {
-                    item.dyeColor = DyeColors.Yellow;
-                    item.value *= 5;
-                    item.maxCondition *= 2;
-                    item.enchantmentPoints *= 5;
-                }
-                else
-                {
-                    item.shortName = "Cheap " + item.shortName;
-                    while (item.dyeColor == DyeColors.Yellow)
-                    {
-                        item.dyeColor = RandomClothingDye();
-                    }
-                }
-            }
-            if (item.GroupIndex == (int)ItemGroups.Weapons && variant != 0)
+            else if (item.ItemGroup == ItemGroups.Weapons && variant != 0)
             {
                 string prefix = GetExoticWeaponPrefix(item);
                 item.shortName = prefix + " " + item.shortName;
@@ -1632,6 +2572,36 @@ namespace DaggerfallWorkshop.Game.Items
 
             // Store variant
             item.CurrentVariant = variant;
+        }
+
+        public static DaggerfallUnityItem GetItemCraftsmanshipStats(DaggerfallUnityItem item, ClothCraftsmanship craftsmanship)
+        {
+            switch (craftsmanship)
+            {
+                case ClothCraftsmanship.Normal:
+                    item.value *= 2;
+                    item.maxCondition *= 3;
+                    item.enchantmentPoints *= 2;
+                    return item;
+                case ClothCraftsmanship.Fancy:
+                    item.value *= 5;
+                    item.maxCondition *= 2;
+                    item.enchantmentPoints *= 5;
+                    return item;
+                case ClothCraftsmanship.Extravagant:
+                    item.value *= 10;
+                    item.maxCondition *= 2;
+                    item.enchantmentPoints *= 7;
+                    return item;
+                case ClothCraftsmanship.Exquisite:
+                    item.value *= 20;
+                    item.maxCondition *= 3;
+                    item.enchantmentPoints *= 10;
+                    return item;
+                case ClothCraftsmanship.Cheap:
+                default:
+                    return item;
+            }
         }
 
         public static string GetExoticWeaponPrefix(DaggerfallUnityItem weapon)
@@ -1757,6 +2727,8 @@ namespace DaggerfallWorkshop.Game.Items
 
         public static MaterialTypes GetArmorMaterialType(int nativeMaterialValue)
         {
+            if (nativeMaterialValue == 0)
+                return MaterialTypes.Leather;
             Debug.Log(nativeMaterialValue + " (nativeMaterialValue) % 0x0010 = " + (nativeMaterialValue % 0x0010));
             return (MaterialTypes)(nativeMaterialValue % 0x0010);
         }

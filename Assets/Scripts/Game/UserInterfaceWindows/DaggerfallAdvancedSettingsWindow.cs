@@ -344,7 +344,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             allowMagicRepairs = AddCheckbox(rightPanel, "allowMagicRepairs", DaggerfallUnity.Settings.AllowMagicRepairs);
             instantRepairs = AddCheckbox(rightPanel, "instantRepairs", DaggerfallUnity.Settings.InstantRepairs);
             guildQuestListBox = AddCheckbox(rightPanel, "guildQuestListBox", DaggerfallUnity.Settings.GuildQuestListBox);
-            bowLeftHandWithSwitching = AddCheckbox(rightPanel, "bowLeftHandWithSwitching", DaggerfallUnity.Settings.BowLeftHandWithSwitching);
+            // bowLeftHandWithSwitching = AddCheckbox(rightPanel, "bowLeftHandWithSwitching", DaggerfallUnity.Settings.BowLeftHandWithSwitching);
             loiterLimitInHours = AddSlider(rightPanel, "loiterLimitInHours", 3, 12, DaggerfallUnity.Settings.LoiterLimitInHours);
         }
 
@@ -485,7 +485,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
             DaggerfallUnity.Settings.AllowMagicRepairs = allowMagicRepairs.IsChecked;
             DaggerfallUnity.Settings.InstantRepairs = instantRepairs.IsChecked;
             DaggerfallUnity.Settings.GuildQuestListBox = guildQuestListBox.IsChecked;
-            DaggerfallUnity.Settings.BowLeftHandWithSwitching = bowLeftHandWithSwitching.IsChecked;
+            // DaggerfallUnity.Settings.BowLeftHandWithSwitching = bowLeftHandWithSwitching.IsChecked;
             DaggerfallUnity.Settings.TravelMapLocationsOutline = travelMapLocationsOutline.IsChecked;
 
             DaggerfallUnity.Settings.DungeonAmbientLightScale = dungeonAmbientLightScale.GetValue();

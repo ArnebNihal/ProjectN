@@ -4,6 +4,8 @@ using System.Collections;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using DaggerfallConnect.Utility;
+using System.Linq;
+using System.Collections.Generic;
 
 namespace DaggerfallWorkshop.Utility
 {
@@ -423,30 +425,46 @@ namespace DaggerfallWorkshop.Utility
         /// <returns>New DFBitmap dyed to specified colour.</returns>
         public static DFBitmap ChangeDye(DFBitmap srcBitmap, DyeColors dye, DyeTargets target)
         {
-            const int clothingStart = 0x60;
-            const int weaponsAndArmorStart = 0x70;
-
             // Clone bitmap and get colour table for swaps
             DFBitmap dstBitmap = DFBitmap.CloneDFBitmap(srcBitmap, false);
-            byte[] swaps = GetDyeColorTable(dye, target);
+            byte[] swaps = GetDyeColorTable(dye);
+            byte[] baseSwaps = GetDyeColorTable(GetBaseSwaps(target));
 
             // Swaps range is based on target type
-            int start;
-            switch(target)
-            {
-                case DyeTargets.Clothing:
-                    start = clothingStart;
-                    break;
-                case DyeTargets.WeaponsAndArmor:
-                    start = weaponsAndArmorStart;
-                    break;
-                default:
-                    return dstBitmap;
-            }
+            // switch(target)
+            // {
+            //     case DyeTargets.BasicClothing:  // Blue-base clothes
+            //         baseSwaps = GetDyeColorTable(DyeColors.Blue);
+            //         break;
+            //     case DyeTargets.WeaponsAndArmor:    // Weapons and armors
+            //     case DyeTargets.SteelClothing:
+            //         baseSwaps = GetDyeColorTable(DyeColors.Steel);
+            //         break;                
+            //     case DyeTargets.YellowClothing:
+            //         baseSwaps = GetDyeColorTable(DyeColors.Yellow);
+            //         break;
+            //     case DyeTargets.LeatherClothing:
+            //         baseSwaps = GetDyeColorTable(DyeColors.Leather);
+            //         break;
+            //     case DyeTargets.RedClothing:
+            //         baseSwaps = GetDyeColorTable(DyeColors.Red);
+            //         break;
+            //     case DyeTargets.BlackClothing:
+            //         baseSwaps = GetDyeColorTable(DyeColors.DarkGrey);
+            //         break;
+            //     case DyeTargets.GreenClothing:
+            //         baseSwaps = GetDyeColorTable(DyeColors.Green);
+            //         break;
+            //     case DyeTargets.LightBrownClothing:
+            //         baseSwaps = GetDyeColorTable(DyeColors.LightBrown);
+            //         break;
+            //     default:
+            //         return dstBitmap;
+            // }
 
             // Swap indices start through start + 15 with colour table
-            int rowPos;
-            Debug.Log("Data.Length: " + srcBitmap.Data.Length + ", srcBitmap.Width: " + srcBitmap.Width + ", srcBitmap.Height: " + srcBitmap.Height);
+            List<byte> swapList = baseSwaps.ToList();
+            int rowPos;            
             for (int y = 0; y < srcBitmap.Height; y++)
             {
                 rowPos = y * srcBitmap.Width;
@@ -455,9 +473,9 @@ namespace DaggerfallWorkshop.Utility
                     int srcOffset = rowPos + x;
                     byte index = srcBitmap.Data[srcOffset];
 
-                    if (index >= start && index <= start + 0x0f)
+                    if (swapList.Contains(index))
                     {
-                        int tintOffset = index - start;
+                        int tintOffset = swapList.FindIndex(ics => ics == index);
                         dstBitmap.Data[srcOffset] = swaps[tintOffset];
                     }
                     else
@@ -470,101 +488,120 @@ namespace DaggerfallWorkshop.Utility
             return dstBitmap;
         }
 
+        public static DyeColors GetBaseSwaps(DyeTargets target)
+        {
+            switch (target)
+            {
+                case DyeTargets.BasicClothing:
+                    return DyeColors.Blue;
+                case DyeTargets.WeaponsAndArmor:
+                case DyeTargets.SteelClothing:
+                    return DyeColors.Steel;
+                case DyeTargets.YellowClothing:
+                    return DyeColors.Yellow;
+                case DyeTargets.LeatherClothing:
+                    return DyeColors.Leather;
+                case DyeTargets.RedClothing:
+                    return DyeColors.Red;
+                case DyeTargets.BlackClothing:
+                    return DyeColors.DarkGrey;
+                case DyeTargets.GreenClothing:
+                    return DyeColors.Green;
+                case DyeTargets.LightBrownClothing:
+                    return DyeColors.LightBrown;
+                case DyeTargets.PurpleClothing:
+                    return DyeColors.Purple;
+                case DyeTargets.DarkBrownClothing:
+                    return DyeColors.DarkBrown;
+                default:
+                    return DyeColors.None;
+            }
+        }
+
         /// <summary>
         /// Gets colour table for all supported dyes.
         /// </summary>
-        public static byte[] GetDyeColorTable(DyeColors dye, DyeTargets target)
+        public static byte[] GetDyeColorTable(DyeColors dye)
         {
-            // Dye targets require slightly different handling
-            if (target == DyeTargets.Clothing)
+            int start;
+            byte[] swaps = new byte[16];
+            switch (dye)
             {
-                // Clothing
-                int start = 0x60;
-                byte[] swaps = new byte[16];
-                switch (dye)
-                {
-                    case DyeColors.Blue:
-                        start = 0x60;
-                        break;
-                    case DyeColors.Grey:
-                        start = 0x50;
-                        break;
-                    case DyeColors.Red:
-                        start = 0xEF;
-                        break;
-                    case DyeColors.DarkBrown:
-                        start = 0x20;
-                        break;
-                    case DyeColors.Purple:
-                        start = 0x30;
-                        break;
-                    case DyeColors.LightBrown:
-                        start = 0x40;
-                        break;
-                    case DyeColors.White:
-                        start = 0x70;
-                        break;
-                    case DyeColors.Aquamarine:
-                        start = 0x80;
-                        break;
-                    case DyeColors.Yellow:
-                        start = 0x90;
-                        break;
-                    case DyeColors.Green:
-                        start = 0xA0;
-                        break;
-                    case DyeColors.Olive:
-                        start = 0xC0;
-                        break;
-                    case DyeColors.Amber:
-                        start = 0xE0;
-                        break;
-                    default:
-                        start = 0x60;
-                        break;
-                }
+                case DyeColors.Blue:
+                    start = 0x60;
+                    break;
+                case DyeColors.Grey:
+                    start = 0x50;
+                    break;
+                case DyeColors.Red:
+                    start = 0xEF;
+                    break;
+                case DyeColors.DarkBrown:
+                    start = 0x20;
+                    break;
+                case DyeColors.Purple:
+                    start = 0x30;
+                    break;
+                case DyeColors.LightBrown:
+                    start = 0x40;
+                    break;
+                case DyeColors.White:
+                    start = 0x70;
+                    break;
+                case DyeColors.Aquamarine:
+                    start = 0x80;
+                    break;
+                case DyeColors.Yellow:
+                    start = 0x90;
+                    break;
+                case DyeColors.Green:
+                    start = 0xA0;
+                    break;
+                case DyeColors.Olive:
+                    start = 0xC0;
+                    break;
+                case DyeColors.Amber:
+                    start = 0xEB;
+                    break;
+                case DyeColors.DarkGrey:
+                    return new byte[] { 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE };
+                case DyeColors.Leather:
+                    return GetMetalColorTable(MetalTypes.Leather);
+                case DyeColors.Iron:
+                    return GetMetalColorTable(MetalTypes.Iron);
+                case DyeColors.Steel:
+                    return GetMetalColorTable(MetalTypes.Steel);
+                case DyeColors.Silver:
+                    return GetMetalColorTable(MetalTypes.Silver);
+                case DyeColors.Elven:
+                    return GetMetalColorTable(MetalTypes.Elven);
+                case DyeColors.Glass:
+                    return GetMetalColorTable(MetalTypes.Glass);
+                case DyeColors.Dwarven:
+                    return GetMetalColorTable(MetalTypes.Dwarven);
+                case DyeColors.Orcish:
+                    return GetMetalColorTable(MetalTypes.Orcish);
+                case DyeColors.Mithril:
+                    return GetMetalColorTable(MetalTypes.Mithril);
+                case DyeColors.Adamantium:
+                    return GetMetalColorTable(MetalTypes.Adamantium);
+                case DyeColors.Ebony:
+                    return GetMetalColorTable(MetalTypes.Ebony);
+                case DyeColors.Daedric:
+                    return GetMetalColorTable(MetalTypes.Daedric);
+                default:
+                    return GetMetalColorTable(MetalTypes.None);
+            }
 
-                // Geneate index swaps
+            // Geneate index swaps
+            if (dye <= DyeColors.Amber)
+            {
                 for (int i = 0; i < 16; i++)
                 {
                     swaps[i] = (byte)(start + i);
                 }
-
-                return swaps;
             }
-            else if (target == DyeTargets.WeaponsAndArmor)
-            {
-                // Metals
-                switch (dye)
-                {
-                    case DyeColors.Iron:
-                        return GetMetalColorTable(MetalTypes.Iron);
-                    case DyeColors.Steel:
-                        return GetMetalColorTable(MetalTypes.Steel);
-                    case DyeColors.Silver:
-                        return GetMetalColorTable(MetalTypes.Silver);
-                    case DyeColors.Elven:
-                        return GetMetalColorTable(MetalTypes.Elven);
-                    case DyeColors.Glass:
-                        return GetMetalColorTable(MetalTypes.Glass);
-                    case DyeColors.Dwarven:
-                        return GetMetalColorTable(MetalTypes.Dwarven);
-                    case DyeColors.Orcish:
-                        return GetMetalColorTable(MetalTypes.Orcish);
-                    case DyeColors.Mithril:
-                        return GetMetalColorTable(MetalTypes.Mithril);
-                    case DyeColors.Adamantium:
-                        return GetMetalColorTable(MetalTypes.Adamantium);
-                    case DyeColors.Ebony:
-                        return GetMetalColorTable(MetalTypes.Ebony);
-                    case DyeColors.Daedric:
-                        return GetMetalColorTable(MetalTypes.Daedric);
-                    default:
-                        return GetMetalColorTable(MetalTypes.None);
-                }
-            }
-
-            return null;
+            return swaps;
         }
 
         /// <summary>
@@ -575,6 +612,11 @@ namespace DaggerfallWorkshop.Utility
             byte[] indices;
             switch (metalType)
             {
+                case MetalTypes.Leather:
+                    indices = new byte[] { 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x2D, 0x4D, 0x2E, 0x4E, 0x2F, 0x4F };
+                    // indices = new byte[] { 0x40, 0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A, 0x4B, 0x4C, 0x4D, 0x4E, 0x4F };
+                    // indices = new byte[] { 0x20, 0x21, 0x22, 0x23, 0x24, 0x25, 0x26, 0x27, 0x28, 0x29, 0x2A, 0x2B, 0x2C, 0x2D, 0x2E, 0x2F };
+                    break;
                 case MetalTypes.Iron:
                     indices = new byte[] { 0x77, 0x78, 0x57, 0x79, 0x58, 0x59, 0x7A, 0x5A, 0x7B, 0x5B, 0x7C, 0x5C, 0x7D, 0x5D, 0x5E, 0x5F };
                     break;
@@ -608,6 +650,7 @@ namespace DaggerfallWorkshop.Utility
                 case MetalTypes.Daedric:
                     indices = new byte[] { 0xEF, 0xF0, 0xF1, 0xF2, 0xF3, 0xF4, 0xF5, 0xF6, 0xF7, 0xF8, 0xF9, 0xFA, 0xFB, 0xFC, 0xFD, 0xFE };
                     break;
+                // black: indices = new byte[] { 0x7B, 0x7C, 0x7D, 0x7E, 0x7F, 0xD8, 0xD9, 0xDA, 0xDB, 0xDC, 0xDD, 0xDE };
                 default:
                     indices = new byte[] { 0x70, 0x71, 0x72, 0x73, 0x74, 0x75, 0x76, 0x77, 0x78, 0x79, 0x7A, 0x7B, 0x7C, 0x7D, 0x7E, 0x7F };
                     break;
@@ -623,6 +666,8 @@ namespace DaggerfallWorkshop.Utility
         {
             switch(metalType)
             {
+                case MetalTypes.Leather:
+                    return DyeColors.Leather;
                 case MetalTypes.Iron:
                     return DyeColors.Iron;
                 case MetalTypes.Steel:

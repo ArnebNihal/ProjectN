@@ -64,6 +64,7 @@ namespace DaggerfallWorkshop.Game.Items
     public enum MaterialTypes
     {
         // ProjectN: moved Orcish, changed enum name to make it cover both weapons and armours
+        Leather     = -2,
         None        = -1,
         Base        = 0x0000,       // Used for those armours that don't scale with higher materials
         Iron        = 0x0001,
@@ -349,9 +350,9 @@ namespace DaggerfallWorkshop.Game.Items
         Khajiit_suit = 156,
         Dwynnen_surcoat = 157,
         Short_tunic = 158,
-        Formal_tunic = 159,
+        Reversible_tunic = 159,
         Toga = 160,
-        Reversible_tunic = 161,
+        Formal_tunic = 161,
         Loincloth = 162,
         Plain_robes = 163,
         Priest_robes = 164,
@@ -372,6 +373,11 @@ namespace DaggerfallWorkshop.Game.Items
         Long_shirt_unchangeable = 179,
         Vest = 180,
         Champion_straps = 181,
+        Short_tunic_fit = 320,
+        Short_shirt_with_sash = 321,
+        Long_shirt_with_sash = 322,
+        Short_shirt_closed_top3 = 323,
+        Long_shirt_closed_top3
     }
 
     public enum Books
@@ -499,6 +505,10 @@ namespace DaggerfallWorkshop.Game.Items
         Short_shirt_unchangeable = 214,
         Long_shirt_unchangeable = 215,
         Vest = 216,
+        Short_shirt_sash = 316,
+        Long_shirt_sash = 317,
+        Short_shirt_closed_sash = 318,
+        Long_shirt_closed_sash = 319
     }
 
     public enum Paintings                           // DEFEDIT sets subgroup to 255? ... correct group # though

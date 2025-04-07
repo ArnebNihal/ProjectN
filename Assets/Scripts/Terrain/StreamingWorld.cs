@@ -195,6 +195,7 @@ namespace DaggerfallWorkshop
             public bool updateData;
             public bool updateNature;
             public bool updateLocation;
+            public bool updateRoadsign;
             public bool hasLocation;
             public GameObject terrainObject;
             public GameObject billboardBatchObject;
@@ -930,6 +931,7 @@ namespace DaggerfallWorkshop
             terrainArray[nextTerrain].active = true;
             terrainArray[nextTerrain].updateData = true;
             terrainArray[nextTerrain].updateNature = true;
+            terrainArray[nextTerrain].updateRoadsign = true;
             terrainArray[nextTerrain].mapPixelX = mapPixelX;
             terrainArray[nextTerrain].mapPixelY = mapPixelY;
             if (!terrainArray[nextTerrain].terrainObject)
@@ -1303,6 +1305,17 @@ namespace DaggerfallWorkshop
             DaggerfallUnity.LogMessage(string.Format("Time to update terrain natures for ({1},{2}): {0}ms", stopwatch.ElapsedMilliseconds, terrainDesc.mapPixelX, terrainDesc.mapPixelY), true);
 #endif
         }
+
+        // public void UpdateTerrainRoadsign(TerrainDesc terrainDesc)
+        // {
+        //     if (File)
+        //     DaggerfallTerrain dfTerrain = terrainDesc.terrainObject.GetComponent<DaggerfallTerrain>();
+
+        //     if (dfTerrain)
+        //     {
+
+        //     }
+        // }
 
         // Gets terrain at map pixel coordinates, or null if not found
         private Terrain GetTerrain(int mapPixelX, int mapPixelY)

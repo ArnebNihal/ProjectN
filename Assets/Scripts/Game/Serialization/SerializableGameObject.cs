@@ -272,6 +272,10 @@ namespace DaggerfallWorkshop.Game.Serialization
         public string shortName;
         public int nativeMaterialValue;
         public DyeColors dyeColor;
+        public DyeColors[] additionalColors;
+        public DyeTargets[] dyeTargets;
+        public int dyeLevel;
+        public ClothCraftsmanship craftsmanship;
         public float weightInKg;
         public int drawOrder;
         public int value1;
