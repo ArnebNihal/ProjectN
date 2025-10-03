@@ -223,7 +223,7 @@ namespace DaggerfallWorkshop.Game.Utility
                 for (int x = 0; x < blockDimension; x++)
                 {
                     // Get source data - tilemap is 16x16 need to divide by 4
-                    byte autoMapData = blockData.RmbBlock.FldHeader.AutoMapData[y * blockDimension + x];
+                    byte autoMapData = (byte)blockData.RmbBlock.FldHeader.AutoMapData[y * blockDimension + x];
                     byte tileRecord = (byte)blockData.RmbBlock.FldHeader.GroundData.GroundTiles[x / 4, y / 4].TextureRecord;
 
                     // Using inverse of automap - ignore grid position covered by anything (e.g. building, model, flat)

@@ -629,7 +629,7 @@ namespace DaggerfallWorkshop.Utility
 
                     // Get block data
                     DFBlock block;
-                    if (!contentReader.GetBlock(blockName, out block))
+                    if (!contentReader.BlockFileReader.GetBlock(blockName, out block))
                         throw new Exception("GetCompleteBuildingData() could not read block " + blockName);
 
                     // Make a copy of the building data array for our block copy since we're modifying it

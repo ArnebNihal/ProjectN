@@ -28,6 +28,8 @@ using DaggerfallWorkshop.Game.Formulas;
 using DaggerfallWorkshop.Game.Utility.ModSupport;
 using DaggerfallConnect.Utility;
 using System.Linq;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Game
 {
@@ -981,6 +983,10 @@ namespace DaggerfallWorkshop.Game
                     ClimateCalories.DryWaterSourceActivation(hit);
                     break;
 
+                case 212006:
+                    ActivateRoadsign(hit);
+                    break;
+
                 default:
                     return;
             }
@@ -1082,6 +1088,50 @@ namespace DaggerfallWorkshop.Game
             // Open inventory window with activated loot container as remote target (if we fall through to here)
             DaggerfallUI.Instance.InventoryWindow.LootTarget = loot;
             DaggerfallUI.PostMessage(DaggerfallUIMessages.dfuiOpenInventoryWindow);
+        }
+
+        void ActivateRoadsign(RaycastHit hit)
+        {
+            ulong mapID = MapsFile.GetMapPixelID(playerGPS.CurrentMapPixel.X, playerGPS.CurrentMapPixel.Y);
+            if (File.Exists(Path.Combine(WorldMaps.mapPath, "RoadsignData", "signdata_" + mapID + ".json")))
+            {
+                // Check if close enough to Activate
+                if (hit.distance > MobileNPCActivationDistance)
+                {
+                    DaggerfallUI.SetMidScreenText(TextManager.Instance.GetLocalizedText("youAreTooFarAway"));
+                    return;
+                }
+
+                // Get sign data
+                (DFPosition, string[][]) sign = JsonConvert.DeserializeObject<(DFPosition, string[][])>(File.ReadAllText(Path.Combine(WorldMaps.mapPath, "RoadsignData", "signdata_" + mapID + ".json")));
+
+                // format message
+            //     var tokens = new List<TextFile.Token>
+            // {
+            //     new TextFile.Token(TextFile.Formatting.JustifyCenter, null),
+            //     new TextFile.Token(TextFile.Formatting.Text, GameManager.Instance.PlayerGPS.CurrentLocalizedLocationName),
+            //     new TextFile.Token(TextFile.Formatting.JustifyCenter, null)
+            // };
+
+                // formatting message is split into 2 parts, depending whether we got any news or not.
+                // if (bulletinBoardMessage != null)
+                // {
+                //     tokens.AddRange(new List<TextFile.Token>
+                // {
+                //     new TextFile.Token(TextFile.Formatting.NewLineOffset, null),
+                //     new TextFile.Token(TextFile.Formatting.Text, string.Empty),
+                //     new TextFile.Token(TextFile.Formatting.NewLineOffset, null),
+                // });
+                //     tokens.AddRange(bulletinBoardMessage);
+                // }
+
+                // Display message
+                DaggerfallUI.Roadsign(sign);
+            }
+            else
+            {
+                DaggerfallUI.AddHUDText(TextManager.Instance.GetLocalizedText("roadsignEmpty"));
+            }
         }
 
         void DisableEmptyCorpseContainer(GameObject go)

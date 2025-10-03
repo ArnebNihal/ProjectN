@@ -28,6 +28,13 @@ namespace MapEditor
         public const int S = 2;
         public const int SW = 1;
 
+        public const long DIRTINDEX = 256;
+        public const long TRACKINDEX = DIRTINDEX * DIRTINDEX;
+        public const long FUNCINDEX = DIRTINDEX * TRACKINDEX;
+
+        public const byte walledInternalSign = 27;
+        public const byte internalSign = 26;
+
         const byte riseDeclineLimit = 4;
         const int routeCompletionLevelRequirement = 4;
         const int minimumWaveScan = 10;
@@ -37,19 +44,18 @@ namespace MapEditor
         // routeGenerationOrder set the order in which trails are generated
         public static int[] routeGenerationOrder = { 0, 1, 2, 6, 8, 5, 3, 11, 12, 9, 4, 7, 10};
         public Roadsign signData;
-        List<int[]> tempSignData = new List<int[]>();
 
         public class Roadsign
         {
             public List<string> locNames;
-            public Dictionary<int, DFPosition> signPosition;
-            public Dictionary<int, string[][]> roadsign;
+            public Dictionary<long, DFPosition> signPosition;
+            public Dictionary<long, string[][]> roadsign;
 
             public Roadsign()
             {
                 this.locNames = new List<string>();
-                this.signPosition = new Dictionary<int, DFPosition>();
-                this.roadsign = new Dictionary<int, string[][]>();
+                this.signPosition = new Dictionary<long, DFPosition>();
+                this.roadsign = new Dictionary<long, string[][]>();
             }
         }
 
@@ -77,12 +83,13 @@ namespace MapEditor
         {
             None,
             Road = 1,
-            Track = 2
+            DirtRoad = 2,
+            Track = 3
         }
 
         void Awake()
         {
-            signData = new Roadsign();
+            
         }
 
         void OnGUI()
@@ -112,20 +119,20 @@ namespace MapEditor
 
         protected void GenerateRoutes()
         {
+            signData = new Roadsign();
             List<RoutedLocation>[] routedLocations = new List<RoutedLocation>[Enum.GetNames(typeof(DFRegion.LocationTypes)).Length];
             // for (int h = 0; h < Enum.GetNames(typeof(DFRegion.LocationTypes)).Length; h++)
             // {
             //     routedLocations[h] = new List<RoutedLocation>();
             // }
             List<DFPosition> routedLocSurroundings = SetLocSurroundings(out routedLocations);
-            int[] pathData = ClimateInfo.ConvertToArray(ClimateInfo.GetTextureMatrix(xTile, yTile, "trail"));
+            long[] pathData = ConvertToArray(GetTextureMatrix(xTile, yTile, "trail"));
             
             List<RoutedLocation> routedLocationsComplete = new List<RoutedLocation>();
-            (byte, byte, byte)[,] trailMap = new (byte, byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
+            (byte, byte, byte, byte)[,] trailMap = new (byte, byte, byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
             trailMap = LoadExistingTrails(pathData);
 
             // First we set values for routedLocations, to have a reference for which locations must be routed and in which way
-
             for (int j = 0; j < routedLocations.Length; j++)
             {
                 // Debug.Log("routedLocations.Length: " + routedLocations.Length);
@@ -137,59 +144,46 @@ namespace MapEditor
 
                 for (int k = 0; k < routedLocations[j].Count; k++)
                 {
-                    // if ((int)Worldmaps.Worldmap[RegionManager.currentRegionIndex].Locations[j].MapTableData.LocationType != i)
-                    //     continue;
-
-                    // for (int i = 0; i < Enum.GetNames(typeof(DFRegion.LocationTypes)).Length; i++)
-
-                    // RoutedLocation location = new RoutedLocation();
-                    // location.position = MapsFile.GetPixelFromPixelID(Worldmaps.Worldmap[RegionManager.currentRegionIndex].Locations[j].MapTableData.MapId);
-                    // int locationType = (int)Worldmaps.Worldmap[RegionManager.currentRegionIndex].Locations[j].MapTableData.LocationType;
-                    // Debug.Log("routedLocations[" + (DFRegion.LocationTypes)j +  "].Count: " + routedLocations[j].Count);
+                    FactionFile.FactionData region = FactionAtlas.FactionDictionary[FactionAtlas.FactionToId[WorldInfo.WorldSetting.RegionNames[PoliticInfo.ConvertMapPixelToRegionIndex(routedLocations[j][k].position.X, routedLocations[j][k].position.Y)]]];
+                    int governmentType = (region.ruler + 1) / 2;
+                    Debug.Log("routedLocations[" + j + "][" + k + "].position: " + routedLocations[j][k].position.X + ", " + routedLocations[j][k].position.Y + "; region: " + region.name + "; governmentType: " + governmentType);
+                    int governmentMultiplier = GovTypeToGovMultiplier(governmentType);
 
                     switch (j)
                     {
-                        // Locations that will always have a road
                         case (int)DFRegion.LocationTypes.TownCity:
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 50, 100, 100);
+                            break;
+
                         case (int)DFRegion.LocationTypes.TownHamlet:
-                        case (int)DFRegion.LocationTypes.TownVillage:   // Villages and taverns could get a track in "lower importance" government types, when that variable is introduced
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 40, 80, 100);
+                            break;
+                        case (int)DFRegion.LocationTypes.TownVillage:
                         case (int)DFRegion.LocationTypes.Tavern:
-                            routedLocations[j][k].trailPreference = TrailTypes.Road;
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 20, 50, 100);
                             break;
 
-                        // Locations that will always have a track
                         case (int)DFRegion.LocationTypes.HomeFarms:
-                            routedLocations[j][k].trailPreference = TrailTypes.Track;
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 2, 40, 100);
                             break;
 
-                        // Locations that will have a road in most cases
                         case (int)DFRegion.LocationTypes.HomeWealthy:
-                            if (UnityEngine.Random.Range(0, 10) > 2)
-                                routedLocations[j][k].trailPreference = TrailTypes.Road;
-                            else routedLocations[j][k].trailPreference = TrailTypes.Track;
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 25, 60, 100);
                             break;
 
-                        // Locations that have the same chances to have a road or a track
                         case (int)DFRegion.LocationTypes.ReligionTemple:
-                            if (UnityEngine.Random.Range(0, 10) > 4)
-                                routedLocations[j][k].trailPreference = TrailTypes.Road;
-                            else routedLocations[j][k].trailPreference = TrailTypes.Track;
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 10, 30, 100);
                             break;
 
                         // Locations that will have a track in most cases
                         case (int)DFRegion.LocationTypes.Graveyard:
-                            if (UnityEngine.Random.Range(0, 10) > 7)
-                                routedLocations[j][k].trailPreference = TrailTypes.Road;
-                            else routedLocations[j][k].trailPreference = TrailTypes.Track;
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 5, 15, 30);
                             break;
 
                         // Locations that have the same chances to have a track or no trail at all
                         case (int)DFRegion.LocationTypes.ReligionCult:
                         case (int)DFRegion.LocationTypes.HomePoor:
-                            if (UnityEngine.Random.Range(0, 10) > 4)
-                            {
-                                routedLocations[j][k].trailPreference = TrailTypes.Track;
-                            }
+                            routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 0, 5, 15);
                             break;
 
                         // Dungeons are special cases
@@ -205,24 +199,34 @@ namespace MapEditor
                                 switch (location.DungeonType)
                                 {
                                     case DFRegion.DungeonTypes.Prison:
-                                        routedLocations[j][k].trailPreference = TrailTypes.Road;
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 15, 100, 100);
                                         break;
 
                                     case DFRegion.DungeonTypes.HumanStronghold:
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 10, 100, 100);
+                                        break;
                                     case DFRegion.DungeonTypes.Laboratory:
-                                        if (UnityEngine.Random.Range(0, 10) > 4)
-                                        {
-                                            routedLocations[j][k].trailPreference = TrailTypes.Road;
-                                        }
-                                        else routedLocations[j][k].trailPreference = TrailTypes.Track;
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 5, 40, 100);
                                         break;
 
                                     case DFRegion.DungeonTypes.BarbarianStronghold:
-                                    // case DFRegion.DungeonTypes.Cemetery:
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 0, 1, 100);
+                                        break;
+
+                                    case DFRegion.DungeonTypes.Cemetery:
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 1, 5, 15);
+                                        break;
+
                                     case DFRegion.DungeonTypes.DesecratedTemple:
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 0, 1, 10);
+                                        break;
+
                                     case DFRegion.DungeonTypes.GiantStronghold:
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 0, 0, 100);
+                                        break;
+
                                     case DFRegion.DungeonTypes.RuinedCastle:
-                                        routedLocations[j][k].trailPreference = TrailTypes.Track;
+                                        routedLocations[j][k].trailPreference = GetRandomTrail(governmentMultiplier, 0, 5, 100);
                                         break;
 
                                     default:
@@ -256,7 +260,7 @@ namespace MapEditor
                     while ((swapLoc.completionLevel < routeCompletionLevelRequirement || distanceChecked < minimumWaveScan) && distanceChecked < maximumWaveScan);
 
                     swapLoc.locDistance.Sort((a, b) => a.Item2.CompareTo(b.Item2));
-                    for (int sld = 0; sld < swapLoc.locDistance.Count; sld++)
+                    // for (int sld = 0; sld < swapLoc.locDistance.Count; sld++)
                         // Debug.Log("swapLoc.locDistance[" + sld + "].Item1: " + swapLoc.locDistance[sld].Item1);
                     swapList.Add(swapLoc);
                     // Debug.Log("swapList[0].locDistance[0].Item1: " + swapList[0].locDistance[0].Item1);
@@ -326,6 +330,8 @@ namespace MapEditor
                 // }
 
                 routedLocCompSwap = MergeModifiedLocDist(routedLocCompSwap, locToRoute0Swap);
+
+                routedLocCompSwap = PruneDoubleTrails(routedLocCompSwap);
 
                 // Debug.Log("routedLocCompSwap.Count: " + routedLocCompSwap.Count);
                 // Debug.Log("routedLocationsComplete.Count: " + routedLocationsComplete.Count);
@@ -522,7 +528,7 @@ namespace MapEditor
             {
                 for (int ics = 0; ics < 3; ics++)
                 {
-                    (byte, byte, byte)[,] subTile = GetSubTile(trailMap, ics, ipsilon);
+                    (byte, byte, byte, byte)[,] subTile = GetSubTile(trailMap, ics, ipsilon);
                     fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trail_" + (xTile + ics - 1) + "_" + (yTile + ipsilon - 1) + ".png");
                     trailsByteArray = MapEditor.ConvertToGrayscale(subTile, (int)TrailTypes.None);
                     File.WriteAllBytes(fileDataPath, trailsByteArray);
@@ -541,7 +547,7 @@ namespace MapEditor
             // For that, we use the large heightmap as a reference.
 
             int tileX, tileY;
-            int[,] tile = new int[MapsFile.TileDim * 5, MapsFile.TileDim * 5];
+            long[,] tile = new long[MapsFile.TileDim * 5, MapsFile.TileDim * 5];
             List<(int, int)> trailTilesList = new List<(int, int)>();
 
             for (int x = 0; x < MapsFile.TileDim * 3; x++)
@@ -566,67 +572,352 @@ namespace MapEditor
                 tile = RefineTileBorder(tile);
 
                 fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trailExp_" + trailTile.Item1 + "_" + trailTile.Item2 + ".png");
-                trailsByteArray = MapEditor.ConvertToGrayscale(tile, true);
+                trailsByteArray = ConvertToGrayscale(tile);
                 File.WriteAllBytes(fileDataPath, trailsByteArray);
             }
 
-            foreach (KeyValuePair<int, string[][]> roadsignData in signData.roadsign)
+            List<long> dicKeys = signData.roadsign.Keys.ToList();
+            foreach (long roadsignKey in dicKeys)
             {
                 int check = 0;
+                long newRoadsignKey = roadsignKey;
                 for (int css = 0; css < 8; css++)
                 {
-                    if (roadsignData.Value[css] != null)
+                    if (signData.roadsign[roadsignKey][css] != null)
                         check++;
                 }
                 if (check > 2)
                 {
-                    int x = roadsignData.Key % MapsFile.WorldWidth;
-                    int y = roadsignData.Key / MapsFile.WorldWidth;
+                    int x = (int)(roadsignKey % MapsFile.WorldWidth);
+                    int y = (int)(roadsignKey / MapsFile.WorldWidth);
                     string tileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trailExp_" + (x / MapsFile.TileDim) + "_" + (y / MapsFile.TileDim) + ".png");
                     Texture2D tex = new Texture2D(1, 1);
                     ImageConversion.LoadImage(tex, File.ReadAllBytes(tileDataPath));
                     int[,] tileToPrint = MapEditor.ConvertToMatrixExp(tex);
+                    long crossroadIndex = 0;
 
                     for (int ics = ((x % MapsFile.TileDim) * 5); ics < (((x + 1) % MapsFile.TileDim) * 5); ics++)
                     {
                         for (int ipsilon = ((y % MapsFile.TileDim) * 5); ipsilon < (((y + 1) % MapsFile.TileDim) * 5); ipsilon++)
                         {
-                            int pixel = tileToPrint[ics, ipsilon];
-                            if (pixel > (byte.MaxValue * byte.MaxValue))
+                            long pixel = (long)(tileToPrint[ics, ipsilon]);
+                            if (pixel > FUNCINDEX)
                             {
-                                pixel -= (byte.MaxValue * byte.MaxValue);
-                                byte road = (byte)(pixel % byte.MaxValue);
-                                byte track = (byte)(pixel / byte.MaxValue);
-                                byte crossroad = (byte)(road | track);
-
-                                DFPosition signPosition = GetSignPosition(crossroad);
-                                DFPosition posCorrection = new DFPosition((ics % 5 * 26), (ipsilon % 5 * 26));
-                                signPosition = new DFPosition(signPosition.X + posCorrection.X, signPosition.Y + posCorrection.Y);
-                                Debug.Log("roadsignData.Key: " + roadsignData.Key + ", signPosition: " + signPosition.X + ", " + signPosition.Y);
-                                if (!signData.signPosition.ContainsKey(roadsignData.Key))
-                                    signData.signPosition.Add(roadsignData.Key, signPosition);
+                                crossroadIndex = pixel / FUNCINDEX;
+                                Debug.Log("crossroadIndex: " + crossroadIndex + ", roadsignKey: " + roadsignKey);
+                                newRoadsignKey = roadsignKey + crossroadIndex * (int)Math.Pow(10.0f, 8.0f);
                             }
+                            else
+                            {
+                                crossroadIndex = (ipsilon * 5 + ics) + 1;
+                            }
+
+                            pixel -= (crossroadIndex * FUNCINDEX);
+                            byte road = (byte)(pixel % DIRTINDEX);
+                            byte dirt = (byte)((pixel % TRACKINDEX) / DIRTINDEX);
+                            byte track = (byte)(pixel / TRACKINDEX);
+                            byte crossroad = (byte)(road | dirt | track);
+                            // roadsignKey += crossroadIndex * Math.Pow(10, 8);
+
+                            DFPosition signPosition = GetSignPosition(crossroad, crossroadIndex);
+                            DFPosition posCorrection = new DFPosition((ics % 5 * 26), (ipsilon % 5 * 26));
+                            signPosition = new DFPosition(128 - (signPosition.X + posCorrection.X), 128 - (signPosition.Y + posCorrection.Y));
+                            Debug.Log("roadsignData.Key: " + newRoadsignKey + ", signPosition: " + signPosition.X + ", " + signPosition.Y);
+                            if (!signData.signPosition.ContainsKey(newRoadsignKey))
+                                signData.signPosition.Add(newRoadsignKey, signPosition);
+                            string[][] correctedRoadsignData = CorrectRoadsignDirection(signData.roadsign[roadsignKey], crossroad, crossroadIndex);
+                            // signData.roadsign.Remove(roadsignKey);
+                            int counter = 0;
+                            if (signData.roadsign.ContainsKey(newRoadsignKey))
+                            {
+                                fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "RoadsignData", "signdataError" + newRoadsignKey + counter + ".json");
+                                var roadsignError = JsonConvert.SerializeObject(signData.roadsign, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                                File.WriteAllText(fileDataPath, roadsignError);
+                                counter++;
+                            }
+                            else
+                                signData.roadsign.Add(newRoadsignKey, correctedRoadsignData);
+
+                            if (signData.signPosition.ContainsKey(newRoadsignKey))
+                            {
+                                (DFPosition, string[][]) signToPrint;
+                                signToPrint.Item1 = signData.signPosition[newRoadsignKey];
+                                signToPrint.Item2 = signData.roadsign[newRoadsignKey];
+                                fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "RoadsignData", "signdata_" + newRoadsignKey + ".json");
+                                var signJson = JsonConvert.SerializeObject(signToPrint, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
+                                File.WriteAllText(fileDataPath, signJson);
+                            }
+                            else Debug.Log("signData.signPosition does not contain key " + newRoadsignKey);
                         }
                     }
+                }
+                if (!signData.roadsign.Remove(roadsignKey))
+                    Debug.Log("roadsign with key " + roadsignKey + " not found");
+            }
+        }
 
-                    if (signData.signPosition.ContainsKey(roadsignData.Key))
+        public static TrailTypes GetRandomTrail(int governmentMultiplier, int roadChance, int dirtChance, int trackChance)
+        {
+            int randomChance = UnityEngine.Random.Range(1, 101);
+            if (randomChance <= roadChance * governmentMultiplier)
+                return TrailTypes.Road;
+            if (randomChance <= dirtChance * governmentMultiplier)
+                return TrailTypes.DirtRoad;
+            if (randomChance <= trackChance * governmentMultiplier)
+                return TrailTypes.Track;
+            return TrailTypes.None;
+        }
+
+        public static int GovTypeToGovMultiplier(int govType)
+        {
+            switch (govType)
+            {
+                case (int)GovernmentType.Empire:
+                    return govType + 1;
+                case (int)GovernmentType.None:
+                    return 1;
+                default:
+                    return 8 - govType;
+            }
+            return -1;
+        }
+
+        public static byte[] ConvertToGrayscale(long[,] map)
+        {
+            Texture2D grayscaleImage = new Texture2D(map.GetLength(0), map.GetLength(1));
+            Color32[] grayscaleMap = new Color32[map.GetLength(0) * map.GetLength(1)];
+            byte[] grayscaleBuffer = new byte[map.GetLength(0) * map.GetLength(1) * 4];
+            
+            for (int x = 0; x < map.GetLength(0); x++)
+            {
+                for (int y = 0; y < map.GetLength(1); y++)
+                {
+                    int offset = (((map.GetLength(1) - y - 1) * map.GetLength(0)) + x);
+                    long value = map[x, y];
+                    byte green = 0;
+                    byte red = 0; 
+                    byte blue = 0;
+                    byte alpha = 0;
+
+                    if (value == 0)
                     {
-                        (DFPosition, string[][]) signToPrint;
-                        signToPrint.Item1 = signData.signPosition[roadsignData.Key];
-                        signToPrint.Item2 = roadsignData.Value;
-                        fileDataPath = Path.Combine(MapEditor.arena2Path, "Maps", "RoadsignData", "signdata_" + roadsignData.Key + ".json");
-                        var signJson = JsonConvert.SerializeObject(signToPrint, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
-                        File.WriteAllText(fileDataPath, signJson);
+                        green = red = blue = 0;
+                        alpha = byte.MaxValue;
                     }
-                    else Debug.Log("signData.signPosition does not contain key " + roadsignData.Key);
+                    else
+                    {
+                        alpha = (byte)(value / FUNCINDEX);
+                        green = (byte)((value % FUNCINDEX) / TRACKINDEX);
+                        blue = (byte)((value % TRACKINDEX) / DIRTINDEX);
+                        red = (byte)(value % DIRTINDEX);
+                    }
+                    grayscaleMap[offset] = new Color32(red, green, blue, alpha);
+                }
+            }
+
+            grayscaleImage.SetPixels32(grayscaleMap);
+            grayscaleImage.Apply();
+            grayscaleBuffer = ImageConversion.EncodeToPNG(grayscaleImage);
+
+            return grayscaleBuffer;
+        }
+
+        public static long[,] GetTextureMatrix(int xPos, int yPos, string matrixType = "trail")
+        {
+            // DFPosition position = WorldMaps.LocalPlayerGPS.CurrentMapPixel;
+            // int xPos = position.X / MapsFile.TileDim;
+            // int yPos = position.Y / MapsFile.TileDim;
+            int sizeModifier = 1;
+            if (matrixType.Equals("trailExp"))
+                sizeModifier = 5;
+
+            long[,] matrix = new long[MapsFile.TileDim * 3 * sizeModifier, MapsFile.TileDim * 3 * sizeModifier];
+            long[][,] textureArray = new long[9][,];
+
+
+            for (int i = 0; i < 9; i++)
+            {
+                int posX = xPos + (i % 3 - 1);
+                int posY = yPos + (i / 3 - 1);
+                if (posX < 0) posX = 0;
+                if (posY < 0) posY = 0;
+                if (posX >= MapsFile.TileX) posX = MapsFile.TileX - 1;
+                if (posY >= MapsFile.TileY) posY = MapsFile.TileY - 1;
+
+                Texture2D textureTiles = new Texture2D(MapsFile.TileDim * sizeModifier, MapsFile.TileDim * sizeModifier);
+                if (File.Exists(Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", matrixType + "_" + posX + "_" + posY + ".png")))
+                {
+                    if (!ImageConversion.LoadImage(textureTiles, File.ReadAllBytes(Path.Combine(Worldmaps.tilesPath, matrixType + "_" + posX + "_" + posY + ".png"))))
+                        Debug.Log("Failed to load tile " + matrixType + "_" + posX + "_" + posY + ".png");
+                    else Debug.Log("Tile " + matrixType + "_" + posX + "_" + posY + ".png succesfully loaded");
+
+                    if (matrixType == "trailExp" || matrixType == "trail")
+                        ConvertToMatrix(textureTiles, out textureArray[i]);
+                    // else PoliticData.ConvertToMatrix(textureTiles, out textureArray[i]);
+                }
+                else
+                {
+                    Debug.Log("tile " + matrixType + "_" + posX + "_" + posY + ".png not present.");
+                    textureArray[i] = new long[MapsFile.TileDim * sizeModifier, MapsFile.TileDim * sizeModifier];
+                }
+            }
+
+            for (int x = 0; x < MapsFile.TileDim * 3 * sizeModifier; x++)
+            {
+                for (int y = 0; y < MapsFile.TileDim * 3 * sizeModifier; y++)
+                {
+                    int xTile = x / (MapsFile.TileDim * sizeModifier);
+                    int yTile = y / (MapsFile.TileDim * sizeModifier);
+                    int X = x % (MapsFile.TileDim * sizeModifier);
+                    int Y = y % (MapsFile.TileDim * sizeModifier);
+
+                    matrix[x, y] = textureArray[yTile * 3 + xTile][X, Y];
+                }
+            }
+
+            return matrix;
+        }
+
+        public static void ConvertToMatrix(Texture2D imageToTranslate, out long[,] matrix)
+        {
+            Color32[] grayscaleMap = imageToTranslate.GetPixels32();
+            // byte[] buffer = imageToTranslate.GetRawTextureData();
+            // Debug.Log("buffer.Length: " + buffer.Length);
+            matrix = new long[imageToTranslate.width, imageToTranslate.height];
+            for (int x = 0; x < imageToTranslate.width; x++)
+            {
+                for (int y = 0; y < imageToTranslate.height; y++)
+                {
+                    int offset = (((imageToTranslate.height - y - 1) * imageToTranslate.width) + x);
+                    long intValue = grayscaleMap[offset].r + grayscaleMap[offset].b * DIRTINDEX + grayscaleMap[offset].g * TRACKINDEX + grayscaleMap[offset].a * FUNCINDEX;
+                    matrix[x, y] = intValue;                    
                 }
             }
         }
 
-        protected static DFPosition GetSignPosition(byte crossroad)
+        protected static long[] ConvertToArray(long[,] matrix)
         {
+            // int[,] matrix = new int[imageToTranslate.Width * imageToTranslate.Height];
+            // ConvertToMatrix(imageToTranslate, out matrix);
+
+            long[] resultingArray = new long[matrix.GetLength(0) * matrix.GetLength(1)];
+
+            for (int x = 0; x < matrix.GetLength(0); x++)
+            {
+                for (int y = 0; y < matrix.GetLength(1); y++)
+                {
+                    resultingArray[(y * matrix.GetLength(0)) + x] = matrix[x, y];
+                }
+            }
+            return resultingArray;
+        }
+
+        protected static string[][] CorrectRoadsignDirection(string[][] startingRoadsign, byte crossroad, long crossroadIndex)
+        {
+            string[][] resultingRoadsign = new string[8][];
+            bool walled = false;
+            bool town = false;
+            if (crossroadIndex == walledInternalSign)
+                walled = true;
+            if (crossroadIndex == internalSign)
+                town = true;
+
+            for (int i = 0; i < 8; i++)
+            {
+                if (startingRoadsign[i] != null && HasTrail(crossroad, i))
+                {
+                    resultingRoadsign[i] = startingRoadsign[i];
+                }
+                if (startingRoadsign[i] != null && !HasTrail(crossroad, i))
+                {
+                    int iMinus = i - 1;
+                    int iPlus = i + 1;
+                    if (iMinus < 0) iMinus = 7;
+                    if (iPlus > 7) iPlus = 0;
+                    if (HasTrail(crossroad, iMinus) && !HasTrail(crossroad, iPlus) && resultingRoadsign[iMinus] == null)
+                        resultingRoadsign[iMinus] = startingRoadsign[i];
+                    else if (!HasTrail(crossroad, iMinus) && HasTrail(crossroad, iPlus) && resultingRoadsign[iMinus] == null)
+                        resultingRoadsign[iPlus] = startingRoadsign[i];
+                    else if (HasTrail(crossroad, iMinus) && HasTrail(crossroad, iPlus))
+                    {
+                        if (resultingRoadsign[iMinus] == null && resultingRoadsign[iPlus] != null)
+                            resultingRoadsign[iMinus] = startingRoadsign[i];
+                        else if (resultingRoadsign[iMinus] != null && resultingRoadsign[iPlus] == null)
+                            resultingRoadsign[iPlus] = startingRoadsign[i];
+                    }
+                    else
+                    {
+                        iMinus--;
+                        iPlus++;
+                        if (iMinus < 0) iMinus += 8;
+                        if (iPlus > 7) iPlus -= 8;
+                        if (HasTrail(crossroad, iMinus) && !HasTrail(crossroad, iPlus) && resultingRoadsign[iMinus] == null)
+                            resultingRoadsign[iMinus] = startingRoadsign[i];
+                        else if (!HasTrail(crossroad, iMinus) && HasTrail(crossroad, iPlus) && resultingRoadsign[iMinus] == null)
+                            resultingRoadsign[iPlus] = startingRoadsign[i];
+                        else if (HasTrail(crossroad, iMinus) && HasTrail(crossroad, iPlus))
+                        {
+                            if (resultingRoadsign[iMinus] == null && resultingRoadsign[iPlus] != null)
+                                resultingRoadsign[iMinus] = startingRoadsign[i];
+                            else if (resultingRoadsign[iMinus] != null && resultingRoadsign[iPlus] == null)
+                                resultingRoadsign[iPlus] = startingRoadsign[i];
+                        }
+                        else Debug.Log("Unable to determine best roadsign correction!");
+                    }
+                }
+                if (startingRoadsign[i] == null && HasTrail(crossroad, i))
+                {
+                    int iMinus = i - 1;
+                    int iPlus = i + 1;
+                    if (iMinus < 0) iMinus = 7;
+                    if (iPlus > 7) iPlus = 0;
+                    if (startingRoadsign[iMinus] != null && !HasTrail(crossroad, iMinus) && startingRoadsign[iPlus] == null)
+                        resultingRoadsign[i] = startingRoadsign[iMinus];
+                    else if (startingRoadsign[iMinus] == null && startingRoadsign[iPlus] != null && !HasTrail(crossroad, iPlus))
+                        resultingRoadsign[i] = startingRoadsign[iPlus];
+                    else if (startingRoadsign[iMinus] != null && startingRoadsign[iPlus] != null &&
+                             !HasTrail(crossroad, iMinus) && !HasTrail(crossroad, iPlus))
+                    {
+                        resultingRoadsign[i] = new string[startingRoadsign[iMinus].Length + startingRoadsign[iPlus].Length];
+                        startingRoadsign[iMinus].CopyTo(resultingRoadsign[i], 0);
+                        startingRoadsign[iPlus].CopyTo(resultingRoadsign[i], startingRoadsign[iMinus].Length);
+                    }
+                }
+            }
+            if (walled)
+            {
+                resultingRoadsign = CorrectRoadsignWalled(resultingRoadsign);
+            }
+            return resultingRoadsign;
+        }
+
+        protected static string[][] CorrectRoadsignWalled(string[][]startingRoadsign)
+        {
+            string[][] resultingRoadsign = new string[8][];
+
+            return resultingRoadsign;
+        }
+
+        protected static bool HasTrail(byte crossroad, int direction)
+        {
+            bool test = (crossroad >> direction) % 2 != 0;
+            Debug.Log("crossroad: " + crossroad + ", direction: " + direction + ", result: " + test);
+            return (crossroad >> direction) % 2 != 0;
+        }
+
+        protected static DFPosition GetSignPosition(byte crossroad, long signType)
+        {
+            // If it's a walled-town roadsign...
+            if (signType == walledInternalSign)
+            {
+                // Worldmaps.HasLocation(xRel + (trailTile.Item1 * MapsFile.TileDim), yRel + (trailTile.Item2 * MapsFile.TileDim), out MapSummary locSummary);
+                // location = Worldmaps.GetLocation(locSummary.RegionIndex, locSummary.MapIndex);
+            }
+                return new DFPosition();
+
             bool[] freeRoom = new bool[8];
             DFPosition resultingPos = new DFPosition();
+
             
             for (int i = 0; i < 8; i++)
             {
@@ -671,9 +962,9 @@ namespace MapEditor
             return resultingPos;
         }
 
-        protected (byte, byte, byte)[,] GetSubTile((byte, byte, byte)[,] trailMap, int tileX, int tileY)
+        protected (byte, byte, byte, byte)[,] GetSubTile((byte, byte, byte, byte)[,] trailMap, int tileX, int tileY)
         {
-            (byte, byte, byte)[,] subTile = new (byte, byte, byte)[MapsFile.TileDim, MapsFile.TileDim];
+            (byte, byte, byte, byte)[,] subTile = new (byte, byte, byte, byte)[MapsFile.TileDim, MapsFile.TileDim];
             int X, Y;
             
             for (int y = 0; y < MapsFile.TileDim; y++)
@@ -690,9 +981,9 @@ namespace MapEditor
             return subTile;
         }
 
-        protected (byte, byte, byte)[,] LoadExistingTrails(int[] pathData)
+        protected (byte, byte, byte, byte)[,] LoadExistingTrails(long[] pathData)
         {
-            (byte, byte, byte)[,] existingTrails = new (byte, byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
+            (byte, byte, byte, byte)[,] existingTrails = new (byte, byte, byte, byte)[MapsFile.TileDim * 3, MapsFile.TileDim * 3];
             int xCorrection, yCorrection;
 
             for (int i = 0; i < pathData.Length; i++)
@@ -702,7 +993,7 @@ namespace MapEditor
                     xCorrection = (i % (MapsFile.TileDim * 3));
                     yCorrection = (i / (MapsFile.TileDim * 3));
 
-                    existingTrails[xCorrection, yCorrection] = ((byte)(pathData[i] % byte.MaxValue), (byte)((pathData[i] / byte.MaxValue) % byte.MaxValue), (byte)((pathData[i] / byte.MaxValue) / byte.MaxValue));
+                    existingTrails[xCorrection, yCorrection] = ((byte)(pathData[i] % DIRTINDEX), (byte)((pathData[i] % TRACKINDEX) / DIRTINDEX), (byte)((pathData[i] % FUNCINDEX) / TRACKINDEX), (byte)(pathData[i] / FUNCINDEX));
                 }
             }
             return existingTrails;
@@ -780,15 +1071,15 @@ namespace MapEditor
         /// </summary>
         /// <param name="trailTile">Trail tile that is used for every sub-tile creation.</param> 
         /// <param name="trailMap">The generic trail map used to create the sub-tiles.</param>
-        protected int[,] GenerateTile((int, int) trailTile, (byte, byte, byte)[,] trailMap)
+        protected long[,] GenerateTile((int, int) trailTile, (byte, byte, byte, byte)[,] trailMap)
         {
             // Debug.Log("Generating trailTile " + trailTile.Item1 + ", " + trailTile.Item2);
-            int[,] tile = new int[MapsFile.TileDim * 5, MapsFile.TileDim * 5];
+            long[,] tile = new long[MapsFile.TileDim * 5, MapsFile.TileDim * 5];
             Texture2D tileImage = new Texture2D(1, 1);
             if (File.Exists(Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trailExp_" + trailTile.Item1 + "_" + trailTile.Item2 + ".png")))
             {
                 ImageConversion.LoadImage(tileImage, File.ReadAllBytes(Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "trailExp_" + trailTile.Item1 + "_" + trailTile.Item2 + ".png")));
-                MapEditor.ConvertToMatrix(tileImage, out tile);
+                ConvertToMatrix(tileImage, out tile);
             }
 
             // MapSummary location;
@@ -797,26 +1088,39 @@ namespace MapEditor
             ImageConversion.LoadImage(tileImage, File.ReadAllBytes(Path.Combine(MapEditor.arena2Path, "Maps", "Tiles", "woodsLarge_" + trailTile.Item1 + "_" + trailTile.Item2 + ".png")));
             byte[,] heightmapTile = MapEditor.ConvertToMatrix(tileImage);
 
+            int crssNumb = 0;
             for (int xRel = 0; xRel < MapsFile.TileDim; xRel++)
             {
                 for (int yRel = 0; yRel < MapsFile.TileDim; yRel++)
                 {
                     Debug.Log("Working on xRel: " + xRel + ", yRel: " + yRel);
                     bool hasLocation = Worldmaps.HasLocation(xRel + (trailTile.Item1 * MapsFile.TileDim), yRel + (trailTile.Item2 * MapsFile.TileDim));
+                    DFLocation location = new DFLocation();
+                    if (hasLocation)
+                    {
+                        Worldmaps.HasLocation(xRel + (trailTile.Item1 * MapsFile.TileDim), yRel + (trailTile.Item2 * MapsFile.TileDim), out MapSummary locSummary);
+                        location = Worldmaps.GetLocation(locSummary.RegionIndex, locSummary.MapIndex);
+                    }
                     
                     bool loadedBuffer = false;
                     byte[,] buffer = GetLargeHeightmapPixel(heightmapTile, xRel, yRel);
-                    int[,] tileBuffer = new int[5, 5];
+                    long[,] tileBuffer = new long[5, 5];
+
+                    if (trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item3 > 0)
+                    {
+                        tileBuffer = GetTileBuffer(trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item3, TrailTypes.Track, buffer, tileBuffer, hasLocation, location, crssNumb);
+                        loadedBuffer = true;
+                    }
 
                     if (trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item2 > 0)
                     {
-                        tileBuffer = GetTileBuffer(trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item2, (byte)TrailTypes.Track, buffer, tileBuffer, hasLocation);
+                        tileBuffer = GetTileBuffer(trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item2, TrailTypes.DirtRoad, buffer, tileBuffer, hasLocation, location, crssNumb);
                         loadedBuffer = true;
                     }
 
                     if (trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item1 > 0)
                     {
-                        tileBuffer = GetTileBuffer(trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item1, (byte)TrailTypes.Road, buffer, tileBuffer, hasLocation);
+                        tileBuffer = GetTileBuffer(trailMap[xRel + ((trailTile.Item1 - (xTile - 1)) * MapsFile.TileDim), yRel + ((trailTile.Item2 - (yTile - 1)) * MapsFile.TileDim)].Item1, TrailTypes.Road, buffer, tileBuffer, hasLocation, location, crssNumb);
                         loadedBuffer = true;
                     }
 
@@ -826,11 +1130,21 @@ namespace MapEditor
                     }
                 }
             }
-
             return tile;
         }
 
-        protected int[,] RefineTileBorder(int[,] tile)
+        protected TrailTypes GetTrailType(byte direction, List<byte> road, List<byte> dirt, List<byte> track)
+        {
+            if (road.Contains(direction))
+                return TrailTypes.Road;
+            if (dirt.Contains(direction))
+                return TrailTypes.DirtRoad;
+            if (track.Contains(direction))
+                return TrailTypes.Track;
+            return TrailTypes.None;
+        }
+
+        protected long[,] RefineTileBorder(long[,] tile)
         {
             int tileSize = MapsFile.TileDim * 5;
             bool isCrossroad;
@@ -838,77 +1152,76 @@ namespace MapEditor
             {
                 for (int y = 0; y < tileSize; y++)
                 {
+                    int crssNumb = 0;
                     if (tile[x, y] > 0)
                     {
                         int xBorder = x % 5;
                         int yBorder = y % 5;
                         int x1, x2, x3, y1, y2, y3;
-                        isCrossroad = tile[x, y] >= (byte.MaxValue * byte.MaxValue);
-                        List<byte> road = GetByte(tile[x, y], true, isCrossroad);
-                        List<byte> track = GetByte(tile[x, y], false, isCrossroad);
+                        List<byte> road = GetByte(tile[x, y], TrailTypes.Road);
+                        List<byte> dirt = GetByte(tile[x, y], TrailTypes.DirtRoad);
+                        List<byte> track = GetByte(tile[x, y], TrailTypes.Track);
                         List<byte> otherRoad = new List<byte>();
+                        List<byte> otherDirt = new List<byte>();
                         List<byte> otherTrack = new List<byte>();
                         List<byte> otherTrail = new List<byte>();
-                        bool isRoad = true;
+                        TrailTypes trailType = TrailTypes.None;
                         List<byte> corresponding1, corresponding2, corresponding3;
 
                         if ((xBorder > 0 && xBorder < 4) && yBorder == 0 && y - 1 >= 0)
                         {
-                            if (road.Contains(N) || track.Contains(N))
+                            if (road.Contains(N) || dirt.Contains(N) || track.Contains(N))
                             {
-                                if (track.Contains(N))
-                                {
-                                    isRoad = false;
-                                }
+                                trailType = GetTrailType(N, road, dirt, track);
                                 x1 = x - x % 5 + 1;
                                 x2 = x - x % 5 + 2;
                                 x3 = x - x % 5 + 3;
                                 y1 = y - 1;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
-                                corresponding2 = GetByte(tile[x2, y1], isRoad, isCrossroad);
-                                corresponding3 = GetByte(tile[x3, y1], isRoad, isCrossroad);
+                                corresponding1 = GetByte(tile[x1, y1], trailType);
+                                corresponding2 = GetByte(tile[x2, y1], trailType);
+                                corresponding3 = GetByte(tile[x3, y1], trailType);
 
                                 if (xBorder == 1)
                                 {
                                     if (corresponding2.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x + 1, y], trailType);
                                         if (!corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, trailType, S);
                                         }
                                         else if (!corresponding1.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, trailType);
                                         }
                                         else if (corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, trailType, S);
                                         }
                                     }
                                     else if (corresponding3.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x + 2, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x + 2, y], trailType);
                                         if (!corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, trailType, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, trailType);
                                         }
                                         else if (!corresponding1.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, trailType);
                                         }
                                         else if (corresponding1.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, trailType, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SW, E, trailType);
                                         }
                                     }
                                 }
@@ -916,40 +1229,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x - 1, y], trailType);
                                         if (!corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, trailType, S);
                                         }
                                         else if (!corresponding2.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, trailType);
                                         }
                                         else if (corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, trailType, S);
                                         }
                                     }
                                     else if (corresponding3.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x + 1, y], trailType);
                                         if (!corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, trailType, S);
                                         }
                                         else if (!corresponding2.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, N);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, N);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, trailType);
                                         }
                                         else if (corresponding2.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], SW, trailType, S);
                                         }
                                     }
                                 }
@@ -957,107 +1270,107 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x - 1, y], trailType);
                                         if (!corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, trailType, S);
                                         }
                                         else if (!corresponding3.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, trailType);
                                         }
                                         else if (corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, trailType, S);
                                         }
                                     }
                                     else if (corresponding1.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 2, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x - 2, y], trailType);
                                         if (!corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, trailType, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, trailType);
                                         }
                                         else if (!corresponding3.Contains(S) && otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, trailType);
                                         }
                                         else if (corresponding3.Contains(S) && !otherTrail.Contains(N))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, trailType, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, SE, trailType);
                                         }
                                     }
                                 }
+                                // if (IsCrossRoad(tile[x1, y1])) tile[x1, y1] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x2, y1])) tile[x2, y1] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x3, y1])) tile[x3, y1] += (25 * 256 * 256);
                             }
                         }
                         else if ((xBorder > 0 && xBorder < 4) && yBorder == 4 && y + 1 < tileSize)
                         {
-                            if (road.Contains(S) || track.Contains(S))
+                            if (road.Contains(S) || dirt.Contains(S) || track.Contains(S))
                             {
-                                if (track.Contains(S))
-                                {
-                                    isRoad = false;
-                                }
+                                trailType = GetTrailType(S, road, dirt, track);
                                 x1 = x - x % 5 + 1;
                                 x2 = x - x % 5 + 2;
                                 x3 = x - x % 5 + 3;
                                 y1 = y + 1;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
-                                corresponding2 = GetByte(tile[x2, y1], isRoad, isCrossroad);
-                                corresponding3 = GetByte(tile[x3, y1], isRoad, isCrossroad);
+                                corresponding1 = GetByte(tile[x1, y1], trailType);
+                                corresponding2 = GetByte(tile[x2, y1], trailType);
+                                corresponding3 = GetByte(tile[x3, y1], trailType);
 
                                 if (xBorder == 1)
                                 {
                                     if (corresponding2.Contains(N))
                                     {
                                         // Checking tile[x + 1, y];
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x + 1, y], trailType);
                                         if (!corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, isCrossroad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, trailType, N);
                                         }
                                         else if (!corresponding1.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, S);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, trailType);
                                         }
                                         else if (corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, isRoad, isCrossroad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, trailType, N);
                                         }
                                     }
                                     else if (corresponding3.Contains(N))
                                     {
                                         // Checking tile[x + 2, y];
-                                        otherTrail = GetByte(tile[x + 2, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x + 2, y], trailType);
                                         if (!corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, S);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, trailType);
                                         }
                                         else if (!corresponding1.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, S);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, trailType);
                                         }
                                         else if (corresponding1.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
-                                            tile[x3, y1] = AddByte(tile[x3, y1], W, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType);
+                                            tile[x3, y1] = AddByte(tile[x3, y1], W, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], NW, E, trailType);
                                         }
                                     }
                                 }
@@ -1065,40 +1378,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(N))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x - 1, y], trailType);
                                         if (!corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, isCrossroad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, trailType, N);
                                         }
                                         else if (!corresponding2.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, trailType);
                                         }
                                         else if (corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, isRoad, isCrossroad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NE, trailType, N);
                                         }
                                     }
                                     else if (corresponding3.Contains(N))
                                     {
-                                        otherTrail = GetByte(tile[x + 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x + 1, y], trailType);
                                         if (!corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, isCrossroad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, trailType, N);
                                         }
                                         else if (!corresponding2.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, trailType);
                                         }
                                         else if (corresponding2.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, isRoad, isCrossroad, N);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], NW, trailType, N);
                                         }
                                     }
                                 }
@@ -1106,105 +1419,105 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(S))
                                     {
-                                        otherTrail = GetByte(tile[x - 1, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x - 1, y], trailType);
                                         if (!corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, trailType, S);
                                         }
                                         else if (!corresponding3.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, trailType);
                                         }
                                         else if (corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, isRoad, isCrossroad, S);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], SE, trailType, S);
                                         }
                                     }
                                     else if (corresponding1.Contains(N))
                                     {
-                                        otherTrail = GetByte(tile[x - 2, y], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x - 2, y], trailType);
                                         if (!corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, trailType);
                                         }
                                         else if (!corresponding3.Contains(N) && otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, S);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, S);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, trailType);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, trailType);
                                         }
                                         else if (corresponding3.Contains(N) && !otherTrail.Contains(S))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], E, isRoad, isCrossroad, N);
-                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], E, trailType, N);
+                                            tile[x2, y1] = AddByte(tile[x2, y1], W, NE, trailType);
                                         }
                                     }
                                 }
+                                // if (IsCrossRoad(tile[x1, y1])) tile[x1, y1] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x2, y1])) tile[x2, y1] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x3, y1])) tile[x3, y1] += (25 * 256 * 256);
                             }
                         }
                         else if ((yBorder > 0 && yBorder < 4) && xBorder == 0 && x - 1 >= 0)
                         {
-                            if (road.Contains(W) || track.Contains(W))
+                            if (road.Contains(W) || dirt.Contains(W) || track.Contains(W))
                             {
-                                if (track.Contains(W))
-                                {
-                                    isRoad = false;
-                                }
+                                trailType = GetTrailType(W, road, dirt, track);
                                 x1 = x - 1;
                                 y1 = y - y % 5 + 1;
                                 y2 = y - y % 5 + 2;
                                 y3 = y - y % 5 + 3;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
-                                corresponding2 = GetByte(tile[x1, y2], isRoad, isCrossroad);
-                                corresponding3 = GetByte(tile[x1, y3], isRoad, isCrossroad);
+                                corresponding1 = GetByte(tile[x1, y1], trailType);
+                                corresponding2 = GetByte(tile[x1, y2], trailType);
+                                corresponding3 = GetByte(tile[x1, y3], trailType);
 
                                 if (yBorder == 1)
                                 {
                                     if (corresponding2.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y + 1], trailType);
                                         if (!corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, trailType, E);
                                         }
                                         else if (!corresponding1.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, trailType);
                                         }
                                         else if (corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, trailType, E);
                                         }
                                     }
                                     else if (corresponding3.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 2], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y + 2], trailType);
                                         if (!corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, trailType);
                                         }
                                         else if (!corresponding1.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, trailType);
                                         }
                                         else if (corresponding1.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NE, S, trailType);
                                         }
                                     }
                                 }
@@ -1212,40 +1525,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y - 1], trailType);
                                         if (!corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, W);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, trailType, E);
                                         }
                                         else if (!corresponding2.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, W);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, trailType);
                                         }
                                         else if (corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SE, trailType, E);
                                         }
                                     }
                                     else if (corresponding3.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y + 1], trailType);
                                         if (!corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, trailType, E);
                                         }
                                         else if (!corresponding2.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, trailType);
                                         }
                                         else if (corresponding2.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SW, isRoad, isCrossroad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], SW, trailType);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NE, trailType, E);
                                         }
                                     }
                                 }
@@ -1253,105 +1566,105 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y - 1], trailType);
                                         if (!corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, trailType, E);
                                         }
                                         else if (!corresponding3.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, trailType);
                                         }
                                         else if (corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, isRoad, isCrossroad, E);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, trailType, E);
                                         }
                                     }
                                     else if (corresponding1.Contains(E))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 2], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y - 2], trailType);
                                         if (!corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], S, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, trailType);
                                         }
                                         else if (!corresponding3.Contains(E) && otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad, W);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType, W);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], S, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, trailType);
                                         }
                                         else if (corresponding3.Contains(E) && !otherTrail.Contains(W))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NW, isRoad, isCrossroad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], S, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NW, trailType);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], S, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SE, N, trailType);
                                         }
                                     }
                                 }
+                                // if (IsCrossRoad(tile[x1, y1])) tile[x1, y1] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x1, y2])) tile[x1, y2] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x1, y3])) tile[x1, y3] += (25 * 256 * 256);
                             }
                         }
                         else if ((yBorder > 0 && yBorder < 4) && xBorder == 4 && x + 1 < tileSize)
                         {
-                            if (road.Contains(E) || track.Contains(E))
+                            if (road.Contains(E) || dirt.Contains(E) || track.Contains(E))
                             {
-                                if (track.Contains(E))
-                                {
-                                    isRoad = false;
-                                }
+                                trailType = GetTrailType(E, road, dirt, track);
                                 x1 = x + 1;
                                 y1 = y - y % 5 + 1;
                                 y2 = y - y % 5 + 2;
                                 y3 = y - y % 5 + 3;
-                                corresponding1 = GetByte(tile[x1, y1], isRoad, isCrossroad);
-                                corresponding2 = GetByte(tile[x1, y2], isRoad, isCrossroad);
-                                corresponding3 = GetByte(tile[x1, y3], isRoad, isCrossroad);
+                                corresponding1 = GetByte(tile[x1, y1], trailType);
+                                corresponding2 = GetByte(tile[x1, y2], trailType);
+                                corresponding3 = GetByte(tile[x1, y3], trailType);
 
                                 if (yBorder == 1)
                                 {
                                     if (corresponding2.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x , y + 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x , y + 1], trailType);
                                         if (!corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, trailType, W);
                                         }
                                         else if (!corresponding1.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, trailType);
                                         }
                                         else if (corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], NW, trailType, W);
                                         }
                                     }
                                     else if (corresponding3.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 2], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y + 2], trailType);
                                         if (!corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, trailType);
                                         }
                                         else if (!corresponding1.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, trailType);
                                         }
                                         else if (corresponding1.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], N, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], N, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], S, NW, trailType);
                                         }
                                     }
                                 }
@@ -1359,40 +1672,40 @@ namespace MapEditor
                                 {
                                     if (corresponding1.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y - 1], trailType);
                                         if (!corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, trailType, W);
                                         }
                                         else if (!corresponding2.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, trailType);
                                         }
                                         else if (corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], SW, trailType, W);
                                         }
                                     }
                                     else if (corresponding3.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y + 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y + 1], trailType);
                                         if (!corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, trailType, W);
                                         }
                                         else if (!corresponding2.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad, E);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType, E);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, trailType);
                                         }
                                         else if (corresponding2.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], SE, isRoad, isCrossroad);
-                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], SE, trailType);
+                                            tile[x1, y3] = AddByte(tile[x1, y3], NW, trailType, W);
                                         }
                                     }
                                 }
@@ -1400,47 +1713,56 @@ namespace MapEditor
                                 {
                                     if (corresponding2.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 1], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y - 1], trailType);
                                         if (!corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, trailType, W);
                                         }
                                         else if (!corresponding3.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, E);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, trailType);
                                         }
                                         else if (corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, isRoad, isCrossroad, W);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, trailType, W);
                                         }
                                     }
                                     else if (corresponding1.Contains(W))
                                     {
-                                        otherTrail = GetByte(tile[x, y - 2], isRoad, isCrossroad);
+                                        otherTrail = GetByte(tile[x, y - 2], trailType);
                                         if (!corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], S, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, trailType);
                                         }
                                         else if (!corresponding3.Contains(W) && otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad, E);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, isCrossroad);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType, E);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], S, trailType);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, trailType);
                                         }
                                         else if (corresponding3.Contains(W) && !otherTrail.Contains(E))
                                         {
-                                            tile[x, y] = AddByte(tile[x, y], NE, isRoad, isCrossroad);
-                                            tile[x1, y1] = AddByte(tile[x1, y1], S, isRoad, isCrossroad, W);
-                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, isRoad, isCrossroad);
+                                            tile[x, y] = AddByte(tile[x, y], NE, trailType);
+                                            tile[x1, y1] = AddByte(tile[x1, y1], S, trailType, W);
+                                            tile[x1, y2] = AddByte(tile[x1, y2], SW, N, trailType);
                                         }
                                     }
                                 }
+                                // if (IsCrossRoad(tile[x1, y1])) tile[x1, y1] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x1, y2])) tile[x1, y2] += (25 * 256 * 256);
+                                // if (IsCrossRoad(tile[x1, y3])) tile[x1, y3] += (25 * 256 * 256);
                             }
+                        }
+                        if (IsCrossRoad(tile[x, y]))
+                        {
+                            int crssIndex = ((y % 5) * 5 + (x % 5)) + 1;
+                            Debug.Log("tile[" + x + ", " + y + "] is crossroad with a value of " + tile[x, y] + "; adding " + crssIndex + " * FUNCINDEX to it");
+                            tile[x, y] = (tile[x, y] % (FUNCINDEX)) + (crssIndex * FUNCINDEX);
                         }
                     }
                 }
@@ -1448,20 +1770,30 @@ namespace MapEditor
             return tile;
         }
 
-        protected List<byte> GetByte(int trail, bool road, bool isCrossroad)
+        protected List<byte> GetByte(long trail, TrailTypes trailType)
         {
             List<byte> result = new List<byte>();
             int baseValue = 2;
             int pow = 7;
             byte factor;
 
-            if (isCrossroad) trail -= (byte.MaxValue * byte.MaxValue);
+            if (trail >= (FUNCINDEX)) trail = trail % (FUNCINDEX);
 
-            if (road)
-            {                
-                trail = trail % byte.MaxValue;
+            switch (trailType)
+            {
+                case TrailTypes.Road:
+                    trail %= DIRTINDEX;
+                    break;
+                case TrailTypes.DirtRoad:
+                    trail = ((trail % TRACKINDEX) / DIRTINDEX);
+                    break;
+                case TrailTypes.Track:
+                    trail /= TRACKINDEX;
+                    break;
+                default:
+                    Debug.Log("GetByte = wrong TrailTypes passed to this function");
+                    break;
             }
-            else trail = trail / byte.MaxValue;
 
             do{
                 factor = (byte)Math.Pow(baseValue, pow);
@@ -1479,57 +1811,78 @@ namespace MapEditor
             return result;            
         }
 
-        protected int AddByte(int trail, byte trailToAdd, bool isRoad, bool isCrossroad, byte trailToRemove = 0)
+        protected long AddByte(long trail, byte trailToAdd, TrailTypes trailType, byte trailToRemove = 0)
         {
-            List<byte> resultTrack = GetByte(trail, false, isCrossroad);
-            List<byte> resultRoad = GetByte(trail, true, isCrossroad);
+            List<byte> resultTrack = GetByte(trail, TrailTypes.Track);
+            List<byte> resultDirt = GetByte(trail, TrailTypes.DirtRoad);
+            List<byte> resultRoad = GetByte(trail, TrailTypes.Road);
 
             resultTrack.Remove(trailToAdd);
             resultTrack.Remove(trailToRemove);
+            resultDirt.Remove(trailToAdd);
+            resultDirt.Remove(trailToRemove);
             resultRoad.Remove(trailToAdd);
             resultRoad.Remove(trailToRemove);
 
             trail = 0;
-            foreach (byte track in resultTrack) trail += track * byte.MaxValue;
+            foreach (byte track in resultTrack) trail += track * TRACKINDEX;
+            foreach (byte dirt in resultDirt) trail += dirt * DIRTINDEX;
             foreach (byte road in resultRoad) trail += road;
 
-            if (isRoad) trail += trailToAdd;
-            else trail += trailToAdd * byte.MaxValue;
-
-            if (isCrossroad) trail += (byte.MaxValue * byte.MaxValue);
-
+            switch (trailType)
+            {
+                case TrailTypes.Road:
+                    trail += trailToAdd;
+                    break;
+                case TrailTypes.DirtRoad:
+                    trail += trailToAdd * DIRTINDEX;
+                    break;
+                case TrailTypes.Track:
+                    trail += trailToAdd * TRACKINDEX;
+                    break;
+                default:
+                    Debug.Log("AddByte = wrong TrailTypes passed to this function");
+                    break;
+            }
             return trail;            
         }
 
-        protected int AddByte(int trail, byte trailToAdd1, byte trailToAdd2, bool isRoad, bool isCrossroad, byte trailToRemove = 0)
+        protected long AddByte(long trail, byte trailToAdd1, byte trailToAdd2, TrailTypes trailType, byte trailToRemove = 0)
         {
-            List<byte> resultTrack = GetByte(trail, false, isCrossroad);
-            List<byte> resultRoad = GetByte(trail, true, isCrossroad);
+            List<byte> resultTrack = GetByte(trail, TrailTypes.Track);
+            List<byte> resultDirt = GetByte(trail, TrailTypes.DirtRoad);
+            List<byte> resultRoad = GetByte(trail, TrailTypes.Road);
 
             resultTrack.Remove(trailToAdd1);
             resultTrack.Remove(trailToAdd2);
             resultTrack.Remove(trailToRemove);
+            resultDirt.Remove(trailToAdd1);
+            resultDirt.Remove(trailToAdd2);
+            resultDirt.Remove(trailToRemove);
             resultRoad.Remove(trailToAdd1);
             resultRoad.Remove(trailToAdd2);
             resultRoad.Remove(trailToRemove);
 
             trail = 0;
-            foreach (byte track in resultTrack) trail += track * byte.MaxValue;
+            foreach (byte track in resultTrack) trail += track * TRACKINDEX;
+            foreach (byte dirt in resultDirt) trail += dirt * DIRTINDEX;
             foreach (byte road in resultRoad) trail += road;
 
-            if (isRoad)
+            switch (trailType)
             {
-                trail += trailToAdd1;
-                trail += trailToAdd2;
+                case TrailTypes.Road:
+                    trail += trailToAdd1;
+                    trail += trailToAdd2;
+                    break;
+                case TrailTypes.DirtRoad:
+                    trail += trailToAdd1 * DIRTINDEX;
+                    trail += trailToAdd2 * DIRTINDEX;
+                    break;
+                case TrailTypes.Track:
+                    trail += trailToAdd1 * TRACKINDEX;
+                    trail += trailToAdd2 * TRACKINDEX;
+                    break;
             }
-            else
-            {
-                trail += trailToAdd1 * byte.MaxValue;
-                trail += trailToAdd2 * byte.MaxValue;
-            }
-
-            if (isCrossroad) trail += (byte.MaxValue * byte.MaxValue);
-
             return trail;            
         }
 
@@ -1548,9 +1901,13 @@ namespace MapEditor
             return outPixel;
         }
 
-        protected int[,] GetTileBuffer(byte trailAsset, byte trailType, byte[,] buffer, int[,] tileBuffer, bool hasLocation)
+        /// <summary>
+        /// Generate a 5x5 tile of trails, taking into consideration the pixel enter/exit
+        /// and the need to align to a walled or un-walled location.
+        /// </summary>
+        protected long[,] GetTileBuffer(byte trailAsset, TrailTypes trailType, byte[,] buffer, long[,] tileBuffer, bool hasLocation, DFLocation location, int crssNumb)
         {
-            int[,] resultingBuffer = new int[5, 5];
+            long[,] resultingBuffer = new long[5, 5];
             resultingBuffer = tileBuffer;
 
             // if (resultingBuffer[12] == 0)
@@ -1561,11 +1918,13 @@ namespace MapEditor
 
             bool[,] thread = new bool[5, 5];
             List<(int, int)> tileExit = new List<(int, int)>();
+            List<(int, int)> walledExit = new List<(int, int)>();
 
             // if (trailType == 1)
             //     trailType *= 32;
             // else trailType *= 64;
 
+            // Here we set enter/exit sectors based on cardinals
             do{
                 byte factor = (byte)Math.Pow(baseValue, pow);
 
@@ -1635,14 +1994,35 @@ namespace MapEditor
             }
             while (pow >= 0 && trailAsset > 0);
 
+            // Now we set some sort of "waypoints" that the trails has to traverse,
+            // based on the presence of walled or un-walled locations.
             if (hasLocation)
             {
-                tileExit.Insert((UnityEngine.Random.Range(0, tileExit.Count)), (2, 2));
+                if (IsWalledLocation(location))
+                {
+                    List<(int, int)> exitRef = new List<(int, int)>();
+                    exitRef = tileExit;
+                    int exitNumb = tileExit.Count();
+                    int counter = 1;
+                    for (int ext = 0; ext < exitNumb; ext++)
+                    {
+                        (int, int) wllExt = GetWalledLocEntrance(location, exitRef[ext]);
+                        if (!tileExit.Contains(wllExt))
+                        {
+                            tileExit.Insert((counter), wllExt);
+                            counter++;
+                        }
+                        walledExit.Add(wllExt);
+                    }
+                }
+                else
+                    tileExit.Insert(1, (2, 2));
             }
 
             bool getToJunction = false;
             if (tileExit.Count == 1)
             {
+                Debug.Log("tileExit.Count == 1; creating fake passage");
                 (int, int) fakePassage = (2, 2);
                 if (tileExit[0].Item1 == 0) fakePassage.Item1 = 4;
                 if (tileExit[0].Item1 == 4) fakePassage.Item1 = 0;
@@ -1771,10 +2151,552 @@ namespace MapEditor
                 }
                 while (!gotToDestination);
 
-                resultingBuffer = MergeWithTrail(resultingBuffer, trail, trailType);
+                resultingBuffer = MergeWithTrail(resultingBuffer, trail, trailType, hasLocation, location, walledExit);
             }
-
             return resultingBuffer;
+        }
+
+        protected (int, int) GetWalledLocEntrance(DFLocation location, (int, int) exitRef)
+        {
+            Debug.Log("exitRef: " + exitRef.Item1 + ", " + exitRef.Item2);
+            byte width = location.Exterior.ExteriorData.Width;
+            byte height = location.Exterior.ExteriorData.Height;
+            int ext = ConvertExitToDirection(exitRef);
+
+            return GetGatePosition(location.Exterior.ExteriorData.BlockNames, width, height, ext);
+        }
+
+        /// <summary>
+        /// Get which tile sector a gate placed in a certain spot of the wall interests.
+        /// </summary>
+        protected (int, int) GetGatePosition(string[] blocks, byte width, byte height, int ext)
+        {
+            int gateIndex = GetWallGate(blocks, width, height, ext);
+            switch (width)
+            {
+                case 5:
+                    switch (height)
+                    {
+                        case 6:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (1, 4); // 154
+                                case 2:  return (2, 4); // 174
+                                case 3:  return (3, 4); // 189
+                                case 5:  return (0, 3); // 254
+                                case 9:  return (4, 3); // 255
+                                case 10:                // 100
+                                case 15: return (0, 2); // 99
+                                case 14:                // 98
+                                case 19: return (4, 2); // 97
+                                case 20: return (0, 1); // 96
+                                case 24: return (4, 1); // 95
+                                case 26: return (1, 0); // 145
+                                case 27: return (2, 0); // 165
+                                case 28: return (3, 0); // 180
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        case 7:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (1, 4); // 156
+                                case 2:  return (2, 4); // 175
+                                case 3:  return (3, 4); // 191
+                                case 5:                 // 244
+                                case 10: return (0, 3); // 246
+                                case 9:                 // 245
+                                case 14: return (4, 3); // 247
+                                case 15: return (0, 2); // 248
+                                case 19: return (4, 2); // 249
+                                case 20:                // 250
+                                case 25: return (0, 1); // 251
+                                case 24:                // 252
+                                case 29: return (4, 1); // 253
+                                case 31: return (1, 0); // 147
+                                case 32: return (2, 0); // 166
+                                case 33: return (3, 0); // 182
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        default:
+                            Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                            return (-1, -1);
+                    }
+                case 6:
+                    switch (height)
+                    {
+                        case 5:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (1, 4); // 94
+                                case 2:                 // 93
+                                case 3:  return (2, 4); // 92
+                                case 4:  return (3, 4); // 91
+                                case 6:  return (0, 3); // 128
+                                case 11: return (4, 3); // 221
+                                case 12: return (0, 2); // 109
+                                case 17: return (4, 2); // 212
+                                case 18: return (0, 1); // 113
+                                case 23: return (4, 1); // 202
+                                case 25: return (1, 0); // 90
+                                case 26:                // 89
+                                case 27: return (2, 0); // 88
+                                case 28: return (3, 0); // 87
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        case 6:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (1, 4); // 150
+                                case 2:                 // 168
+                                case 3:  return (2, 4); // 169
+                                case 4:  return (3, 4); // 186
+                                case 6:  return (0, 3); // 126
+                                case 11: return (4, 3); // 219
+                                case 12:                // 107
+                                case 18: return (0, 2); // 108
+                                case 17:                // 210
+                                case 23: return (4, 2); // 211
+                                case 24: return (0, 1); // 116
+                                case 29: return (4, 1); // 201
+                                case 31: return (1, 0); // 141
+                                case 32:                // 159
+                                case 33: return (2, 0); // 160
+                                case 34: return (3, 0); // 177
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        case 7:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (1, 4); // 151
+                                case 2:                 // 170
+                                case 3:  return (2, 4); // 171
+                                case 4:  return (3, 4); // 187
+                                case 6:                 // 127
+                                case 12: return (0, 3); // 128
+                                case 11:                // 220
+                                case 17: return (4, 3); // 221
+                                case 18: return (0, 2); // 109
+                                case 23: return (4, 2); // 212
+                                case 24:                // 113
+                                case 30: return (0, 1); // 114
+                                case 29:                // 202
+                                case 35: return (4, 1); // 203
+                                case 37: return (1, 0); // 142
+                                case 38:                // 161
+                                case 39: return (2, 0); // 162
+                                case 40: return (3, 0); // 178
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        case 8:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (1, 4); // 152
+                                case 2:                 // 172
+                                case 3:  return (2, 4); // 173
+                                case 4:  return (3, 4); // 188
+                                case 6:  return (0, 4); // 135
+                                case 12: return (0, 3); // 126
+                                case 11:                // 228
+                                case 17: return (4, 3); // 219
+                                case 18:                // 107
+                                case 24: return (0, 2); // 108
+                                case 23:                // 210
+                                case 29: return (4, 2); // 211
+                                case 30:                // 116
+                                case 36: return (0, 1); // 106
+                                case 35: return (4, 1); // 201
+                                case 41: return (4, 0); // 195
+                                case 43: return (1, 0); // 143
+                                case 44:                // 163
+                                case 45: return (2, 0); // 164
+                                case 46: return (3, 0); // 179
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return (-1, -1);
+                    }
+                case 7:
+                    switch (height)
+                    {
+                        case 5:
+                            switch (gateIndex)
+                            {
+                                case 1:                 // 234
+                                case 2:  return (1, 4); // 235
+                                case 3:  return (2, 4); // 236
+                                case 4:                 // 237
+                                case 5:  return (3, 4); // 238
+                                case 7:  return (0, 3); // 131
+                                case 13: return (4, 3); // 224
+                                case 14: return (0, 2); // 112
+                                case 20: return (4, 2); // 215
+                                case 21: return (0, 1); // 118
+                                case 27: return (4, 1); // 205
+                                case 29:                // 239
+                                case 30: return (1, 0); // 240
+                                case 31: return (2, 0); // 241
+                                case 32:                // 242
+                                case 33: return (3, 0); // 243
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        case 6:
+                            switch (gateIndex)
+                            {
+                                case 1:                 // 153
+                                case 2:  return (1, 4); // 154
+                                case 3:  return (2, 4); // 174
+                                case 4:                 // 189
+                                case 5:  return (3, 4); // 190
+                                case 7:  return (0, 3); // 129
+                                case 13: return (4, 3); // 222
+                                case 14:                // 110
+                                case 21: return (0, 2); // 111
+                                case 20:                // 213
+                                case 27: return (4, 2); // 214
+                                case 28: return (0, 1); // 117
+                                case 34: return (4, 1); // 204
+                                case 36:                // 144
+                                case 37: return (1, 0); // 145
+                                case 38: return (2, 0); // 165
+                                case 39:                // 180
+                                case 40: return (3, 0); // 181
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        case 7:
+                            switch (gateIndex)
+                            {
+                                case 1:                 // 155
+                                case 2:  return (1, 4); // 156
+                                case 3:  return (2, 4); // 175
+                                case 4:                 // 191
+                                case 5:  return (3, 4); // 192
+                                case 7:                 // 130
+                                case 14: return (0, 3); // 131
+                                case 13:                // 223
+                                case 20: return (4, 3); // 224
+                                case 21: return (0, 2); // 112
+                                case 27: return (4, 2); // 215
+                                case 28:                // 118
+                                case 35: return (0, 1); // 119
+                                case 34:                // 205
+                                case 41: return (4, 1); // 206
+                                case 43:                // 146
+                                case 44: return (1, 0); // 147
+                                case 45: return (2, 0); // 166
+                                case 46:                // 182
+                                case 47: return (3, 0); // 183
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        case 8:
+                            switch (gateIndex)
+                            {
+                                case 1:                 // 157
+                                case 2:  return (1, 4); // 158
+                                case 3:  return (2, 4); // 176
+                                case 4:                 // 193
+                                case 5:  return (3, 4); // 194
+                                case 7:  return (0, 4); // 136
+                                case 14: return (0, 3); // 129
+                                case 13:                // 229
+                                case 20: return (4, 3); // 222
+                                case 21:                // 110
+                                case 28: return (0, 2); // 111
+                                case 27:                // 213
+                                case 34: return (4, 2); // 214
+                                case 35:                // 117
+                                case 42: return (0, 1); // 101
+                                case 41: return (4, 1); // 204
+                                case 48: return (4, 0); // 196
+                                case 50:                // 148
+                                case 51: return (1, 0); // 149
+                                case 52: return (2, 0); // 167
+                                case 53:                // 184
+                                case 54: return (3, 0); // 185
+                                default:
+                                    Debug.Log("GetWallGate returned an incorrect gateIndex for a " + width + "x" + height + "settlement.");
+                                    return (-1, -1);
+                            }
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return (-1, -1);
+                    }
+                case 8:
+                    switch (height)
+                    {
+                        case 6:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (0, 4); // 137
+                                case 2:  return (1, 4); // 150
+                                case 3:                 // 168
+                                case 4:  return (2, 4); // 169
+                                case 5:                 // 186
+                                case 6:  return (3, 4); // 230
+                                case 8:  return (0, 3); // 132
+                                case 15: return (4, 3); // 225
+                                case 16:                // 115
+                                case 24: return (0, 2); // 120
+                                case 23:                // 216
+                                case 31: return (4, 2); // 217
+                                case 32: return (0, 1); // 121
+                                case 39: return (4, 1); // 207
+                                case 41: return (0, 0); // 105
+                                case 42: return (1, 0); // 141
+                                case 43:                // 159
+                                case 44: return (2, 0); // 160
+                                case 45: return (3, 0); // 177
+                                case 46: return (4, 0); // 197
+                                default:
+                                    Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                                    return (-1, -1);
+                            }
+                        case 7:
+                            switch (gateIndex)
+                            {
+                                case 1:  return (0, 4); // 138
+                                case 2:  return (1, 4); // 151
+                                case 3:                 // 170
+                                case 4:  return (2, 4); // 171
+                                case 5:                 // 187
+                                case 6:  return (3, 4); // 231
+                                case 8:                 // 133
+                                case 16: return (0, 3); // 134
+                                case 15:                // 226
+                                case 23: return (4, 3); // 227
+                                case 24: return (0, 2); // 125
+                                case 31: return (4, 2); // 218
+                                case 32:                // 122
+                                case 40: return (0, 1); // 123
+                                case 39:                // 208
+                                case 47: return (4, 1); // 209
+                                case 49: return (0, 0); // 104
+                                case 50: return (1, 0); // 142
+                                case 51:                // 161
+                                case 52: return (2, 0); // 162
+                                case 53:                // 178
+                                case 54: return (3, 0); // 198
+                                default:
+                                    Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                                    return (-1, -1);
+                            }
+                        case 8:
+                            switch (gateIndex)
+                            {
+                                case 1:                 // 139
+                                case 8:  return (0, 4); // 140
+                                case 2:  return (1, 4); // 152
+                                case 3:                 // 172
+                                case 4:  return (2, 4); // 173
+                                case 5:                 // 188
+                                case 6:  return (3, 4); // 232                                
+                                case 16: return (0, 3); // 132
+                                case 15:                // 233
+                                case 23: return (4, 3); // 223
+                                case 24:                // 115
+                                case 32: return (0, 2); // 120
+                                case 31:                // 216
+                                case 39: return (4, 2); // 217
+                                case 40:                // 124
+                                case 48: return (0, 1); // 102
+                                case 47: return (4, 1); // 207
+                                case 57: return (0, 0); // 103
+                                case 55: return (4, 0); // 199
+                                case 58: return (1, 0); // 143
+                                case 59:                // 163
+                                case 60: return (2, 0); // 164
+                                case 61:                // 179
+                                case 62: return (3, 0); // 200
+                                default:
+                                    Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                                    return (-1, -1);
+                            }
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return (-1, -1);
+                    }
+                default:
+                    Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                    return (-1, -1);
+            }
+            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+            return (-1, -1);
+        }
+
+        /// <summary>
+        /// Get the block index of the ckecked gate.
+        /// </summary>
+        protected int GetWallGate(string[] blocks, byte width, byte height, int side)
+        {
+            int b, c, n, s, w, e, gateIndex1, gateIndex2;
+            n = s = w = e = gateIndex1 = gateIndex2 = -1;
+            int counter = 0;
+            switch (side)
+            {
+                case N:
+                    for (int a = (blocks.Length - width); a < blocks.Length; a++)
+                        if (blocks[a].Equals("WALLAA08.RMB") || blocks[a].Equals("WALLAA20.RMB"))
+                            return a;
+                    break;
+                case S:
+                    for (int a = 0; a < width; a++)
+                        if (blocks[a].Equals("WALLAA10.RMB") || blocks[a].Equals("WALLAA22.RMB"))
+                            return a;
+                    break;
+                case W:
+                    for (int a = width; a < (blocks.Length - width); a += width)
+                        if (blocks[a].Equals("WALLAA11.RMB") || blocks[a].Equals("WALLAA23.RMB"))
+                            return a;
+                    break;
+                case E:
+                    for (int a = (width + width - 1); a < (blocks.Length - width); a += width)
+                        if (blocks[a].Equals("WALLAA09.RMB") || blocks[a].Equals("WALLAA21.RMB"))
+                            return a;
+                    break;
+
+                case NW:
+                    counter = 0;
+                    for (b = (blocks.Length - width); b < blocks.Length; b++)
+                    {
+                        if (blocks[b].Equals("WALLAA08.RMB") || blocks[b].Equals("WALLAA20.RMB"))
+                        {
+                            n = counter;
+                            gateIndex1 = b;
+                        }                            
+                        counter++;
+                    }                        
+                    for (c = 0; c <= (blocks.Length - width); c += width)
+                    {
+                        if (blocks[c].Equals("WALLAA11.RMB") || blocks[c].Equals("WALLAA23.RMB"))
+                        {
+                            w = counter;
+                            gateIndex2 = c;
+                        }                            
+                        counter++;
+                    }
+                    if (n < (height - w)) return gateIndex1;
+                    if ((height - w) < n) return gateIndex2;
+                    if (width > height) return gateIndex2;
+                    if (height > width) return gateIndex1;
+                    if (UnityEngine.Random.Range(0, 2) == 0) return gateIndex1;
+                    else return gateIndex2;
+                case NE:
+                    counter = 0;
+                    for (b = (blocks.Length - width); b < blocks.Length; b++)
+                    {
+                        if (blocks[b].Equals("WALLAA08.RMB") || blocks[b].Equals("WALLAA20.RMB"))
+                        {
+                            n = counter;
+                            gateIndex1 = b;
+                        }                            
+                        counter++;
+                    }                        
+                    for (c = (width - 1); c < blocks.Length; c += width)
+                    {
+                        if (blocks[c].Equals("WALLAA09.RMB") || blocks[c].Equals("WALLAA21.RMB"))
+                        {
+                            e = counter;
+                            gateIndex2 = c;
+                        }                            
+                        counter++;
+                    }
+                    if (n > e) return gateIndex1;
+                    if (e > n) return gateIndex2;
+                    if (width > height) return gateIndex2;
+                    if (height > width) return gateIndex1;
+                    if (UnityEngine.Random.Range(0, 2) == 0) return gateIndex1;
+                    else return gateIndex2;
+                case SW:
+                    counter = 0;
+                    for (b = 0; b < width; b++)
+                    {
+                        if (blocks[b].Equals("WALLAA10.RMB") || blocks[b].Equals("WALLAA22.RMB"))
+                        {
+                            s = counter;
+                            gateIndex1 = b;
+                        }                            
+                        counter++;
+                    }                        
+                    for (c = 0; c <= (blocks.Length - width); c += width)
+                    {
+                        if (blocks[c].Equals("WALLAA11.RMB") || blocks[c].Equals("WALLAA23.RMB"))
+                        {
+                            w = counter;
+                            gateIndex2 = c;
+                        }                            
+                        counter++;
+                    }
+                    if (s < w) return gateIndex1;
+                    if (w < s) return gateIndex2;
+                    if (width > height) return gateIndex2;
+                    if (height > width) return gateIndex1;
+                    if (UnityEngine.Random.Range(0, 2) == 0) return gateIndex1;
+                    else return gateIndex2;
+                case SE:
+                    counter = 0;
+                    for (b = 0; b < width; b++)
+                    {
+                        if (blocks[b].Equals("WALLAA10.RMB") || blocks[b].Equals("WALLAA22.RMB"))
+                        {
+                            s = counter;
+                            gateIndex1 = b;
+                        }                            
+                        counter++;
+                    }                        
+                    for (c = (width + width - 1); c < (blocks.Length - width); c += width)
+                    {
+                        if (blocks[c].Equals("WALLAA09.RMB") || blocks[c].Equals("WALLAA21.RMB"))
+                        {
+                            e = counter;
+                            gateIndex2 = c;
+                        }                            
+                        counter++;
+                    }
+                    if (s > (height - e)) return gateIndex1;
+                    if ((height - e) > s) return gateIndex2;
+                    if (width > height) return gateIndex2;
+                    if (height > width) return gateIndex1;
+                    if (UnityEngine.Random.Range(0, 2) == 0) return gateIndex1;
+                    else return gateIndex2;
+                default:
+                    break;
+            }
+            Debug.Log("Could not find gate in GetWallGate method");
+            return -1;
+        }
+
+        protected int ConvertExitToDirection((int, int) exitRef)
+        {
+            if (exitRef.Equals((0, 0))) return NW;            
+            if (exitRef.Equals((4, 0))) return NE;            
+            if (exitRef.Equals((0, 4))) return SW;            
+            if (exitRef.Equals((4, 4))) return SE;
+
+            if (exitRef.Item2 == 0) return N;
+            if (exitRef.Item1 == 0) return W;
+            if (exitRef.Item1 == 4) return E;
+            if (exitRef.Item2 == 4) return S;
+
+            Debug.Log("Problem in ConvertExitToDirection method - fix it");
+            return -1;
         }
 
         protected bool CheckArrival((int, int) movement, (int, int) arrival)
@@ -1800,17 +2722,26 @@ namespace MapEditor
             return false;
         }
 
-        protected int[,] MergeWithTrail(int[,] baseBuffer, List<(int, int)> trailToAdd, byte trailType)
+        protected long[,] MergeWithTrail(long[,] baseBuffer, List<(int, int)> trailToAdd, TrailTypes trailType, bool hasLocation, DFLocation location, List<(int, int)> wllExt)
         {
             foreach ((int, int) trail in trailToAdd)
             {
                 byte trailShape = GetTrailShape(trail, trailToAdd);
 
-                if (baseBuffer[trail.Item1, trail.Item2] == 0)
+                if (baseBuffer[trail.Item1, trail.Item2] <= 0)
                 {
-                    if (trailType == (int)TrailTypes.Track)
-                        baseBuffer[trail.Item1, trail.Item2] = (trailShape * byte.MaxValue);
-                    else baseBuffer[trail.Item1, trail.Item2] = trailShape;
+                    switch (trailType)
+                    {
+                        case TrailTypes.Road:
+                            baseBuffer[trail.Item1, trail.Item2] = trailShape;
+                            break;
+                        case TrailTypes.DirtRoad:
+                            baseBuffer[trail.Item1, trail.Item2] = trailShape * DIRTINDEX;
+                            break;
+                        case TrailTypes.Track:
+                            baseBuffer[trail.Item1, trail.Item2] = trailShape * TRACKINDEX;
+                            break;
+                    }
                 }
                 else
                 {
@@ -1820,37 +2751,47 @@ namespace MapEditor
 
                     byte roadWiP = 0;
                     bool hasRoad = false;
+                    byte dirtWiP = 0;
+                    bool hasDirt = false;
                     byte trackWiP = 0;
                     bool hasTrack = false;
 
-                    if (baseBuffer[trail.Item1, trail.Item2] > byte.MaxValue)
+                    roadWiP = (byte)(baseBuffer[trail.Item1, trail.Item2] % DIRTINDEX);
+                    dirtWiP = (byte)((baseBuffer[trail.Item1, trail.Item2] % TRACKINDEX) / DIRTINDEX);
+                    trackWiP = (byte)((baseBuffer[trail.Item1, trail.Item2] % FUNCINDEX) / TRACKINDEX);
+
+                    if (trackWiP > 0)
                     {
-                        trackWiP = (byte)(baseBuffer[trail.Item1, trail.Item2] / byte.MaxValue);
                         hasTrack = true;
                     }
-                    if (baseBuffer[trail.Item1, trail.Item2] - (trackWiP * byte.MaxValue) > 0)
+                    if (dirtWiP > 0)
                     {
-                        roadWiP = (byte)(baseBuffer[trail.Item1, trail.Item2] % byte.MaxValue);
+                        hasDirt = true;
+                    }
+                    if (roadWiP > 0)
+                    {
                         hasRoad = true;
                     }
+                    Debug.Log("MergeWithTrail = baseBuffer[trail.Item1, trail.Item2]: " + baseBuffer[trail.Item1, trail.Item2] + ", roadWiP: " + roadWiP + ", dirtWiP: " + dirtWiP + ", trackWiP: " + trackWiP);
 
                     do
                     {
                         byte factor = (byte)Math.Pow(baseValue, pow);
 
-                        if (roadWiP < factor && trackWiP < factor && trailShape >= factor)
+                        if (trailShape >= factor)
                         {
-                            if (trailType == (int)TrailTypes.Track)
-                                baseBuffer[trail.Item1, trail.Item2] += (factor * byte.MaxValue);
-                            else baseBuffer[trail.Item1, trail.Item2] += factor;
-
-                            // if (factor == byte.MaxValue)
-                                // Debug.Log("Track set to 255 with roadWiP " + roadWiP + " and trackWiP " + trackWiP);
-                        }
-                        else if (roadWiP < factor && trackWiP >= factor && trailShape >= factor && trailType == 1)
-                        {
-                            baseBuffer[trail.Item1, trail.Item2] += factor;
-                            baseBuffer[trail.Item1, trail.Item2] -= (factor * byte.MaxValue);
+                            switch (trailType)
+                            {
+                                case TrailTypes.Road:
+                                    baseBuffer[trail.Item1, trail.Item2] += factor;
+                                    break;
+                                case TrailTypes.DirtRoad:
+                                    baseBuffer[trail.Item1, trail.Item2] += factor * DIRTINDEX;
+                                    break;
+                                case TrailTypes.Track:
+                                    baseBuffer[trail.Item1, trail.Item2] += factor * TRACKINDEX;
+                                    break;
+                            }
                         }
                         if (roadWiP >= factor) roadWiP -= factor;
                         if (trackWiP >= factor) trackWiP -= factor;
@@ -1862,10 +2803,3577 @@ namespace MapEditor
                 }
 
                 if (IsCrossRoad(baseBuffer[trail.Item1, trail.Item2]))
-                    baseBuffer[trail.Item1, trail.Item2] += (25 * byte.MaxValue * byte.MaxValue);
+                {
+                    if (hasLocation && CrossroadInsideLocation(trail, location))
+                    {
+                        if (IsWalledLocation(location))
+                            baseBuffer[trail.Item1, trail.Item2] = baseBuffer[trail.Item1, trail.Item2] % FUNCINDEX + (walledInternalSign * FUNCINDEX);
+                        else
+                            baseBuffer[trail.Item1, trail.Item2] += baseBuffer[trail.Item1, trail.Item2] % FUNCINDEX + (internalSign * FUNCINDEX);
+                    }
+                    else
+                    {
+                        int crssIndex = (trail.Item2 * 5 + trail.Item1) + 1;
+                        Debug.Log("baseBuffer[" + trail.Item1 + ", " + trail.Item2 + "] is crossroad with a value of " + baseBuffer[trail.Item1, trail.Item2] + "; adding " + crssIndex + " * FUNCINDEX to it");
+                        baseBuffer[trail.Item1, trail.Item2] = (baseBuffer[trail.Item1, trail.Item2] % FUNCINDEX) + (crssIndex * FUNCINDEX);
+                    }
+                }
+                else    // Giving special index to trails that have to align with RMB's roads and gates
+                {
+                    if (hasLocation)
+                    {
+                        if (IsWalledLocation(location))
+                        {
+                            if (wllExt.Contains(trail))
+                            {
+                                baseBuffer[trail.Item1, trail.Item2] = GetWalledIndex(baseBuffer[trail.Item1, trail.Item2], trail, location);
+                            }
+                            // foreach ((int, int) wExt in wllExt)
+                            // {
+                            //     Debug.Log("wExt.Item1, wExt.Item2: " + wExt.Item1 + ", " + wExt.Item2);
+                            //     baseBuffer[wExt.Item1, wExt.Item2] = GetWalledIndex(baseBuffer[wExt.Item1, wExt.Item2], wExt, location);
+                            // }
+                        }
+                        else // No wall location
+                        {
+                            baseBuffer[trail.Item1, trail.Item2] = GetTrailIndex(baseBuffer[trail.Item1, trail.Item2], trail, location);
+                        }
+                    }
+                }
+            }
+            return baseBuffer;
+        }
+
+        protected int GetTrailIndex(long trail, (int, int) position, DFLocation location)
+        {
+            int width = location.Exterior.ExteriorData.Width;
+            int height = location.Exterior.ExteriorData.Height;
+
+            byte crossroad = (byte)(trail / FUNCINDEX);
+            byte track = (byte)((trail % FUNCINDEX) / TRACKINDEX);
+            byte dirt = (byte)((trail % TRACKINDEX) / DIRTINDEX);
+            byte road = (byte)(trail % DIRTINDEX);
+            Debug.Log("GetTrailIndex = trail: " + trail + ", crossroad: " + crossroad + ", track: " + track + ", dirt: " + dirt + ", road: " + road);
+            int variant = 0;
+
+            // TODO!!!
+            return -1;
+        }
+
+        protected long GetWalledIndex(long trail, (int, int) position, DFLocation location)
+        {
+            int width = location.Exterior.ExteriorData.Width;
+            int height = location.Exterior.ExteriorData.Height;
+
+            byte crossroad = (byte)(trail / FUNCINDEX);
+            byte track = (byte)((trail % FUNCINDEX) / TRACKINDEX);
+            byte dirt = (byte)((trail % TRACKINDEX) / DIRTINDEX);
+            byte road = (byte)(trail % DIRTINDEX);
+            Debug.Log("GetWalledIndex = trail: " + trail + ", crossroad: " + crossroad + ", track: " + track + ", dirt: " + dirt + ", road: " + road);
+            int variant = 0;
+            int gate = -1;
+
+            List<int> tracks = new List<int>();
+            if (track > 0)
+                tracks = GetIndexesFromByte((byte)track);
+
+            List<int> dirtRoads = new List<int>();
+            if (dirt > 0)
+                dirtRoads = GetIndexesFromByte((byte)dirt);
+
+            List<int> roads = new List<int>();
+            if (road > 0)
+                roads = GetIndexesFromByte((byte)road);
+
+            switch (position.Item1)
+            {
+                case 0:
+                    switch (position.Item2)
+                    {
+                        case 0:
+                            if (width == 8 && height == 6)
+                            {
+                                roads.Remove(2);
+                                variant = 105;
+                                return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                roads.Remove(2);
+                                variant = 104;
+                                return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                roads.Remove(2);
+                                roads.Remove(3);
+                                variant = 103;
+                                return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                            }
+                            break;
+                        case 1:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 20)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 96;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 20)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 250;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 25)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 251;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 18)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 113;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 24)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 116;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 24)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 113;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 30)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 114;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 24)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 116;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 30)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 106;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 21)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 118;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 21)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 117;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 28)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 118;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate  == 35)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 119;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 35)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 117;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 42)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 101;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                roads.Remove(1);
+                                roads.Remove(2);
+                                roads.Remove(3);
+                                roads.Remove(4);
+                                variant = 121;
+                                return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 32)
+                                {
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 122;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 40)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    variant = 123;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 40)
+                                {
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    variant = 124;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 48)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    variant = 102;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 2:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 10)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 100;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 15)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 99;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 15)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 248;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 12)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 109;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 12)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 107;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 18)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 108;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 18)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 109;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 18)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 107;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 24)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 108;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 14)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 112;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 14)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 110;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 21)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 111;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 21)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 112;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 21)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 110;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 28)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 111;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 16)
+                                {
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 115;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 24)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 120;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 24)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 125;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 3:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 5)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 254;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 5)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 244;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 10)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 246;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 6)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 128;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 6)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 126;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 6)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 127;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 12)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 128;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 12)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 126;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 7)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 131;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 7)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 129;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 7)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 130;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 14)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 131;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 14)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 129;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 8)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 132;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 8)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 133;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 16)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 134;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 16)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 132;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 4:
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 137;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 6)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 135;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 7)
+                                {
+                                    roads.Remove(2);
+                                    roads.Remove(3);
+                                    roads.Remove(4);
+                                    variant = 136;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    variant = 138;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    variant = 139;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, W);
+                                if (gate == 8)
+                                {
+                                    roads.Remove(4);
+                                    variant = 140;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        default:
+                            Debug.Log("GetWalledIndex: wrong position " + position.Item1 + "x" + position.Item2 + "settlement.");
+                            return -1;
+                    }
+                    break;
+                case 1:
+                    switch (position.Item2)
+                    {
+                        case 0:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 26)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 145;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 31)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 147;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 25)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 90;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 31)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 141;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 37)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 142;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 43)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 143;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 29)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 239;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 30)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 240;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 36)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 144;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 37)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 145;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 43)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 146;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 44)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 147;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 50)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 148;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 51)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 149;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 42)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 141;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 50)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 142;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 58)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 143;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 4:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 154;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 156;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 94;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 150;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 151;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 152;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 234;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 235;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 153;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 154;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 155;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 156;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 1)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 157;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 158;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 150;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 151;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 152;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        default:
+                            Debug.Log("GetWalledIndex: wrong position " + position.Item1 + "x" + position.Item2 + "settlement.");
+                            return -1;
+                    }
+                    break;
+                case 2:
+                    switch (position.Item2)
+                    {
+                        case 0:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 27)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 165;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 32)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 166;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 26)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 89;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 27)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 88;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 32)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 159;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 33)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 160;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 38)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 161;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 39)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 162;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 44)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 163;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 45)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 164;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 31)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 241;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 38)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 165;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 45)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 166;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 52)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 167;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 43)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 159;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 44)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 160;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 51)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 161;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 52)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 162;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 59)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 163;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 60)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 164;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 4:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 174;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 175;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 93;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 92;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 168;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 169;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 170;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 171;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 2)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 172;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 173;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 236;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 174;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 175;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 176;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 168;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 169;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 170;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 171;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 172;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 173;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        default:
+                            Debug.Log("GetWalledIndex: wrong position " + position.Item1 + "x" + position.Item2 + "settlement.");
+                            return -1;
+                    }
+                    break;
+                case 3:
+                    switch (position.Item2)
+                    {
+                        case 0:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 28)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 180;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 33)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 182;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 28)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 87;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 34)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 177;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 40)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 178;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 46)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 179;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 32)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 242;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 33)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 243;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 39)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 180;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 40)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 181;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 46)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 182;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 47)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 183;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 53)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 184;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 54)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 185;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 45)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 177;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 53)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 178;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 54)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 198;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }                                
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 61)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 179;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 62)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 200;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 4:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 189;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 3)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 191;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 91;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 186;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 187;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 188;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 237;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 5)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 238;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 189;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 5)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 190;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 191;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 5)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 192;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 4)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 193;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 5)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 194;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 5)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 186;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 6)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 230;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 5)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 187;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 6)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 231;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, S);
+                                if (gate == 5)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 188;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 6)
+                                {
+                                    roads.Remove(4);
+                                    roads.Remove(5);
+                                    roads.Remove(6);
+                                    variant = 232;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        default:
+                            Debug.Log("GetWalledIndex: wrong position " + position.Item1 + "x" + position.Item2 + "settlement.");
+                            return -1;
+                    }
+                    break;
+                case 4:
+                    switch (position.Item2)
+                    {
+                        case 0:
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 41)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 195;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 48)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 196;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, N);
+                                if (gate == 46)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(1);
+                                    roads.Remove(2);
+                                    variant = 197;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 55)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 199;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 1:
+                            if (width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 24)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 95;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 24)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 252;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 29)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 253;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 23)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 202;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 29)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 201;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 29)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 202;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 35)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 203;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 35)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 201;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 27)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 205;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 34)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 204;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 34)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 205;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 41)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 206;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 41)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 204;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 39)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 207;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 39)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 208;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 47)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 209;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if (width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 47)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 207;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 2:
+                            if ( width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 14)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 98;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 19)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 97;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 19)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 249;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 17)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 212;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 17)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 210;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 23)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 211;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 23)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 212;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 23)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 210;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 29)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 211;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 20)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 215;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 20)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 213;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 27)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 214;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 27)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 215;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 27)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 213;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 34)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 214;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 23)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 216;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 31)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 217;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 31)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 218;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 31)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 216;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 39)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 217;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        case 3:
+                            if ( width == 5 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 9)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 255;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 5 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 9)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 245;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 14)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 247;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 11)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 221;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 11)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 219;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 11)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 220;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 17)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 221;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 6 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 11)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 228;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 17)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 219;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 5)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 13)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 224;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 13)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 222;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 13)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 223;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 20)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 224;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 7 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 13)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 229;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 20)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 222;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 8 && height == 6)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 15)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 225;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 8 && height == 7)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 15)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 226;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 23)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 227;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            if ( width == 8 && height == 8)
+                            {
+                                gate = GetWallGate(location.Exterior.ExteriorData.BlockNames, (byte)width, (byte)height, E);
+                                if (gate == 15)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 233;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                                if (gate == 23)
+                                {
+                                    roads.Remove(0);
+                                    roads.Remove(6);
+                                    roads.Remove(7);
+                                    variant = 225;
+                                    return RecodeTrail(roads, dirtRoads, tracks, crossroad, variant);
+                                }
+                            }
+                            break;
+                        default:
+                            Debug.Log("GetWalledIndex: wrong position " + position.Item1 + "x" + position.Item2 + "settlement.");
+                            return -1;
+                    }
+                    break;
+                default:
+                    Debug.Log("GetWalledIndex: wrong position " + position.Item1 + "x" + position.Item2 + "settlement.");
+                    return -1;
+            }
+            Debug.Log("GetWalledIndex: wrong position " + position.Item1 + "x" + position.Item2 + "settlement.");
+            return -1;
+        }
+
+        protected long RecodeTrail(List<int> road, List<int> dirt, List<int> track, int crossroad, int variant)
+        {
+            long trail = 0;
+            int roads = RecalculateByteFromList(road);
+            int dirtRoads = RecalculateByteFromList(dirt);
+            int tracks = RecalculateByteFromList(track);
+
+            if (variant == 0)
+                trail = roads + (dirtRoads * DIRTINDEX) + (tracks * TRACKINDEX) + (crossroad * FUNCINDEX);
+            else
+                trail = roads + (dirtRoads * DIRTINDEX) + (tracks * TRACKINDEX) + (variant * FUNCINDEX);
+
+            return trail;
+        }
+
+        protected int RecalculateByteFromList(List<int> trail)
+        {
+            int trails = 0;
+            foreach (int track in trail)
+            {
+                trails += (int)Math.Pow(2.0f, (double)track);
+            }
+            return trails;
+        }
+
+        protected bool CrossroadInsideLocation((int, int) trail, DFLocation location)
+        {
+            int locWidth = location.Exterior.ExteriorData.Width * 16;
+            int locHeight = location.Exterior.ExteriorData.Height * 16;
+
+            if ((64 - locWidth / 2 <= trail.Item1 * 25 && 64 + locWidth / 2 >= trail.Item1 * 25) &&
+                (64 - locHeight / 2 <= trail.Item2 * 25 && 64 + locHeight / 2 >= trail.Item2 * 25))
+                return true;
+            return false;
+        }
+
+        /// <summary>
+        /// Check if a location is walled based on the presence of "WALL" RMBs;
+        /// simple, but effective.
+        /// </summary>
+        protected bool IsWalledLocation(DFLocation location)
+        {
+            int counter = 0;
+            bool isWalled = false;
+
+            while (counter < location.Exterior.ExteriorData.BlockNames.Length && !isWalled)
+            {
+                if (location.Exterior.ExteriorData.BlockNames[counter].StartsWith("WALL"))
+                    isWalled = true;
+                counter++;
+            }
+            return isWalled;
+        }
+
+        protected bool RoadEnteringLocation(int compositeTrail, (int, int) trail, DFLocation location)
+        {
+            int width = location.Exterior.ExteriorData.Width;
+            int height = location.Exterior.ExteriorData.Height;
+
+            if (IsWalledLocation(location))
+            {
+                width -= 2;
+                height -= 2;
             }
 
-            return baseBuffer;
+            int locWidth = width * 16;
+            int locHeight = height * 16;
+
+            byte trailShape = (byte)((compositeTrail % FUNCINDEX) / TRACKINDEX + (compositeTrail % TRACKINDEX) / DIRTINDEX + compositeTrail % DIRTINDEX);
+            int dir1 = -1;
+            int dir2 = -1;
+            List<int> directions = new List<int>();
+
+            for (int shift = 7; shift >= 0; shift--)
+            {
+                if ((trailShape >> shift) % 2 != 0)
+                {
+                    if (dir1 == -1) dir1 = shift;
+                    else dir2 = shift;
+                }
+            }
+            directions.Add(dir1);
+            directions.Add(dir2);
+
+            switch (width)
+            {
+                case 1:
+                    switch (height)
+                    {
+                        case 1:
+                            if (trail.Equals((2, 2)))
+                                return true;
+                            else return false;
+                            
+                        case 2:
+                            if (trail.Equals((2, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((2, 1)) && directions.Contains(1)) return true;
+                            if (trail.Equals((2, 3)) && directions.Contains(5)) return true;
+                            return false;
+
+                        case 3: // Rare 1x3 village shape
+                            if (trail.Equals((2, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((2, 1)) && (directions.Contains(0) || 
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((2, 3)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            return false;
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return false;
+                    }
+                case 2:
+                    switch (height)
+                    {
+                        case 1:
+                            if (trail.Equals((2, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((1, 2)) && directions.Contains(3)) return true;
+                            if (trail.Equals((3, 2)) && directions.Contains(7)) return true;
+                            return false;
+                        case 2:
+                        case 3: // Should be treated the same as 2x2 (TEST required, but at the moment EVERYTHING requires test...)
+                            if (trail.Equals((1, 1)) && directions.Contains(2)) return true;
+                            if (trail.Equals((3, 1)) && directions.Contains(0)) return true;
+                            if (trail.Equals((1, 3)) && directions.Contains(4)) return true;
+                            if (trail.Equals((3, 3)) && directions.Contains(6)) return true;
+                            if (trail.Equals((2, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2))) 
+                                return true;
+                            if (trail.Equals((1, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4))) 
+                                return true;
+                            if (trail.Equals((3, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7))) 
+                                return true;
+                            if (trail.Equals((2, 3)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6))) 
+                                return true;
+                            return false;
+                        case 4: // Rare 2x4 hamlet shape
+                            if (trail.Equals((2, 1)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6))) 
+                                return true;
+                            if (trail.Equals((2, 3)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2))) 
+                                return true;
+                            if (trail.Equals((1, 1)) && (directions.Contains(2) ||
+                                                         directions.Contains(3)))
+                                return true;
+                            if (trail.Equals((3, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((1, 3)) && (directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((3, 3)) && (directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((1, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((3, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            return false;
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return false;
+                    }
+                case 3:
+                    switch (height)
+                    {
+                        case 1: // Rare 3x1 village shape
+                            if (trail.Equals((2, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((1, 2)) && (directions.Contains(2) || 
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((3, 2)) && (directions.Contains(0) || 
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            return false;
+                        case 2:
+                        case 3:
+                            if (trail.Equals((1, 1)) && directions.Contains(2)) return true;
+                            if (trail.Equals((3, 1)) && directions.Contains(0)) return true;
+                            if (trail.Equals((1, 3)) && directions.Contains(4)) return true;
+                            if (trail.Equals((3, 3)) && directions.Contains(6)) return true;
+                            if (trail.Equals((2, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2))) 
+                                return true;
+                            if (trail.Equals((1, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4))) 
+                                return true;
+                            if (trail.Equals((3, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7))) 
+                                return true;
+                            if (trail.Equals((2, 3)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6))) 
+                                return true;
+                            return false;
+                        case 4:
+                            if (trail.Equals((2, 1)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6))) 
+                                return true;
+                            if (trail.Equals((2, 3)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2))) 
+                                return true;
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((1, 2)) ||
+                                 trail.Equals((1, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if ((trail.Equals((3, 1)) ||
+                                 trail.Equals((3, 2)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            return false;
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return false;
+                    }
+                case 4:
+                    switch (height)
+                    {
+                        case 2: // Rare 4x2 hamlet shape
+                            if (trail.Equals((1, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7))) 
+                                return true;
+                            if (trail.Equals((3, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4))) 
+                                return true;
+                            if (trail.Equals((1, 1)) && (directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((3, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(1)))
+                                return true;
+                            if (trail.Equals((1, 3)) && (directions.Contains(4) ||
+                                                         directions.Contains(5)))
+                                return true;
+                            if (trail.Equals((3, 3)) && (directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((2, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((2, 3)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            return false;
+                        case 3:
+                            if (trail.Equals((1, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7))) 
+                                return true;
+                            if (trail.Equals((3, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4))) 
+                                return true;
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((2, 1)) ||
+                                 trail.Equals((3, 1))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((1, 3)) ||
+                                 trail.Equals((2, 3)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            return false;
+                        case 4:
+                            if (trail.Equals((1, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((3, 1)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((1, 3)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((3, 3)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((2, 1)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((2, 3)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((1, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((3, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            return false;
+                        case 5:
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((1, 2)) ||
+                                 trail.Equals((1, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((3, 1)) ||
+                                 trail.Equals((3, 2)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((1, 0)) && (directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((3, 0)) && (directions.Contains(0) ||
+                                                         directions.Contains(1)))
+                                return true;
+                            if (trail.Equals((1, 4)) && (directions.Contains(4) ||
+                                                         directions.Contains(5)))
+                                return true;
+                            if (trail.Equals((3, 0)) && (directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((2, 0)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((2, 4)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            return false;
+                        case 6:
+                            if ((trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((1, 2)) ||
+                                 trail.Equals((1, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((3, 1)) ||
+                                 trail.Equals((3, 2)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            return false;
+                        case 7:
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((1, 2)) ||
+                                 trail.Equals((1, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((3, 1)) ||
+                                 trail.Equals((3, 2)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((2, 0)) && (directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((2, 4)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((1, 0)) && (directions.Contains(0) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((3, 0)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((1, 4)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((3, 4)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            return false;
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return false;
+                    }
+                case 5:
+                    switch (height)
+                    {
+                        case 4:
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((2, 1)) ||
+                                 trail.Equals((3, 1))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((1, 3)) ||
+                                 trail.Equals((2, 3)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((0, 1)) && (directions.Contains(2) ||
+                                                         directions.Contains(3)))
+                                return true;
+                            if (trail.Equals((4, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((0, 3)) && (directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((4, 3)) && (directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((0, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((4, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            return false;
+                        case 5:
+                        case 6:
+                            if ((trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if ((trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((0, 0)) && directions.Contains(2))
+                                return true;
+                            if (trail.Equals((4, 0)) && directions.Contains(0))
+                                return true;
+                            if (trail.Equals((0, 4)) && directions.Contains(4))
+                                return true;
+                            if (trail.Equals((4, 4)) && directions.Contains(6))
+                                return true;
+                            return false;
+                        case 7:
+                            if ((trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if ((trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((0, 0)) && (directions.Contains(2) ||
+                                                         directions.Contains(3)))
+                                return true;
+                            if (trail.Equals((4, 0)) && (directions.Contains(0) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((0, 4)) && (directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((4, 4)) && (directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            return false;
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return false;
+                    }
+                case 6:
+                    switch (height)
+                    {
+                        case 4:
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((1, 2)) ||
+                                 trail.Equals((1, 3))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((1, 3)) ||
+                                 trail.Equals((2, 3)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if ((trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            return false;
+                        case 5:
+                        case 6:
+                            if ((trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if ((trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((0, 0)) && directions.Contains(2))
+                                return true;
+                            if (trail.Equals((4, 0)) && directions.Contains(0))
+                                return true;
+                            if (trail.Equals((0, 4)) && directions.Contains(4))
+                                return true;
+                            if (trail.Equals((4, 4)) && directions.Contains(6))
+                                return true;
+                            return false;
+                        case 7:
+                            if ((trail.Equals((0, 0)) ||
+                                 trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if ((trail.Equals((4, 0)) ||
+                                 trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            return false;
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return false;
+                    }
+                case 7:
+                    switch (height)
+                    {
+                        case 4:
+                            if ((trail.Equals((1, 1)) ||
+                                 trail.Equals((2, 1)) ||
+                                 trail.Equals((3, 1))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((1, 3)) ||
+                                 trail.Equals((2, 3)) ||
+                                 trail.Equals((3, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((0, 2)) && (directions.Contains(0) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((4, 2)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((0, 1)) && (directions.Contains(0) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((4, 1)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((0, 3)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((4, 3)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            return false;
+                        case 5:
+                            if ((trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((0, 0)) && (directions.Contains(1) ||
+                                                         directions.Contains(2)))
+                                return true;
+                            if (trail.Equals((4, 0)) && (directions.Contains(0) ||
+                                                         directions.Contains(1)))
+                                return true;
+                            if (trail.Equals((0, 4)) && (directions.Contains(4) ||
+                                                         directions.Contains(5)))
+                                return true;
+                            if (trail.Equals((4, 4)) && (directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            return false;
+                        case 6:
+                            if ((trail.Equals((0, 0)) ||
+                                 trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0)) ||
+                                 trail.Equals((4, 0))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((0, 4)) ||
+                                 trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4)) ||
+                                 trail.Equals((4, 4))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            return false;
+                        case 7:
+                            if ((trail.Equals((1, 0)) ||
+                                 trail.Equals((2, 0)) ||
+                                 trail.Equals((3, 0))) && (directions.Contains(4) ||
+                                                           directions.Contains(5) ||
+                                                           directions.Contains(6)))
+                                return true;
+                            if ((trail.Equals((1, 4)) ||
+                                 trail.Equals((2, 4)) ||
+                                 trail.Equals((3, 4))) && (directions.Contains(0) ||
+                                                           directions.Contains(1) ||
+                                                           directions.Contains(2)))
+                                return true;
+                            if ((trail.Equals((0, 1)) ||
+                                 trail.Equals((0, 2)) ||
+                                 trail.Equals((0, 3))) && (directions.Contains(0) ||
+                                                           directions.Contains(6) ||
+                                                           directions.Contains(7)))
+                                return true;
+                            if ((trail.Equals((4, 1)) ||
+                                 trail.Equals((4, 2)) ||
+                                 trail.Equals((4, 3))) && (directions.Contains(2) ||
+                                                           directions.Contains(3) ||
+                                                           directions.Contains(4)))
+                                return true;
+                            if (trail.Equals((0, 0)) && (directions.Contains(0) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((4, 0)) && (directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4) ||
+                                                         directions.Contains(5) ||
+                                                         directions.Contains(6)))
+                                return true;
+                            if (trail.Equals((0, 4)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(6) ||
+                                                         directions.Contains(7)))
+                                return true;
+                            if (trail.Equals((4, 4)) && (directions.Contains(0) ||
+                                                         directions.Contains(1) ||
+                                                         directions.Contains(2) ||
+                                                         directions.Contains(3) ||
+                                                         directions.Contains(4)))
+                                return true;
+                            return false;
+                        default:
+                            Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                            return false;
+                    }
+                default:
+                    Debug.Log("Not contemplated location shape: " + width + "x" + height);
+                    return false;
+            }            
+            return false;
         }
 
         protected byte GetTrailShape((int, int) trail, List<(int, int)> trailToAdd)
@@ -1969,12 +6477,12 @@ namespace MapEditor
             return (byte)(exits.Item1 + exits.Item2);
         }
 
-        protected (byte, byte, byte)[,] GenerateTrailMap(List<DFPosition> trail, (byte, byte, byte)[,] trailMap, TrailTypes trailPreference, int strtIndex, int arrvIndex)
+        protected (byte, byte, byte, byte)[,] GenerateTrailMap(List<DFPosition> trail, (byte, byte, byte, byte)[,] trailMap, TrailTypes trailPreference, int strtIndex, int arrvIndex)
         {
             int counter = 0;
-            byte trailToPlace1;
-            byte trailToPlace2;
-            byte resultingTrailToPlace;
+            byte trailToPlace1 = 0;
+            byte trailToPlace2 = 0;
+            byte resultingTrailToPlace = 0;
             // byte[,] trailResult = new byte[MapsFile.MaxMapPixelX, MapsFile.MaxMapPixelY];
 
             foreach (DFPosition trailSection in trail)
@@ -1983,12 +6491,17 @@ namespace MapEditor
                 xDir = yDir = 0;
                 DFPosition trailSectionConv = ConvertToRelative(trailSection);
 
-                if (trailPreference == TrailTypes.Road)
+                switch (trailPreference)
                 {
-                    resultingTrailToPlace = trailMap[trailSectionConv.X, trailSectionConv.Y].Item1;
-                }
-                else{
-                    resultingTrailToPlace = trailMap[trailSectionConv.X, trailSectionConv.Y].Item2;
+                    case TrailTypes.Road:
+                        resultingTrailToPlace = trailMap[trailSectionConv.X, trailSectionConv.Y].Item1;
+                        break;
+                    case TrailTypes.DirtRoad:
+                        resultingTrailToPlace = trailMap[trailSectionConv.X, trailSectionConv.Y].Item2;
+                        break;
+                    case TrailTypes.Track:
+                        resultingTrailToPlace = trailMap[trailSectionConv.X, trailSectionConv.Y].Item3;
+                        break;
                 }
 
                 if (counter > 0)
@@ -2011,26 +6524,69 @@ namespace MapEditor
 
                 int mapId = MapEditor.GetMapPixelIDFromPosition(trailSection);
 
-                if (trailPreference == TrailTypes.Road)
+                // byte direction = GetTrailToPlace(xDir, yDir);
+                GetIndexFromByte(trailToPlace1, out int index1);
+                GetIndexFromByte(trailToPlace2, out int index2);
+                // Debug.Log("xDir: " + xDir + ", yDir: " + yDir + ", direction: " + direction + ", result.Item1: " + result.Item1 + ", index1: " + index1 + ", index2: " + index2);
+                // Debug.Log("signData.locNames.Count: " + signData.locNames.Count + ", strtIndex: " + strtIndex + ", arrvIndex: " + arrvIndex);
+                string[][] roadsign = new string[8][];
+
+                if (!signData.roadsign.ContainsKey(mapId))
                 {
-                    trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 = resultingTrailToPlace;                    
-                    // if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 > 0)
-                    // {
-                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(resultingTrailToPlace, trailMap[trailSectionConv.X, trailSectionConv.Y].Item2, mapId, strtIndex, arrvIndex, xDir, yDir);
-                    // }
-                    // else
-                    // {
-                    //     signData.roadsign.Add(mapId, );
-                    // }
-                }                    
-                else{
-                    trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 = resultingTrailToPlace;
-                    // if (trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 > 0)
-                    // {
-                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(trailMap[trailSectionConv.X, trailSectionConv.Y].Item1, resultingTrailToPlace, mapId, strtIndex, arrvIndex, xDir, yDir);
-                    // }
+                    roadsign[index1] = new string[] { signData.locNames[strtIndex] };
+                    roadsign[index2] = new string[] { signData.locNames[arrvIndex] };
+                    signData.roadsign.Add(mapId, roadsign);
+                }
+                else
+                {
+                    for (int i = 7; i >= 0; i--)
+                    {
+                        if (signData.roadsign[mapId][i] == null)
+                        {
+                            if (i == index1)
+                            {
+                                signData.roadsign[mapId][i] = new string[] { signData.locNames[strtIndex] };
+                            }
+                            if (i == index2)
+                            {
+                                signData.roadsign[mapId][i] = new string[] { signData.locNames[arrvIndex] };
+                            }
+                        }
+                        else
+                        {
+                            if (i == index1 || i == index2)
+                            {
+                                if (i == index1 && !signData.roadsign[mapId][i].Contains(signData.locNames[strtIndex]))
+                                {
+                                    roadsign[i] = new string[signData.roadsign[mapId].Length + 1];
+                                    roadsign[i] = (signData.roadsign[mapId][i].Concat(new string[] { signData.locNames[strtIndex] })).ToArray<string>();
+                                }
+                                if (i == index2 && !signData.roadsign[mapId][i].Contains(signData.locNames[arrvIndex]))
+                                {
+                                    roadsign[i] = new string[signData.roadsign[mapId].Length + 1];
+                                    roadsign[i] = (signData.roadsign[mapId][i].Concat(new string[] { signData.locNames[arrvIndex] })).ToArray<string>();
+                                }
+                                signData.roadsign[mapId][i] = roadsign[i];
+                            }
+                        }
+                    }
                 }
 
+                switch (trailPreference)
+                {
+                    case TrailTypes.Road:
+                        trailMap[trailSectionConv.X, trailSectionConv.Y].Item1 = resultingTrailToPlace;                    
+                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(resultingTrailToPlace, trailMap[trailSectionConv.X, trailSectionConv.Y].Item2, trailMap[trailSectionConv.X, trailSectionConv.Y].Item3, mapId, strtIndex, arrvIndex, xDir, yDir);
+                        break;
+                    case TrailTypes.DirtRoad:
+                        trailMap[trailSectionConv.X, trailSectionConv.Y].Item2 = resultingTrailToPlace;                    
+                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(trailMap[trailSectionConv.X, trailSectionConv.Y].Item1, resultingTrailToPlace, trailMap[trailSectionConv.X, trailSectionConv.Y].Item3, mapId, strtIndex, arrvIndex, xDir, yDir);
+                        break;
+                    case TrailTypes.Track:
+                        trailMap[trailSectionConv.X, trailSectionConv.Y].Item3 = resultingTrailToPlace;                    
+                        trailMap[trailSectionConv.X, trailSectionConv.Y] = MergeTrail(trailMap[trailSectionConv.X, trailSectionConv.Y].Item1, trailMap[trailSectionConv.X, trailSectionConv.Y].Item2, resultingTrailToPlace, mapId, strtIndex, arrvIndex, xDir, yDir);
+                        break;
+                }
                 counter++;
             }
 
@@ -2060,13 +6616,14 @@ namespace MapEditor
             return resultTrail;
         }
 
-        protected (byte, byte, byte) MergeTrail(byte roadByte, byte trackByte, int mapID, int strtIndex, int arrvIndex, int xDir = 0, int yDir = 0)
+        protected (byte, byte, byte, byte) MergeTrail(byte roadByte, byte dirtByte, byte trackByte, int mapID, int strtIndex, int arrvIndex, int xDir = 0, int yDir = 0)
         {
-            (byte, byte, byte) result = (0, 0, 0);
+            (byte, byte, byte, byte) result = (0, 0, 0, 0);
             int baseValue = 2;
             int pow = 7;
-            result.Item3 = 0;
+            // result.Item3 = 0;
             byte roadWiP = roadByte;
+            byte dirtWiP = dirtByte;
             byte trackWiP = trackByte;
 
             do{
@@ -2074,56 +6631,134 @@ namespace MapEditor
 
                 if (roadByte >= factor)
                     result.Item1 += factor;
-                else if (trackByte >= factor)
+                else if (dirtByte >= factor)
                     result.Item2 += factor;
+                else if (trackByte >= factor)
+                    result.Item3 += factor;
 
                 if (roadByte >= factor) roadByte -= factor;
+                if (dirtByte >= factor) dirtByte -= factor;
                 if (trackByte >= factor) trackByte -= factor;
 
                 pow--;
             }
             while (pow >= 0 && (roadByte >= 0 || trackByte >= 0));
 
-            byte direction = GetTrailToPlace(xDir, yDir);
-            GetIndexFromByte((byte)(result.Item1 - direction), out int index1);
-            GetIndexFromByte(direction, out int index2);
+            // byte direction = GetTrailToPlace(xDir, yDir);
+            // GetIndexFromByte((byte)(result.Item1 - direction), out int index1);
+            // GetIndexFromByte(result.Item1, out int index2);
             // Debug.Log("xDir: " + xDir + ", yDir: " + yDir + ", direction: " + direction + ", result.Item1: " + result.Item1 + ", index1: " + index1 + ", index2: " + index2);
-            Debug.Log("signData.locNames.Count: " + signData.locNames.Count + ", strtIndex: " + strtIndex + ", arrvIndex: " + arrvIndex);
-            if (!signData.roadsign.ContainsKey(mapID))
-            {
-                string[][] roadsign = new string[8][];                
+            // Debug.Log("signData.locNames.Count: " + signData.locNames.Count + ", strtIndex: " + strtIndex + ", arrvIndex: " + arrvIndex);
+            // if (!signData.roadsign.ContainsKey(mapID))
+            // {
+            //     string[][] roadsign = new string[8][];
                
-                roadsign[index1] = new string[] { signData.locNames[strtIndex] };
-                roadsign[index2] = new string[] { signData.locNames[arrvIndex] };
-                signData.roadsign.Add(mapID, roadsign);
-            }
+            //     roadsign[index1] = new string[] { signData.locNames[strtIndex] };
+            //     roadsign[index2] = new string[] { signData.locNames[arrvIndex] };
+            //     signData.roadsign.Add(mapID, roadsign);
+            // }
+            // else
+            // {
+            //     string[][] roadsign = new string[8][];
+            //     for (int i = 7; i >= 0; i--)
+            //     {
+            //         if (signData.roadsign[mapID][i] == null)
+            //         {
+            //             if (i == index1)
+            //             {
+            //                 signData.roadsign[mapID][i] = new string[] { signData.locNames[strtIndex] };
+            //             }
+            //             if (i == index2)
+            //             {
+            //                 signData.roadsign[mapID][i] = new string[] { signData.locNames[arrvIndex] };
+            //             }
+            //         }
+            //         else
+            //         {
+            //             if (i == index1 || i == index2)
+            //             {
+            //                 if (i == index1 && !signData.roadsign[mapID][i].Contains(signData.locNames[strtIndex]))
+            //                 {
+            //                     roadsign[i] = new string[signData.roadsign[mapID].Length + 1];
+            //                     roadsign[i] = (signData.roadsign[mapID][i].Concat(new string[] { signData.locNames[strtIndex] })).ToArray<string>();
+            //                 }
+            //                 if (i == index2 && !signData.roadsign[mapID][i].Contains(signData.locNames[arrvIndex]))
+            //                 {
+            //                     roadsign[i] = new string[signData.roadsign[mapID].Length + 1];
+            //                     roadsign[i] = (signData.roadsign[mapID][i].Concat( new string[] { signData.locNames[arrvIndex] })).ToArray<string>();
+            //                 }
+            //                 signData.roadsign[mapID][i] = roadsign[i];
+            //             }
+            //         }
+            //     }
+            // }
 
             // Debug.Log("roadWiP: " + roadWiP + ", trackWiP: " + trackWiP);
-            if (IsCrossRoad(roadWiP, trackWiP, out byte CRshape))
+            if (IsCrossRoad(roadWiP, dirtWiP, trackWiP, out byte CRshape))
             {
-                result.Item3 = 25;
+                result.Item4 = 25;
                 int index = 0;
                 List<int> directions = GetIndexesFromByte(CRshape);
+                Debug.Log("mapID: " + mapID);
 
-                foreach (int dir in directions)
+                for (int dir = 0; dir < 8; dir++)
                 {
-                    if (signData.roadsign[mapID][dir] == null)
+                    if (directions.Contains(dir))
                     {
-                        if (dir == index1)
-                            signData.roadsign[mapID][dir] = new string[] { signData.locNames[strtIndex] };
-                        else
-                            signData.roadsign[mapID][dir] = new string[] { signData.locNames[arrvIndex] };
-                    }
-                    else{
-                        if (dir == index1 || dir == index2)
+                        if (signData.roadsign[mapID][dir] == null)
                         {
-                            List<string> arraySum = signData.roadsign[mapID][dir].ToList();
-                            if (dir == index1)
-                                arraySum.Add(signData.locNames[strtIndex]);
-                            else
-                                arraySum.Add(signData.locNames[arrvIndex]);
-                            signData.roadsign[mapID][dir] = arraySum.ToArray();
+                            Debug.Log("Found null roadsign at mapID: " + mapID + ", direction: " + dir);
+                            // if (dir == index1)
+                            //     signData.roadsign[mapID][dir] = new string[] { signData.locNames[strtIndex] };
+                            // else if (dir == index2)
+                            //     signData.roadsign[mapID][dir] = new string[] { signData.locNames[arrvIndex] };
                         }
+                    }                    
+                    else{
+                        signData.roadsign[mapID][dir] = null;
+                        // if (dir == index1 || dir == index2)
+                        // {
+                        //     List<string> arraySum = signData.roadsign[mapID][dir].ToList();
+                        //     if (dir == index1 && !signData.roadsign[mapID][dir].Contains(signData.locNames[strtIndex]))
+                        //         arraySum.Add(signData.locNames[strtIndex]);
+                        //     else if (dir == index2 && !signData.roadsign[mapID][dir].Contains(signData.locNames[arrvIndex]))
+                        //         arraySum.Add(signData.locNames[arrvIndex]);
+                        //     signData.roadsign[mapID][dir] = arraySum.ToArray();
+                        // }
+                    }
+                }
+            }
+            if (Worldmaps.HasLocation(mapID / 7680, mapID % 7680, out MapSummary location))
+            {
+                result.Item3 = internalSign;
+                int index = 0;
+                List<int> directions = GetIndexesFromByte(CRshape);
+                Debug.Log("mapID: " + mapID);
+
+                for (int dir = 0; dir < 8; dir++)
+                {
+                    if (directions.Contains(dir))
+                    {
+                        if (signData.roadsign[mapID][dir] == null)
+                        {
+                            Debug.Log("Found null roadsign at mapID: " + mapID + ", direction: " + dir);
+                            // if (dir == index1)
+                            //     signData.roadsign[mapID][dir] = new string[] { signData.locNames[strtIndex] };
+                            // else if (dir == index2)
+                            //     signData.roadsign[mapID][dir] = new string[] { signData.locNames[arrvIndex] };
+                        }
+                    }                    
+                    else{
+                        signData.roadsign[mapID][dir] = null;
+                        // if (dir == index1 || dir == index2)
+                        // {
+                        //     List<string> arraySum = signData.roadsign[mapID][dir].ToList();
+                        //     if (dir == index1 && !signData.roadsign[mapID][dir].Contains(signData.locNames[strtIndex]))
+                        //         arraySum.Add(signData.locNames[strtIndex]);
+                        //     else if (dir == index2 && !signData.roadsign[mapID][dir].Contains(signData.locNames[arrvIndex]))
+                        //         arraySum.Add(signData.locNames[arrvIndex]);
+                        //     signData.roadsign[mapID][dir] = arraySum.ToArray();
+                        // }
                     }
                 }
             }
@@ -2131,40 +6766,41 @@ namespace MapEditor
             return result;
         }
 
-        protected static bool IsCrossRoad(byte road, byte track, out byte shape)
+        protected static bool IsCrossRoad(byte road, byte dirt, byte track, out byte shape)
         {
             byte result = 0;
-            shape = (byte)(road | track);
-            // Debug.Log("road: " + road + ", track: " + track + ", shape: " + shape);
+            shape = (byte)(road | dirt | track);
+            Debug.Log("road: " + road + ", dirt: " + dirt + ", track: " + track + ", shape: " + shape);
 
-            for (int shift = 7; shift > 0; shift--)
+            for (int shift = 7; shift >= 0; shift--)
             {
-                if ((shape >> shift) % 2 != 0 )
+                if ((shape >> shift) % 2 != 0)
                 {
                     result++;
                 }
             }
-            // Debug.Log("result: " + result);
+            Debug.Log("result: " + result);
 
             if (result >= 3)
                 return true;
             return false;
         }
 
-        protected static bool IsCrossRoad(int compositeTrail)
+        protected static bool IsCrossRoad(long compositeTrail)
         {
             byte result = 0;
-            byte trailShape = (byte)(compositeTrail / byte.MaxValue + compositeTrail % byte.MaxValue);
+            compositeTrail = compositeTrail % (FUNCINDEX);
+            byte trailShape = (byte)(compositeTrail / TRACKINDEX + (compositeTrail % TRACKINDEX) / DIRTINDEX + compositeTrail % DIRTINDEX);
 
-            // Debug.Log("trailShape: " + trailShape);
-            for (int shift = 7; shift > 0; shift--)
+            Debug.Log("IsCrossroad = compositeTrail: " + compositeTrail + ", trailShape: " + trailShape);
+            for (int shift = 7; shift >= 0; shift--)
             {
-                if ((trailShape >> shift) % 2 != 0 )
+                if ((trailShape >> shift) % 2 != 0)
                 {
                     result++;
                 }
             }
-            // Debug.Log("result: " + result);
+            Debug.Log("result: " + result);
 
             if (result >= 3)
                 return true;
@@ -2191,13 +6827,14 @@ namespace MapEditor
         }
 
         ///<summary>
-        /// Get a 0-7 index from byte IF said byte is a single direction
+        /// Get a 0-7 (SW - W) index from byte IF said byte is a single direction
         ///</summary>
         protected static bool GetIndexFromByte(byte direction, out int index)
         {
             int count = 0;
             int result = 0;
             index = 0;
+            Debug.Log("Working on direction: " + direction);
             while (direction > 0 && count < 2)
             {
                 if (direction % 2 > 0)
@@ -2214,11 +6851,11 @@ namespace MapEditor
         }
 
         ///<summary>
-        /// Get a list of 0-7 indexes from a byte
+        /// Get a list of 0-7 indexes from a byte (7 == west; 0 == southwest)
         ///</summary>
         protected static List<int> GetIndexesFromByte(byte shape)
         {
-            byte result = 0;
+            byte result = 7;
             List<int> indexes = new List<int>();
             // Debug.Log("shape: " + shape);
 
@@ -2229,7 +6866,7 @@ namespace MapEditor
                     indexes.Add(result);
                     // Debug.Log("result: " + result);
                 }
-                result++;
+                result--;
             }
             return indexes;
         }
@@ -2343,16 +6980,66 @@ namespace MapEditor
             if (compList.Exists(x => x.position == loc.position))
             {
                 index = compList.FindIndex(y => y.position == loc.position);
-
-                // foreach ((ulong, float) locDist in compList[index].locDistance)
-                // {
-                //     if 
-                // }
-                // List<(ulong, float)> intersect = compList[index].locDistance.Intersect(loc.locDistance).ToList();
                 compList[index].locDistance = loc.locDistance;
             }
-            // else compList.Add(loc);
+            return compList;
+        }
 
+        protected List<RoutedLocation> PruneDoubleTrails(List<RoutedLocation> compList)
+        {
+            for (int i = 0; i < compList.Count; i++)
+            {
+                for (int j = 0; j < compList[i].locDistance.Count; j++)
+                {
+                    DFPosition destPos = MapsFile.GetPixelFromPixelID(compList[i].locDistance[j].Item1);
+                    if (compList.Exists(a => a.position.Equals(destPos)))
+                    {
+                        int index1 = compList.FindIndex(b => b.position.Equals(destPos));
+                        if (compList[index1].locDistance.Exists(c => c.Item1 == MapsFile.GetMapPixelID(compList[i].position.X, compList[i].position.Y)))
+                        {
+                            int index2 = compList[index1].locDistance.FindIndex(d => d.Item1 == MapsFile.GetMapPixelID(compList[i].position.X, compList[i].position.Y));
+
+                            if (compList[index1].trailPreference == TrailTypes.Track)
+                            {
+                                compList[i].locDistance.RemoveAt(j);
+                            }
+                            else
+                            {
+                                compList[index1].locDistance.RemoveAt(index2);
+                            }
+                        }
+                    }
+                }
+            }
+
+            // List<RoutedLocation> compListSwap = new List<RoutedLocation>();
+            // compListSwap = compList;
+            // foreach (RoutedLocation routedLoc in compList)
+            // {
+            //     RoutedLocation routedLocSwap = routedLoc;
+            //     RoutedLocation locSwap = new RoutedLocation();
+            //     foreach ((ulong, float) locDist in routedLoc.locDistance)
+            //     {
+            //         locSwap = compListSwap[compListSwap.FindIndex(a => a.position.Equals(MapsFile.GetPixelFromPixelID(locDist.Item1)))];
+            //         if (locSwap.locDistance.Exists(b => b.Item1.Equals(MapsFile.GetMapPixelID(routedLocSwap.position.X, routedLocSwap.position.Y))))
+            //         {
+            //             int index = locSwap.locDistance.FindIndex(c => c.Item1.Equals(MapsFile.GetMapPixelID(routedLocSwap.position.X, routedLocSwap.position.Y)));
+            //             if (routedLocSwap.trailPreference == TrailTypes.Road && locSwap.trailPreference == TrailTypes.Track)
+            //             {
+            //                 locSwap.locDistance.RemoveAt(index);
+            //                 compListSwap[compListSwap.FindIndex(d => d.position.Equals(locSwap.position))] = locSwap;
+            //             }
+            //             else 
+            //             // if (routedLoc.trailPreference == TrailTypes.Track && locSwap.trailPreference == TrailTypes.Road)
+            //             {
+            //                 int indexPr = routedLocSwap.locDistance.FindIndex(f => f.Item1.Equals(MapsFile.GetMapPixelID(locSwap.position.X, locSwap.position.Y)));
+            //                 locSwap = routedLocSwap;
+            //                 locSwap.locDistance.RemoveAt(indexPr);
+            //                 compListSwap[compListSwap.FindIndex(e => e.position.Equals(locSwap.position))] = locSwap;
+            //             }
+            //         }
+            //     }
+            // }
             return compList;
         }
 
@@ -2594,7 +7281,7 @@ namespace MapEditor
         protected RoutedLocation CircularWaveScan(RoutedLocation location, int waveSize, ref List<RoutedLocation>[] routedLocations, List<DFPosition> destinations)
         {
             int xDir, yDir;
-            (int, int, int, int)[] modifiers = { (0, -1, 1, 1), (1, 0, -1, 1), (0, 1, 1, -1), (-1, 0, 1, 1) };
+            (int, int, int, int)[] modifiers = { (0, -1, 1, 1), (1, 0, -1, 1), (0, 1, -1, -1), (-1, 0, 1, -1) };
             MapSummary locationFound;
 
             for (int i = 0; i < waveSize * 4; i++)
@@ -2647,14 +7334,6 @@ namespace MapEditor
                 if (UnityEngine.Random.Range(0, 10) > 6)
                     return true;
             }
-            // else
-            // {
-            //     if (dungeon.Exterior.ExteriorData.BlockNames[0].Contains("CASTAA") ||
-            //         dungeon.Exterior.ExteriorData.BlockNames[0].Contains("RUINAA") ||
-            //         dungeon.Exterior.ExteriorData.BlockNames[0].Contains("GRVEAS"))
-            //         return true;
-            // }
-
             return false;
         }
     }

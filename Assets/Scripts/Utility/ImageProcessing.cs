@@ -513,6 +513,8 @@ namespace DaggerfallWorkshop.Utility
                     return DyeColors.Purple;
                 case DyeTargets.DarkBrownClothing:
                     return DyeColors.DarkBrown;
+                case DyeTargets.AdamantiumClothing:
+                    return DyeColors.Adamantium;
                 default:
                     return DyeColors.None;
             }

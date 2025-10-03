@@ -1386,12 +1386,12 @@ namespace DaggerfallWorkshop.Game.Items
             DaggerfallUnityItem casualPants = null;
             if (playerEntity.Gender == Genders.Female)
             {
-                shortShirt = ItemBuilder.CreateWomensClothing(WomensClothing.Short_shirt_closed, playerEntity.Race, 0, ItemBuilder.RandomClothingDye());
+                shortShirt = ItemBuilder.CreateWomensClothing(WomensClothing.Short_shirt_closed, playerEntity.Race, 0, -1, ItemBuilder.RandomClothingDye());
                 casualPants = ItemBuilder.CreateWomensClothing(WomensClothing.Casual_pants, playerEntity.Race);
             }
             else
             {
-                shortShirt = ItemBuilder.CreateMensClothing(MensClothing.Short_shirt, playerEntity.Race, 0, ItemBuilder.RandomClothingDye());
+                shortShirt = ItemBuilder.CreateMensClothing(MensClothing.Short_shirt, playerEntity.Race, 0, -1, ItemBuilder.RandomClothingDye());
                 casualPants = ItemBuilder.CreateMensClothing(MensClothing.Casual_pants, playerEntity.Race);
             }
             ItemBuilder.RandomizeClothingVariant(casualPants);
@@ -1734,7 +1734,7 @@ namespace DaggerfallWorkshop.Game.Items
                     AddOrEquipWornItem(enemyEntity, ItemBuilder.CreateWeapon(Weapons.Staff, FormulaHelper.RandomMaterial(luck, enemyEntity.Level)), true);
                     if (Dice100.SuccessRoll(chance))
                         AddOrEquipWornItem(enemyEntity, CreateWeapon(RandomShortblade(), FormulaHelper.RandomMaterial(luck, enemyEntity.Level)));
-                    AddOrEquipWornItem(enemyEntity, (playerGender == Genders.Male) ? ItemBuilder.CreateMensClothing(MensClothing.Plain_robes, playerRace) : ItemBuilder.CreateWomensClothing(WomensClothing.Plain_robes, playerRace), true);
+                    AddOrEquipWornItem(enemyEntity, (playerGender == Genders.Male) ? ItemBuilder.CreateMensClothing(MensClothing.Plain_robes, playerRace, enemyEntity.Level) : ItemBuilder.CreateWomensClothing(WomensClothing.Plain_robes, playerRace, enemyEntity.Level), true);
                     armored = 35;
                     prefLeather = true;
                     break;

@@ -265,7 +265,7 @@ namespace DaggerfallWorkshop.Game.UserInterfaceWindows
                 int slashIndex = startingBlock.LastIndexOf("/");
                 startingBlock = startingBlock.Substring(slashIndex + 1);
             }
-            Debug.Log("Using " + startingBlock + " as backgorund");
+            Debug.Log("Using " + startingBlock + " as background");
             // Add a block into the scene
             GameObjectHelper.CreateRMBBlockGameObject(startingBlock, 0, 0, 0, 0);
             backdropCreated = true;

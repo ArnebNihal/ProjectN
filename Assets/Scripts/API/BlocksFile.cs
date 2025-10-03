@@ -27,6 +27,10 @@ namespace DaggerfallConnect.Arena2
     /// </summary>
     public class BlocksFile
     {
+        public static string rmbPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/RMB";
+        public static string rdbPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/RDB";
+        public static string absoluteBlocks =  "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/BLOCKS.BSA";
+
         #region Class Variables
 
         /// <summary>
@@ -42,7 +46,7 @@ namespace DaggerfallConnect.Arena2
         /// <summary>
         /// The BsaFile representing BLOCKS.BSA.
         /// </summary>
-        private BsaFile bsaFile = new BsaFile();
+        private (string, int)[] bsaFile;
 
         /// <summary>
         /// Array of decomposed block records.
@@ -75,7 +79,7 @@ namespace DaggerfallConnect.Arena2
         /// <summary>
         /// Gets managed BSA file.
         /// </summary>
-        internal BsaFile BsaFile
+        internal (string, int)[] BsaFile
         {
             get { return bsaFile; }
         }
@@ -124,7 +128,7 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         public int Count
         {
-            get { return bsaFile.Count; }
+            get { return bsaFile.Length; }
         }
 
         #endregion
@@ -198,11 +202,13 @@ namespace DaggerfallConnect.Arena2
                 return false;
 
             // Load file
-            if (!bsaFile.Load(filePath, usage, readOnly))
+            if (!File.Exists(absoluteBlocks))
                 return false;
 
+            bsaFile = JsonConvert.DeserializeObject<(string, int)[]>(File.ReadAllText(absoluteBlocks));
+
             // Create records array
-            blocks = new BlockRecord[bsaFile.Count];
+            blocks = new BlockRecord[bsaFile.Length];
 
             return true;
         }
@@ -214,7 +220,7 @@ namespace DaggerfallConnect.Arena2
         /// <returns>Name of the block.</returns>
         public string GetBlockName(int block)
         {
-            return WorldDataReplacement.GetNewDFBlockName(block) ?? bsaFile.GetRecordName(block);
+            return Array.Find(bsaFile, x => x.Item2 == block).Item1;
         }
 
         /// <summary>
@@ -273,11 +279,12 @@ namespace DaggerfallConnect.Arena2
                 return blockNameLookup[name];
 
             // Check for any new blocks added next
-            int blockIndex = WorldDataReplacement.GetNewDFBlockIndex(name);
-            if (blockIndex != -1)
-                return blockIndex;
+            // int blockIndex = WorldDataReplacement.GetNewDFBlockIndex(name);
+            // if (blockIndex != -1)
+            //     return blockIndex;
 
             // Otherwise find and store index by searching for name
+            Debug.Log("GetBlockIndex = Count: " + Count);
             for (int i = 0; i < Count; i++)
             {
                 if (GetBlockName(i) == name)
@@ -299,7 +306,8 @@ namespace DaggerfallConnect.Arena2
         public bool LoadBlock(int block, out DFBlock outBlock)
         {
             // Validate
-            if (block < 0 || block >= bsaFile.Count)
+            if (block < 0)
+            // || block >= bsaFile.Length)
             {
                 outBlock = new DFBlock();
                 return false;
@@ -317,32 +325,48 @@ namespace DaggerfallConnect.Arena2
                 DiscardBlock(lastBlock);
 
             // Load record data
-            blocks[block].MemoryFile = bsaFile.GetRecordProxy(block);
-            if (blocks[block].MemoryFile == null)
-            {
-                outBlock = new DFBlock();
-                return false;
-            }
+            // blocks[block] = bsaFile.GetRecordProxy(block);
+            // if (blocks[block] == null)
+            // {
+            //     outBlock = new DFBlock();
+            //     return false;
+            // }
 
             // Set record name
-            blocks[block].Name = bsaFile.GetRecordName(block);
-            blocks[block].DFBlock.Name = bsaFile.GetRecordName(block);
-
-            // Set record type
+            blocks[block].Name = GetBlockName(block);
             blocks[block].DFBlock.Type = GetBlockType(block);
 
-            // Set record position and index
-            blocks[block].DFBlock.Position = bsaFile.GetRecordPosition(block);
-            blocks[block].DFBlock.Index = block;
+            Debug.Log("LoadBlock = trying to load " + blocks[block].Name);
+            switch (blocks[block].DFBlock.Type)
+            {
+                case DFBlock.BlockTypes.Rmb:
+                    blocks[block].DFBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(Path.Combine(rmbPath, blocks[block].Name + ".json")));
+                    blocks[block].DFBlock.ConvertTo2d();
+                    break;
+                case DFBlock.BlockTypes.Rdb:
+                    blocks[block].DFBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(Path.Combine(rdbPath, blocks[block].Name + ".json")));
+                    break;
+                default:
+                    Debug.Log("LoadBlock = Unknown block type.");
+                    outBlock = new DFBlock();
+                    return false;
+            }
+
+            // // Set record type
+            // blocks[block].DFBlock.Type = GetBlockType(block);
+
+            // // Set record position and index
+            // blocks[block].DFBlock.Position = bsaFile.GetRecordPosition(block);
+            // blocks[block].DFBlock.Index = block;
 
             outBlock = blocks[block].DFBlock;
 
             // Read record
-            if (!Read(block))
-            {
-                DiscardBlock(block);
-                return false;
-            }
+            // if (!Read(block))
+            // {
+            //     DiscardBlock(block);
+            //     return false;
+            // }
 
             // Store in lookup dictionary
             if (!blockNameLookup.ContainsKey(blocks[block].Name))
@@ -361,7 +385,7 @@ namespace DaggerfallConnect.Arena2
         public void DiscardBlock(int block)
         {
             // Validate
-            if (block >= bsaFile.Count)
+            if (block >= bsaFile.Length)
                 return;
 
             // Discard memory file and other data
@@ -381,7 +405,7 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         public void DiscardAllBlocks()
         {
-            for (int block = 0; block < bsaFile.Count; block++)
+            for (int block = 0; block < bsaFile.Length; block++)
             {
                 DiscardBlock(block);
             }
@@ -396,13 +420,13 @@ namespace DaggerfallConnect.Arena2
         {
             // Check for replacement block data and use it if found
             DFBlock dfBlock;
-            if (WorldDataReplacement.GetDFBlockReplacementData(block, GetBlockName(block), out dfBlock))
-            {
-                if (blocks.Length > block)
-                    blocks[block].DFBlock = dfBlock;
-                return dfBlock;
-            }
-            else
+            // if (WorldDataReplacement.GetDFBlockReplacementData(block, GetBlockName(block), out dfBlock))
+            // {
+            //     if (blocks.Length > block)
+            //         blocks[block].DFBlock = dfBlock;
+            //     return dfBlock;
+            // }
+            // else
             // Load the record
             if (!LoadBlock(block, out dfBlock))
                 return new DFBlock();
@@ -420,25 +444,59 @@ namespace DaggerfallConnect.Arena2
             // Look for block index
             int index = GetBlockIndex(name);
 
+            // if (index == -1)
+            // {
+            //     // Not found, search for alternate name
+            //     string alternateName = SearchAlternateRMBName(ref name);
+            //     if (!string.IsNullOrEmpty(alternateName))
+            //         index = GetBlockIndex(alternateName);
+
+            //     string customBlockPath = Path.Combine("RMB", name.Remove(0, 9), name + ".json");
+            //     if (File.Exists(customBlockPath))
+            //     {
+            //         DFBlock customBlock = new DFBlock();
+            //         string blockReplacementJson = File.ReadAllText(customBlockPath);
+            //         customBlock = (DFBlock)SaveLoadManager.Deserialize(typeof(DFBlock), blockReplacementJson);
+            //         // customBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(customBlockPath));
+            //         return customBlock;
+            //     }
+            // }
+
+            return GetBlock(index);
+        }
+
+        /// <summary>
+        /// Gets a DFBlock by name.
+        /// </summary>
+        /// <param name="name">Name of block.</param>
+        /// <returns>DFBlock object.</returns>
+        public bool GetBlock(string name, out DFBlock outBlock)
+        {
+            // Look for block index
+            int index = GetBlockIndex(name);
+
             if (index == -1)
             {
                 // Not found, search for alternate name
-                string alternateName = SearchAlternateRMBName(ref name);
-                if (!string.IsNullOrEmpty(alternateName))
-                    index = GetBlockIndex(alternateName);
+                // string alternateName = SearchAlternateRMBName(ref name);
+                // if (!string.IsNullOrEmpty(alternateName))
+                //     index = GetBlockIndex(alternateName);
 
-                string customBlockPath = Path.Combine(WorldMaps.mapPath, name.Remove(0, 9), name + ".json");
-                if (File.Exists(customBlockPath))
-                {
-                    DFBlock customBlock = new DFBlock();
-                    string blockReplacementJson = File.ReadAllText(customBlockPath);
-                    customBlock = (DFBlock)SaveLoadManager.Deserialize(typeof(DFBlock), blockReplacementJson);
-                    // customBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(customBlockPath));
-                    return customBlock;
-                }
+                // string customBlockPath = Path.Combine("RMB", name.Remove(0, 9), name + ".json");
+                // if (File.Exists(customBlockPath))
+                // {
+                //     DFBlock customBlock = new DFBlock();
+                //     string blockReplacementJson = File.ReadAllText(customBlockPath);
+                //     customBlock = (DFBlock)SaveLoadManager.Deserialize(typeof(DFBlock), blockReplacementJson);
+                //     // customBlock = JsonConvert.DeserializeObject<DFBlock>(File.ReadAllText(customBlockPath));
+                //     return customBlock;
+                // }
+                outBlock = new DFBlock();
+                return false;
             }
 
-            return GetBlock(index);
+            outBlock = GetBlock(index);
+            return true;
         }
 
         /// <summary>
@@ -451,7 +509,7 @@ namespace DaggerfallConnect.Arena2
         {
             // Create DFBitmap and copy data
             DFBitmap dfBitmap = new DFBitmap();
-            dfBitmap.Data = block.RmbBlock.FldHeader.AutoMapData;
+            dfBitmap.Data = ConvertToByteArray(block.RmbBlock.FldHeader.AutoMapData);
             dfBitmap.Width = 64;
             dfBitmap.Height = 64;
 
@@ -466,6 +524,14 @@ namespace DaggerfallConnect.Arena2
             }
 
             return dfBitmap;
+        }
+
+        static public byte[] ConvertToByteArray(uint[] intArray)
+        {
+            byte[] byteArray = new byte[intArray.Length];
+            for (int i = 0; i < intArray.Length; i++)
+                byteArray[i] = (byte)intArray[i];
+            return byteArray;
         }
 
         /// <summary>
@@ -659,63 +725,63 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         /// <param name="block">The block index to read.</param>
         /// <returns>True if successful, otherwise false.</returns>
-        private bool Read(int block)
-        {
-            try
-            {
-                // Read memory file
-                BinaryReader reader = blocks[block].MemoryFile.GetReader();
-                ReadBlock(reader, block);
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.Message);
-                return false;
-            }
+        // private bool Read(int block)
+        // {
+        //     try
+        //     {
+        //         // Read memory file
+        //         BinaryReader reader = blocks[block].MemoryFile.GetReader();
+        //         ReadBlock(reader, block);
+        //     }
+        //     catch (Exception e)
+        //     {
+        //         Console.WriteLine(e.Message);
+        //         return false;
+        //     }
 
-            return true;
-        }
+        //     return true;
+        // }
 
         /// <summary>
         /// Choose to read an RMB, RDB, or RDI block record. Other block types will be discarded.
         /// </summary>
         /// <param name="reader">A binary reader to file.</param>
         /// <param name="block">Destination block index.</param>
-        private void ReadBlock(BinaryReader reader, int block)
-        {
-            // Step through file based on type
-            reader.BaseStream.Position = 0;
-            if (blocks[block].DFBlock.Type == DFBlock.BlockTypes.Rmb)
-            {
-                // Read RMB data
-                ReadRmbFldHeader(reader, block);
-                ReadRmbBlockData(reader, block);
-                ReadRmbMisc3dObjects(reader, block);
-                ReadRmbMiscFlatObjectRecords(reader, block);
-            }
-            else if (blocks[block].DFBlock.Type == DFBlock.BlockTypes.Rdb)
-            {
-                // Read RDB data
-                ReadRdbHeader(reader, block);
-                ReadRdbModelReferenceList(reader, block);
-                ReadRdbModelDataList(reader, block);
-                ReadRdbObjectSectionHeader(reader, block);
-                ReadRdbUnknownLinkedList(reader, block);
-                ReadRdbObjectSectionRootList(reader, block);
-                ReadRdbObjectLists(reader, block);
-                FixRdbData(block);
-            }
-            else if (blocks[block].DFBlock.Type == DFBlock.BlockTypes.Rdi)
-            {
-                // Read RDI data
-                ReadRdiRecord(reader, block);
-            }
-            else
-            {
-                DiscardBlock(block);
-                return;
-            }
-        }
+        // private void ReadBlock(BinaryReader reader, int block)
+        // {
+        //     // Step through file based on type
+        //     reader.BaseStream.Position = 0;
+        //     if (blocks[block].DFBlock.Type == DFBlock.BlockTypes.Rmb)
+        //     {
+        //         // Read RMB data
+        //         ReadRmbFldHeader(reader, block);
+        //         ReadRmbBlockData(reader, block);
+        //         ReadRmbMisc3dObjects(reader, block);
+        //         ReadRmbMiscFlatObjectRecords(reader, block);
+        //     }
+        //     else if (blocks[block].DFBlock.Type == DFBlock.BlockTypes.Rdb)
+        //     {
+        //         // Read RDB data
+        //         ReadRdbHeader(reader, block);
+        //         ReadRdbModelReferenceList(reader, block);
+        //         ReadRdbModelDataList(reader, block);
+        //         ReadRdbObjectSectionHeader(reader, block);
+        //         ReadRdbUnknownLinkedList(reader, block);
+        //         ReadRdbObjectSectionRootList(reader, block);
+        //         ReadRdbObjectLists(reader, block);
+        //         FixRdbData(block);
+        //     }
+        //     else if (blocks[block].DFBlock.Type == DFBlock.BlockTypes.Rdi)
+        //     {
+        //         // Read RDI data
+        //         ReadRdiRecord(reader, block);
+        //     }
+        //     else
+        //     {
+        //         DiscardBlock(block);
+        //         return;
+        //     }
+        // }
 
         #endregion
 
@@ -726,281 +792,280 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         /// <param name="reader">A binary reader to file</param>
         /// <param name="block">Destination block index</param>
-        private void ReadRmbFldHeader(BinaryReader reader, int block)
-        {
-            // Record counts
-            blocks[block].DFBlock.RmbBlock.FldHeader.NumBlockDataRecords = reader.ReadByte();
-            blocks[block].DFBlock.RmbBlock.FldHeader.NumMisc3dObjectRecords = reader.ReadByte();
-            blocks[block].DFBlock.RmbBlock.FldHeader.NumMiscFlatObjectRecords = reader.ReadByte();
+        // private void ReadRmbFldHeader(BinaryReader reader, int block)
+        // {
+        //     // Record counts
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.NumBlockDataRecords = reader.ReadByte();
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.NumMisc3dObjectRecords = reader.ReadByte();
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.NumMiscFlatObjectRecords = reader.ReadByte();
 
-            // Block positions
-            blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions = new DFBlock.RmbFldBlockPositions[32];
-            for (int i = 0; i < 32; i++)
-            {
-                blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].Unknown1 = reader.ReadUInt32();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].Unknown2 = reader.ReadUInt32();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].XPos = reader.ReadInt32();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].ZPos = reader.ReadInt32();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].YRotation = reader.ReadInt32();
-            }
+        //     // Block positions
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions = new DFBlock.RmbFldBlockPositions[32];
+        //     for (int i = 0; i < 32; i++)
+        //     {
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].Unknown1 = reader.ReadUInt32();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].Unknown2 = reader.ReadUInt32();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].XPos = reader.ReadInt32();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].ZPos = reader.ReadInt32();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].YRotation = reader.ReadInt32();
+        //     }
 
-            // Building data list
-            blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList = new DFLocation.BuildingData[32];
-            for (int i = 0; i < 32; i++)
-            {
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].NameSeed = reader.ReadUInt16();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].ServiceTimeLimit = reader.ReadUInt32();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown = reader.ReadUInt16();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown2 = reader.ReadUInt16();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown3 = reader.ReadUInt32();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown4 = reader.ReadUInt32();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].FactionId = reader.ReadUInt16();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Sector = reader.ReadInt16();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].LocationId = reader.ReadUInt16();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].BuildingType = (DFLocation.BuildingTypes)reader.ReadByte();
-                blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Quality = reader.ReadByte();
-            }
+        //     // Building data list
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList = new DFLocation.BuildingData[32];
+        //     for (int i = 0; i < 32; i++)
+        //     {
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].NameSeed = reader.ReadUInt16();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].ServiceTimeLimit = reader.ReadUInt32();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown = reader.ReadUInt16();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown2 = reader.ReadUInt16();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown3 = reader.ReadUInt32();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Unknown4 = reader.ReadUInt32();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].FactionId = reader.ReadUInt16();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Sector = reader.ReadInt16();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].LocationId = reader.ReadUInt16();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].BuildingType = (DFLocation.BuildingTypes)reader.ReadByte();
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Quality = reader.ReadByte();
+        //     }
 
-            // Section2 unknown data
-            //blocks[block].DFBlock.RmbBlock.FldHeader.Section2UnknownData = reader.ReadBytes(128);
-            blocks[block].DFBlock.RmbBlock.FldHeader.Section2UnknownData = new UInt32[32];
-            for (int i = 0; i < 32; i++)
-            {
-                blocks[block].DFBlock.RmbBlock.FldHeader.Section2UnknownData[i] = reader.ReadUInt32();
-            }
+        //     // Section2 unknown data
+        //     //blocks[block].DFBlock.RmbBlock.FldHeader.Section2UnknownData = reader.ReadBytes(128);
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.Section2UnknownData = new UInt32[32];
+        //     for (int i = 0; i < 32; i++)
+        //     {
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.Section2UnknownData[i] = reader.ReadUInt32();
+        //     }
 
-            // Block data sizes
-            blocks[block].DFBlock.RmbBlock.FldHeader.BlockDataSizes = new Int32[32];
-            for (int i = 0; i < 32; i++)
-            {
-                blocks[block].DFBlock.RmbBlock.FldHeader.BlockDataSizes[i] = reader.ReadInt32();
-            }
+        //     // Block data sizes
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.BlockDataSizes = new Int32[32];
+        //     for (int i = 0; i < 32; i++)
+        //     {
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.BlockDataSizes[i] = reader.ReadInt32();
+        //     }
 
-            // Ground data
-            blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.Header = reader.ReadBytes(8);
-            ReadRmbGroundTilesData(reader, block);
-            ReadRmbGroundSceneryData(reader, block);
+        //     // Ground data
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.Header = reader.ReadBytes(8);
+        //     ReadRmbGroundTilesData(reader, block);
+        //     ReadRmbGroundSceneryData(reader, block);
 
-            // Automap
-            blocks[block].DFBlock.RmbBlock.FldHeader.AutoMapData = reader.ReadBytes(64 * 64);
+        //     // Automap
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.AutoMapData = reader.ReadBytes(64 * 64);
 
-            // Filenames
-            blocks[block].DFBlock.RmbBlock.FldHeader.Name = FileProxy.ReadCString(reader, 13);
-            blocks[block].DFBlock.RmbBlock.FldHeader.OtherNames = new string[32];
-            for (int i = 0; i < 32; i++)
-            {
-                blocks[block].DFBlock.RmbBlock.FldHeader.OtherNames[i] = FileProxy.ReadCString(reader, 13);
-            }
-        }
+        //     // Filenames
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.Name = FileProxy.ReadCString(reader, 13);
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.OtherNames = new string[32];
+        //     for (int i = 0; i < 32; i++)
+        //     {
+        //         blocks[block].DFBlock.RmbBlock.FldHeader.OtherNames[i] = FileProxy.ReadCString(reader, 13);
+        //     }
+        // }
 
         /// <summary>
         /// Read ground tile data for this block.
         /// </summary>
         /// <param name="reader">A binary reader to file.</param>
         /// <param name="block">Destination block index.</param>
-        private void ReadRmbGroundTilesData(BinaryReader reader, int block)
-        {
-            // Create new array
-            blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles = new DFBlock.RmbGroundTiles[16, 16];
+        // private void ReadRmbGroundTilesData(BinaryReader reader, int block)
+        // {
+        //     // Create new array
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles = new DFBlock.RmbGroundTiles[16, 16];
 
-            // Read in data
-            Byte bitfield;
-            for (int y = 0; y < 16; y++)
-            {
-                for (int x = 0; x < 16; x++)
-                {
-                    // Read source bitfield
-                    bitfield = reader.ReadByte();
+        //     // Read in data
+        //     Byte bitfield;
+        //     for (int y = 0; y < 16; y++)
+        //     {
+        //         for (int x = 0; x < 16; x++)
+        //         {
+        //             // Read source bitfield
+        //             bitfield = reader.ReadByte();
 
-                    // Store data
-                    blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].TileBitfield = bitfield;
-                    blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].TextureRecord = bitfield & 0x3f;
-                    blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].IsRotated = ((bitfield & 0x40) == 0x40);
-                    blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].IsFlipped = ((bitfield & 0x80) == 0x80);
-                }
-            }
-        }
+        //             // Store data
+        //             blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].TileBitfield = bitfield;
+        //             blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].TextureRecord = bitfield & 0x3f;
+        //             blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].IsRotated = ((bitfield & 0x40) == 0x40);
+        //             blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundTiles[x, y].IsFlipped = ((bitfield & 0x80) == 0x80);
+        //         }
+        //     }
+        // }
 
+        // /// <summary>
+        // /// Read ground scenery data for this block.
+        // /// </summary>
+        // /// <param name="reader">A binary reader to file.</param>
+        // /// <param name="block">Destination block index.</param>
+        // private void ReadRmbGroundSceneryData(BinaryReader reader, int block)
+        // {
+        //     // Create new array
+        //     blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery = new DFBlock.RmbGroundScenery[16, 16];
 
-        /// <summary>
-        /// Read ground scenery data for this block.
-        /// </summary>
-        /// <param name="reader">A binary reader to file.</param>
-        /// <param name="block">Destination block index.</param>
-        private void ReadRmbGroundSceneryData(BinaryReader reader, int block)
-        {
-            // Create new array
-            blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery = new DFBlock.RmbGroundScenery[16, 16];
+        //     // Read in data
+        //     Byte bitfield;
+        //     for (int y = 0; y < 16; y++)
+        //     {
+        //         for (int x = 0; x < 16; x++)
+        //         {
+        //             // Read source bitfield
+        //             bitfield = reader.ReadByte();
 
-            // Read in data
-            Byte bitfield;
-            for (int y = 0; y < 16; y++)
-            {
-                for (int x = 0; x < 16; x++)
-                {
-                    // Read source bitfield
-                    bitfield = reader.ReadByte();
+        //             // Store data
+        //             blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].TileBitfield = bitfield;
+        //             if (bitfield < 255)
+        //             {
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].Unknown1 = bitfield & 0x03;
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].TextureRecord = bitfield / 0x04 - 1;
+        //             }
+        //             else
+        //             {
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].Unknown1 = 0;
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].TextureRecord = -1;
+        //             }
+        //         }
+        //     }
+        // }
 
-                    // Store data
-                    blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].TileBitfield = bitfield;
-                    if (bitfield < 255)
-                    {
-                        blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].Unknown1 = bitfield & 0x03;
-                        blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].TextureRecord = bitfield / 0x04 - 1;
-                    }
-                    else
-                    {
-                        blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].Unknown1 = 0;
-                        blocks[block].DFBlock.RmbBlock.FldHeader.GroundData.GroundScenery[x, y].TextureRecord = -1;
-                    }
-                }
-            }
-        }
+        // /// <summary>
+        // /// Read RMB block data, i.e. the outside and inside repeating sections.
+        // /// </summary>
+        // /// <param name="reader">A binary reader to file.</param>
+        // /// <param name="block">Destination block index.</param>
+        // private void ReadRmbBlockData(BinaryReader reader, int block)
+        // {
+        //     // Read block data
+        //     int recordCount = blocks[block].DFBlock.RmbBlock.FldHeader.NumBlockDataRecords;
+        //     blocks[block].DFBlock.RmbBlock.SubRecords = new DFBlock.RmbSubRecord[recordCount];
+        //     long position = reader.BaseStream.Position;
+        //     BuildingReplacementData buildingReplacementData;
+        //     for (int i = 0; i < recordCount; i++)
+        //     {
+        //         // Check for replacement building data and use it if found
+        //         if (WorldDataReplacement.GetBuildingReplacementData(blocks[block].Name, block, i, out buildingReplacementData))
+        //         {
+        //             blocks[block].DFBlock.RmbBlock.SubRecords[i] = buildingReplacementData.RmbSubRecord;
+        //             if (buildingReplacementData.FactionId > 0)
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].FactionId = buildingReplacementData.FactionId;
+        //             blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].BuildingType = (DFLocation.BuildingTypes)buildingReplacementData.BuildingType;
+        //             if (buildingReplacementData.Quality > 0)
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Quality = buildingReplacementData.Quality;
+        //             if (buildingReplacementData.NameSeed > 0)
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].NameSeed = buildingReplacementData.NameSeed;
+        //             if (buildingReplacementData.AutoMapData != null && buildingReplacementData.AutoMapData.Length == 64 * 64)
+        //                 blocks[block].DFBlock.RmbBlock.FldHeader.AutoMapData = buildingReplacementData.AutoMapData;
+        //         }
+        //         else
+        //         {
+        //             // Copy XZ position and Y rotation into subrecord data for convenience
+        //             blocks[block].DFBlock.RmbBlock.SubRecords[i].XPos = blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].XPos;
+        //             blocks[block].DFBlock.RmbBlock.SubRecords[i].ZPos = blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].ZPos;
+        //             blocks[block].DFBlock.RmbBlock.SubRecords[i].YRotation = blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].YRotation;
 
-        /// <summary>
-        /// Read RMB block data, i.e. the outside and inside repeating sections.
-        /// </summary>
-        /// <param name="reader">A binary reader to file.</param>
-        /// <param name="block">Destination block index.</param>
-        private void ReadRmbBlockData(BinaryReader reader, int block)
-        {
-            // Read block data
-            int recordCount = blocks[block].DFBlock.RmbBlock.FldHeader.NumBlockDataRecords;
-            blocks[block].DFBlock.RmbBlock.SubRecords = new DFBlock.RmbSubRecord[recordCount];
-            long position = reader.BaseStream.Position;
-            BuildingReplacementData buildingReplacementData;
-            for (int i = 0; i < recordCount; i++)
-            {
-                // Check for replacement building data and use it if found
-                if (WorldDataReplacement.GetBuildingReplacementData(blocks[block].Name, block, i, out buildingReplacementData))
-                {
-                    blocks[block].DFBlock.RmbBlock.SubRecords[i] = buildingReplacementData.RmbSubRecord;
-                    if (buildingReplacementData.FactionId > 0)
-                        blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].FactionId = buildingReplacementData.FactionId;
-                    blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].BuildingType = (DFLocation.BuildingTypes)buildingReplacementData.BuildingType;
-                    if (buildingReplacementData.Quality > 0)
-                        blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].Quality = buildingReplacementData.Quality;
-                    if (buildingReplacementData.NameSeed > 0)
-                        blocks[block].DFBlock.RmbBlock.FldHeader.BuildingDataList[i].NameSeed = buildingReplacementData.NameSeed;
-                    if (buildingReplacementData.AutoMapData != null && buildingReplacementData.AutoMapData.Length == 64 * 64)
-                        blocks[block].DFBlock.RmbBlock.FldHeader.AutoMapData = buildingReplacementData.AutoMapData;
-                }
-                else
-                {
-                    // Copy XZ position and Y rotation into subrecord data for convenience
-                    blocks[block].DFBlock.RmbBlock.SubRecords[i].XPos = blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].XPos;
-                    blocks[block].DFBlock.RmbBlock.SubRecords[i].ZPos = blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].ZPos;
-                    blocks[block].DFBlock.RmbBlock.SubRecords[i].YRotation = blocks[block].DFBlock.RmbBlock.FldHeader.BlockPositions[i].YRotation;
+        //             // Read outside and inside block data
+        //             ReadRmbBlockSubRecord(reader, ref blocks[block].DFBlock.RmbBlock.SubRecords[i].Exterior);
+        //             ReadRmbBlockSubRecord(reader, ref blocks[block].DFBlock.RmbBlock.SubRecords[i].Interior);
+        //         }
 
-                    // Read outside and inside block data
-                    ReadRmbBlockSubRecord(reader, ref blocks[block].DFBlock.RmbBlock.SubRecords[i].Exterior);
-                    ReadRmbBlockSubRecord(reader, ref blocks[block].DFBlock.RmbBlock.SubRecords[i].Interior);
-                }
+        //         // Offset to next position (this ignores padding byte and ensures block reading is correctly stepped)
+        //         position += blocks[block].DFBlock.RmbBlock.FldHeader.BlockDataSizes[i];
+        //         reader.BaseStream.Position = position;
+        //     }
+        // }
 
-                // Offset to next position (this ignores padding byte and ensures block reading is correctly stepped)
-                position += blocks[block].DFBlock.RmbBlock.FldHeader.BlockDataSizes[i];
-                reader.BaseStream.Position = position;
-            }
-        }
+        // /// <summary>
+        // /// Read miscellaneous block 3D objects.
+        // /// </summary>
+        // /// <param name="reader">A binary reader to file</param>
+        // /// <param name="block">Destination block index</param>
+        // private void ReadRmbMisc3dObjects(BinaryReader reader, int block)
+        // {
+        //     // Read misc block 3d objects
+        //     blocks[block].DFBlock.RmbBlock.Misc3dObjectRecords = new DFBlock.RmbBlock3dObjectRecord[blocks[block].DFBlock.RmbBlock.FldHeader.NumMisc3dObjectRecords];
+        //     ReadRmbModelRecords(reader, ref blocks[block].DFBlock.RmbBlock.Misc3dObjectRecords);
+        // }
 
-        /// <summary>
-        /// Read miscellaneous block 3D objects.
-        /// </summary>
-        /// <param name="reader">A binary reader to file</param>
-        /// <param name="block">Destination block index</param>
-        private void ReadRmbMisc3dObjects(BinaryReader reader, int block)
-        {
-            // Read misc block 3d objects
-            blocks[block].DFBlock.RmbBlock.Misc3dObjectRecords = new DFBlock.RmbBlock3dObjectRecord[blocks[block].DFBlock.RmbBlock.FldHeader.NumMisc3dObjectRecords];
-            ReadRmbModelRecords(reader, ref blocks[block].DFBlock.RmbBlock.Misc3dObjectRecords);
-        }
+        // /// <summary>
+        // /// Read miscellaneous block flat objects.
+        // /// </summary>
+        // /// <param name="reader">A binary reader to file</param>
+        // /// <param name="block">Destination block index</param>
+        // private void ReadRmbMiscFlatObjectRecords(BinaryReader reader, int block)
+        // {
+        //     // Read misc flat object records
+        //     blocks[block].DFBlock.RmbBlock.MiscFlatObjectRecords = new DFBlock.RmbBlockFlatObjectRecord[blocks[block].DFBlock.RmbBlock.FldHeader.NumMiscFlatObjectRecords];
+        //     ReadRmbFlatObjectRecords(reader, ref blocks[block].DFBlock.RmbBlock.MiscFlatObjectRecords);
+        // }
 
-        /// <summary>
-        /// Read miscellaneous block flat objects.
-        /// </summary>
-        /// <param name="reader">A binary reader to file</param>
-        /// <param name="block">Destination block index</param>
-        private void ReadRmbMiscFlatObjectRecords(BinaryReader reader, int block)
-        {
-            // Read misc flat object records
-            blocks[block].DFBlock.RmbBlock.MiscFlatObjectRecords = new DFBlock.RmbBlockFlatObjectRecord[blocks[block].DFBlock.RmbBlock.FldHeader.NumMiscFlatObjectRecords];
-            ReadRmbFlatObjectRecords(reader, ref blocks[block].DFBlock.RmbBlock.MiscFlatObjectRecords);
-        }
+        // /// <summary>
+        // /// Read block subrecords, i.e. the resources embedded in block data.
+        // /// </summary>
+        // /// <param name="reader">A binary reader to file</param>
+        // /// <param name="blockData">Destination record index</param>
+        // private void ReadRmbBlockSubRecord(BinaryReader reader, ref DFBlock.RmbBlockData blockData)
+        // {
+        //     // Header
+        //     blockData.Header.Position = reader.BaseStream.Position;
+        //     blockData.Header.Num3dObjectRecords = reader.ReadByte();
+        //     blockData.Header.NumFlatObjectRecords = reader.ReadByte();
+        //     blockData.Header.NumSection3Records = reader.ReadByte();
+        //     blockData.Header.NumPeopleRecords = reader.ReadByte();
+        //     blockData.Header.NumDoorRecords = reader.ReadByte();
+        //     blockData.Header.Unknown1 = reader.ReadInt16();
+        //     blockData.Header.Unknown2 = reader.ReadInt16();
+        //     blockData.Header.Unknown3 = reader.ReadInt16();
+        //     blockData.Header.Unknown4 = reader.ReadInt16();
+        //     blockData.Header.Unknown5 = reader.ReadInt16();
+        //     blockData.Header.Unknown6 = reader.ReadInt16();
 
-        /// <summary>
-        /// Read block subrecords, i.e. the resources embedded in block data.
-        /// </summary>
-        /// <param name="reader">A binary reader to file</param>
-        /// <param name="blockData">Destination record index</param>
-        private void ReadRmbBlockSubRecord(BinaryReader reader, ref DFBlock.RmbBlockData blockData)
-        {
-            // Header
-            blockData.Header.Position = reader.BaseStream.Position;
-            blockData.Header.Num3dObjectRecords = reader.ReadByte();
-            blockData.Header.NumFlatObjectRecords = reader.ReadByte();
-            blockData.Header.NumSection3Records = reader.ReadByte();
-            blockData.Header.NumPeopleRecords = reader.ReadByte();
-            blockData.Header.NumDoorRecords = reader.ReadByte();
-            blockData.Header.Unknown1 = reader.ReadInt16();
-            blockData.Header.Unknown2 = reader.ReadInt16();
-            blockData.Header.Unknown3 = reader.ReadInt16();
-            blockData.Header.Unknown4 = reader.ReadInt16();
-            blockData.Header.Unknown5 = reader.ReadInt16();
-            blockData.Header.Unknown6 = reader.ReadInt16();
+        //     // 3D object records
+        //     blockData.Block3dObjectRecords = new DFBlock.RmbBlock3dObjectRecord[blockData.Header.Num3dObjectRecords];
+        //     ReadRmbModelRecords(reader, ref blockData.Block3dObjectRecords);
 
-            // 3D object records
-            blockData.Block3dObjectRecords = new DFBlock.RmbBlock3dObjectRecord[blockData.Header.Num3dObjectRecords];
-            ReadRmbModelRecords(reader, ref blockData.Block3dObjectRecords);
+        //     // Flat object record
+        //     blockData.BlockFlatObjectRecords = new DFBlock.RmbBlockFlatObjectRecord[blockData.Header.NumFlatObjectRecords];
+        //     ReadRmbFlatObjectRecords(reader, ref blockData.BlockFlatObjectRecords);
 
-            // Flat object record
-            blockData.BlockFlatObjectRecords = new DFBlock.RmbBlockFlatObjectRecord[blockData.Header.NumFlatObjectRecords];
-            ReadRmbFlatObjectRecords(reader, ref blockData.BlockFlatObjectRecords);
+        //     // Section3 records
+        //     int numSection3Records = blockData.Header.NumSection3Records;
+        //     blockData.BlockSection3Records = new DFBlock.RmbBlockSection3Record[numSection3Records];
+        //     for (int i = 0; i < numSection3Records; i++)
+        //     {
+        //         blockData.BlockSection3Records[i].XPos = reader.ReadInt32();
+        //         blockData.BlockSection3Records[i].YPos = reader.ReadInt32();
+        //         blockData.BlockSection3Records[i].ZPos = reader.ReadInt32();
+        //         blockData.BlockSection3Records[i].Unknown1 = reader.ReadByte();
+        //         blockData.BlockSection3Records[i].Unknown2 = reader.ReadByte();
+        //         blockData.BlockSection3Records[i].Unknown3 = reader.ReadInt16();
+        //     }
 
-            // Section3 records
-            int numSection3Records = blockData.Header.NumSection3Records;
-            blockData.BlockSection3Records = new DFBlock.RmbBlockSection3Record[numSection3Records];
-            for (int i = 0; i < numSection3Records; i++)
-            {
-                blockData.BlockSection3Records[i].XPos = reader.ReadInt32();
-                blockData.BlockSection3Records[i].YPos = reader.ReadInt32();
-                blockData.BlockSection3Records[i].ZPos = reader.ReadInt32();
-                blockData.BlockSection3Records[i].Unknown1 = reader.ReadByte();
-                blockData.BlockSection3Records[i].Unknown2 = reader.ReadByte();
-                blockData.BlockSection3Records[i].Unknown3 = reader.ReadInt16();
-            }
+        //     // People records
+        //     int numPeopleRecords = blockData.Header.NumPeopleRecords;
+        //     blockData.BlockPeopleRecords = new DFBlock.RmbBlockPeopleRecord[numPeopleRecords];
+        //     for (int i = 0; i < numPeopleRecords; i++)
+        //     {
+        //         blockData.BlockPeopleRecords[i].Position = reader.BaseStream.Position;
+        //         blockData.BlockPeopleRecords[i].XPos = reader.ReadInt32();
+        //         blockData.BlockPeopleRecords[i].YPos = reader.ReadInt32();
+        //         blockData.BlockPeopleRecords[i].ZPos = reader.ReadInt32();
+        //         blockData.BlockPeopleRecords[i].TextureBitfield = reader.ReadUInt16();
+        //         blockData.BlockPeopleRecords[i].TextureArchive = blockData.BlockPeopleRecords[i].TextureBitfield >> 7;
+        //         blockData.BlockPeopleRecords[i].TextureRecord = blockData.BlockPeopleRecords[i].TextureBitfield & 0x7f;
+        //         blockData.BlockPeopleRecords[i].FactionID = reader.ReadInt16();
+        //         blockData.BlockPeopleRecords[i].Flags = reader.ReadByte();
+        //     }
 
-            // People records
-            int numPeopleRecords = blockData.Header.NumPeopleRecords;
-            blockData.BlockPeopleRecords = new DFBlock.RmbBlockPeopleRecord[numPeopleRecords];
-            for (int i = 0; i < numPeopleRecords; i++)
-            {
-                blockData.BlockPeopleRecords[i].Position = reader.BaseStream.Position;
-                blockData.BlockPeopleRecords[i].XPos = reader.ReadInt32();
-                blockData.BlockPeopleRecords[i].YPos = reader.ReadInt32();
-                blockData.BlockPeopleRecords[i].ZPos = reader.ReadInt32();
-                blockData.BlockPeopleRecords[i].TextureBitfield = reader.ReadUInt16();
-                blockData.BlockPeopleRecords[i].TextureArchive = blockData.BlockPeopleRecords[i].TextureBitfield >> 7;
-                blockData.BlockPeopleRecords[i].TextureRecord = blockData.BlockPeopleRecords[i].TextureBitfield & 0x7f;
-                blockData.BlockPeopleRecords[i].FactionID = reader.ReadInt16();
-                blockData.BlockPeopleRecords[i].Flags = reader.ReadByte();
-            }
-
-            // Door records
-            int numDoorRecords = blockData.Header.NumDoorRecords;
-            blockData.BlockDoorRecords = new DFBlock.RmbBlockDoorRecord[numDoorRecords];
-            for (int i = 0; i < numDoorRecords; i++)
-            {
-                blockData.BlockDoorRecords[i].Position = (Int32)reader.BaseStream.Position;
-                blockData.BlockDoorRecords[i].XPos = reader.ReadInt32();
-                blockData.BlockDoorRecords[i].YPos = reader.ReadInt32();
-                blockData.BlockDoorRecords[i].ZPos = reader.ReadInt32();
-                blockData.BlockDoorRecords[i].YRotation = reader.ReadInt16();
-                blockData.BlockDoorRecords[i].OpenRotation = reader.ReadInt16();
-                blockData.BlockDoorRecords[i].DoorModelIndex = reader.ReadByte();
-                blockData.BlockDoorRecords[i].Unknown = reader.ReadByte();
-                blockData.BlockDoorRecords[i].NullValue1 = reader.ReadByte();
-            }
-        }
+        //     // Door records
+        //     int numDoorRecords = blockData.Header.NumDoorRecords;
+        //     blockData.BlockDoorRecords = new DFBlock.RmbBlockDoorRecord[numDoorRecords];
+        //     for (int i = 0; i < numDoorRecords; i++)
+        //     {
+        //         blockData.BlockDoorRecords[i].Position = (Int32)reader.BaseStream.Position;
+        //         blockData.BlockDoorRecords[i].XPos = reader.ReadInt32();
+        //         blockData.BlockDoorRecords[i].YPos = reader.ReadInt32();
+        //         blockData.BlockDoorRecords[i].ZPos = reader.ReadInt32();
+        //         blockData.BlockDoorRecords[i].YRotation = reader.ReadInt16();
+        //         blockData.BlockDoorRecords[i].OpenRotation = reader.ReadInt16();
+        //         blockData.BlockDoorRecords[i].DoorModelIndex = reader.ReadByte();
+        //         blockData.BlockDoorRecords[i].Unknown = reader.ReadByte();
+        //         blockData.BlockDoorRecords[i].NullValue1 = reader.ReadByte();
+        //     }
+        // }
 
         /// <summary>
         /// Read a 3D object subrecord.

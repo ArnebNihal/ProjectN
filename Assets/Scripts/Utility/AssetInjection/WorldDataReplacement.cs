@@ -477,7 +477,7 @@ namespace DaggerfallWorkshop.Utility.AssetInjection
                 if (blocksFile != null)
                 {
                     if (nextBlockIndex == 0)
-                        nextBlockIndex = blocksFile.BsaFile.Count;
+                        nextBlockIndex = blocksFile.BsaFile.Length;
 
                     // RMB blocks
                     foreach (string blockName in dfLocation.Exterior.ExteriorData.BlockNames)

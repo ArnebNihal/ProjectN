@@ -21,7 +21,7 @@ namespace DaggerfallConnect
     /// Stores information about a block record. This is fundamentally equivalent to native block data,
     /// but is type-safe and structured for use.
     /// </summary>
-    public struct DFBlock
+    public struct DFBlockRotation
     {
         public const int RMBTilesPerBlock = 16;
 
@@ -182,7 +182,7 @@ namespace DaggerfallConnect
             public RmbFldGroundData GroundData;
 
             /// <summary>A 64x64 pixel automap image.</summary>
-            public UInt32[] AutoMapData;
+            public uint[] AutoMapData;
 
             /// <summary>Name of this block. This always matches the BSA record name for this block.</summary>
             public String Name;
@@ -251,22 +251,19 @@ namespace DaggerfallConnect
         /// <summary>
         /// Ground data to draw under a city block, such as ground textures, trees, rocks, etc.
         /// </summary>
-        [fsObject(Converter = typeof(RmbGroundDataConverter))]   // FullSerializer can't do 2D arrays out of the box
         public struct RmbFldGroundData
         {
             /// <summary>Header with unknown data.</summary>
             public int[] Header;
 
             /// <summary>A 16x16 array of ground tiles. Each tile is 256x256 world units.</summary>
-            public RmbGroundTiles[,] GroundTiles;
-            public RmbGroundTiles[] GroundTiles1d;
+            public RmbGroundTiles[] GroundTiles;
 
             /// <summary>
             /// A 16x16 array of ground scenery data (trees, rocks, etc.). These are spaced every 256 world units
             ///  (left to right, top to bottom). In effect, the scenery is placed in the "corners" of the ground tiles.
             /// </summary>
-            public RmbGroundScenery[,] GroundScenery;
-            public RmbGroundScenery[] GroundScenery1d;
+            public RmbGroundScenery[] GroundScenery;
         }
 
         #endregion
@@ -367,7 +364,6 @@ namespace DaggerfallConnect
         /// 3D object data, such as buildings, walls, tables, cages, etc.
         /// </summary>
         ///
-        [fsObject(Processor = typeof(RmbBlock3dObjectRecordProcessor))]
         public struct RmbBlock3dObjectRecord
         {
             /// <summary>ID of model to be loaded.</summary>
@@ -540,7 +536,6 @@ namespace DaggerfallConnect
             /// <summary>
             /// NPC flags. Known so far:
             /// 00X00000    : X=0 is male, X=1 is female
-            /// /// ProjectN: check the WiP NPC_Flags list as a reference.
             /// </summary>
             public Byte Flags;
         }
@@ -800,7 +795,6 @@ namespace DaggerfallConnect
         /// <summary>
         /// An RDB block has this general structure.
         /// </summary>
-        [fsObject(Processor = typeof(RdbBlockDescProcessor))]
         public struct RdbBlockDesc
         {
             /// <summary>Position in stream to find this data.</summary>
@@ -924,7 +918,6 @@ namespace DaggerfallConnect
         /// <summary>
         /// A single RDB object has this structure.
         /// </summary>
-        [fsObject(Processor = typeof(RdbObjectProcessor))]
         public struct RdbObject
         {
             /// <summary>Offset of this object from start of RDB record. Not required unless you are extending the block reader.</summary>
@@ -1109,34 +1102,6 @@ namespace DaggerfallConnect
 
         #endregion
 
-        public void ConvertTo2d()
-        {
-            this.ConvertGroundTiles();
-            this.ConvertGroundScenery();
-        }
-
-        private void ConvertGroundTiles()
-        {
-            this.RmbBlock.FldHeader.GroundData.GroundTiles = new RmbGroundTiles[16, 16];
-            for (int i = 0; i < 256; i++)
-            {
-                this.RmbBlock.FldHeader.GroundData.GroundTiles[i % 16, i / 16] = this.RmbBlock.FldHeader.GroundData.GroundTiles1d[i];
-                // this.RmbBlock.FldHeader.GroundData.GroundTiles[i % 16, i / 16].TileBitfield = this.RmbBlock.FldHeader.GroundData.GroundTiles1d[i].TileBitfield;
-                // this.RmbBlock.FldHeader.GroundData.GroundTiles[i % 16, i / 16].TextureRecord = this.RmbBlock.FldHeader.GroundData.GroundTiles1d[i].TextureRecord;
-                // this.RmbBlock.FldHeader.GroundData.GroundTiles[i % 16, i / 16].IsRotated = this.RmbBlock.FldHeader.GroundData.GroundTiles1d[i].IsRotated;
-                // this.RmbBlock.FldHeader.GroundData.GroundTiles[i % 16, i / 16].IsFlipped = this.RmbBlock.FldHeader.GroundData.GroundTiles1d[i].IsFlipped;
-            }
-        }
-
-        private void ConvertGroundScenery()
-        {
-            this.RmbBlock.FldHeader.GroundData.GroundScenery = new RmbGroundScenery[16, 16];
-            for (int i = 0; i < this.RmbBlock.FldHeader.GroundData.GroundScenery1d.Length; i++)
-            {
-                this.RmbBlock.FldHeader.GroundData.GroundScenery[i % 16, i / 16] = this.RmbBlock.FldHeader.GroundData.GroundScenery1d[i];
-            }
-        }
-
         #region RDI Structures
 
         /// <summary>
@@ -1149,145 +1114,6 @@ namespace DaggerfallConnect
             /// 512 bytes of unknown data.
             /// </summary>
             public byte[] Data;
-        }
-
-        #endregion
-
-        #region FullSerializer Custom Processors (used when serializing world data structures)
-
-        public class RmbGroundDataConverter : fsDirectConverter<RmbFldGroundData>
-        {
-            protected override fsResult DoSerialize(RmbFldGroundData rmbFldGroundData, Dictionary<string, fsData> serialized)
-            {
-                if (rmbFldGroundData.Header != null)
-                {
-                    SerializeMember(serialized, null, "Header", rmbFldGroundData.Header);
-
-                    // Flatten and serialize the ground data 2D arrays
-                    List<RmbGroundTiles> groundTilesFlattened = new List<RmbGroundTiles>(RMBTilesPerBlock * RMBTilesPerBlock);
-                    for (int tileY = 0; tileY < RMBTilesPerBlock; tileY++)
-                    {
-                        for (int tileX = 0; tileX < RMBTilesPerBlock; tileX++)
-                        {
-                            groundTilesFlattened.Add(rmbFldGroundData.GroundTiles[tileX, tileY]);
-                        }
-                    }
-                    List<RmbGroundScenery> groundSceneryFlattened = new List<RmbGroundScenery>(RMBTilesPerBlock * RMBTilesPerBlock);
-                    for (int tileY = 0; tileY < RMBTilesPerBlock; tileY++)
-                    {
-                        for (int tileX = 0; tileX < RMBTilesPerBlock; tileX++)
-                        {
-                            groundSceneryFlattened.Add(rmbFldGroundData.GroundScenery[tileX, tileY]);
-                        }
-                    }
-                    SerializeMember(serialized, null, "GroundTiles", groundTilesFlattened.ToArray());
-                    SerializeMember(serialized, null, "GroundScenery", groundSceneryFlattened.ToArray());
-                }
-                return fsResult.Success;
-            }
-
-            protected override fsResult DoDeserialize(Dictionary<string, fsData> data, ref RmbFldGroundData rmbFldGroundData)
-            {
-                var result = fsResult.Success;
-                if (data.Count == 3)
-                {
-                    if ((result += DeserializeMember(data, null, "Header", out rmbFldGroundData.Header)).Failed) return result;
-
-                    fsData groundTilesData;
-                    if ((result += CheckKey(data, "GroundTiles", out groundTilesData)).Failed) return result;
-                    fsData groundSceneryData;
-                    if ((result += CheckKey(data, "GroundScenery", out groundSceneryData)).Failed) return result;
-
-                    // Un-flatten and deserialize the ground data 2D arrays
-                    rmbFldGroundData.GroundTiles = new RmbGroundTiles[RMBTilesPerBlock, RMBTilesPerBlock];
-                    List<fsData> groundTilesFlattened = groundTilesData.AsList;
-                    int i = 0;
-                    for (int tileY = 0; tileY < RMBTilesPerBlock; tileY++)
-                    {
-                        for (int tileX = 0; tileX < RMBTilesPerBlock; tileX++)
-                        {
-                            Dictionary<string, fsData> groundTile = groundTilesFlattened[i++].AsDictionary;
-                            RmbGroundTiles rmbGroundTile = new RmbGroundTiles();
-                            DeserializeMember(groundTile, null, "TextureRecord", out rmbGroundTile.TextureRecord);
-                            DeserializeMember(groundTile, null, "TileBitfield", out rmbGroundTile.TileBitfield);
-                            DeserializeMember(groundTile, null, "IsRotated", out rmbGroundTile.IsRotated);
-                            DeserializeMember(groundTile, null, "IsFlipped", out rmbGroundTile.IsFlipped);
-                            rmbFldGroundData.GroundTiles[tileX, tileY] = rmbGroundTile;
-                        }
-                    }
-                    rmbFldGroundData.GroundScenery = new RmbGroundScenery[RMBTilesPerBlock, RMBTilesPerBlock];
-                    List<fsData> groundSceneryFlattened = groundSceneryData.AsList;
-                    i = 0;
-                    for (int tileY = 0; tileY < RMBTilesPerBlock; tileY++)
-                    {
-                        for (int tileX = 0; tileX < RMBTilesPerBlock; tileX++)
-                        {
-                            Dictionary<string, fsData> groundScenery = groundSceneryFlattened[i++].AsDictionary;
-                            RmbGroundScenery rmbGroundScenery = new RmbGroundScenery();
-                            DeserializeMember(groundScenery, null, "TextureRecord", out rmbGroundScenery.TextureRecord);
-                            rmbFldGroundData.GroundScenery[tileX, tileY] = rmbGroundScenery;
-                        }
-                    }
-                }
-                return result;
-            }
-        }
-
-        public class RdbBlockDescProcessor : fsObjectProcessor
-        {
-            // Invoked after serialization has finished. Update any state inside of instance, modify the output data, etc.
-            public override void OnAfterSerialize(Type storageType, object instance, ref fsData data)
-            {
-                // Truncate ModelReferenceList at the first null entry in array[750].
-                fsData modelRefDict = data.AsDictionary["ModelReferenceList"];
-                if (!modelRefDict.IsNull)
-                {
-                    List<fsData> modelRefList = modelRefDict.AsList;
-                    for (int i = 0; i < modelRefList.Count; i++)
-                    {
-                        if (modelRefList[i].AsDictionary["Description"].AsString == "\uFFFD\uFFFD\uFFFD")
-                        {
-                            modelRefList.RemoveRange(i, modelRefList.Count - i);
-                            break;
-                        }
-                    }
-                }
-            }
-        }
-
-        public class RdbObjectProcessor : fsObjectProcessor
-        {
-            // Invoked after serialization has finished. Update any state inside of instance, modify the output data, etc.
-            public override void OnAfterSerialize(Type storageType, object instance, ref fsData data)
-            {
-                // Only write relevant type resource data for Rdb Objects.
-                Dictionary<string, fsData> rdbObject = data.AsDictionary;
-                DFBlock.RdbResourceTypes type = (DFBlock.RdbResourceTypes)Enum.Parse(typeof(DFBlock.RdbResourceTypes), rdbObject["Type"].AsString);
-                Dictionary<string, fsData> resources = rdbObject["Resources"].AsDictionary;
-
-                if (type == DFBlock.RdbResourceTypes.Flat || type == DFBlock.RdbResourceTypes.Light)
-                    resources.Remove("ModelResource");
-                if (type == DFBlock.RdbResourceTypes.Flat || type == DFBlock.RdbResourceTypes.Model)
-                    resources.Remove("LightResource");
-                if (type == DFBlock.RdbResourceTypes.Model || type == DFBlock.RdbResourceTypes.Light)
-                    resources.Remove("FlatResource");
-            }
-        }
-
-        public class RmbBlock3dObjectRecordProcessor : fsObjectProcessor
-        {
-            // Invoked after serialization has finished. Update any state inside of instance, modify the output data, etc.
-            public override void OnAfterSerialize(Type storageType, object instance, ref fsData data)
-            {
-                // Remove any unused (zero) scale values from serialized form.
-                Dictionary<string, fsData> rmb3dObj = data.AsDictionary;
-                if (rmb3dObj["XScale"].AsDouble == 0)
-                    rmb3dObj.Remove("XScale");
-                if (rmb3dObj["YScale"].AsDouble == 0)
-                    rmb3dObj.Remove("YScale");
-                if (rmb3dObj["ZScale"].AsDouble == 0)
-                    rmb3dObj.Remove("ZScale");
-            }
         }
 
         #endregion

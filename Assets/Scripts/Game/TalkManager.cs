@@ -2720,45 +2720,55 @@ namespace DaggerfallWorkshop.Game
             Debug.Log("region1: " + WorldData.WorldSetting.RegionNames[region1] + ", region2: " + WorldData.WorldSetting.RegionNames[region2] + ", range: " + range);
             if (region1 == region2) return true;
 
-            List<int> borderingRegions = new List<int>();
-            int index = 0;
-            int whereToStart = 0;
-            int counting = 0;
-            List<int> regionStillToCheck = new List<int>();
-            while (WorldData.WorldSetting.regionBorders[region1 * 20 + index] != 408)
+            List<int>[] borderingRegionLevels = new List<int>[range + 1];
+            List<int> borderingRegionList = new List<int>();
+
+            borderingRegionLevels[0] = new List<int>();
+            borderingRegionLevels[0].Add(region1);
+            borderingRegionList.Add(region1);
+
+            for (int i = 1; i <= range; i++)
             {
-                if (region2 == WorldData.WorldSetting.regionBorders[region1 * 20 + index])
-                    return true;
-                borderingRegions.Add(WorldData.WorldSetting.regionBorders[region1 * 20 + index]);
-                index++;
-            }
-            for (int i = 0; i < range; i++)
-            {
-                regionStillToCheck = new List<int>();
-                regionStillToCheck = borderingRegions.GetRange(whereToStart, borderingRegions.Count() - counting);
-                foreach (int region in regionStillToCheck)
+                borderingRegionLevels[i] = new List<int>();
+                foreach (int region in borderingRegionLevels[i - 1])
                 {
-                    int anotherIndex = 0;
-                    while (WorldData.WorldSetting.regionBorders[region * 20 + index] != 408)
+                    List<int> regionsToAdd = GetBorderRegions(region);
+
+                    foreach (int regionToAdd in regionsToAdd)
                     {
-                        if (!borderingRegions.Contains(WorldData.WorldSetting.regionBorders[region1 * 20 + anotherIndex]))
+                        if (region2 == regionToAdd) return true;
+                        if (!borderingRegionList.Contains(regionToAdd))
                         {
-                            if (region2 == WorldData.WorldSetting.regionBorders[region1 * 20 + anotherIndex])
-                                return true;
-                            borderingRegions.Add(WorldData.WorldSetting.regionBorders[region1 * 20 + anotherIndex]);
-                            anotherIndex++;
-                        }                    
+                            borderingRegionList.Add(regionToAdd);
+                            borderingRegionLevels[i].Add(regionToAdd);
+                        }
                     }
-                    counting += anotherIndex;
                 }
             }
+            if (borderingRegionList.Contains(region2))
+                return true;
+
             return false;
+        }
+
+        public static List<int> GetBorderRegions(int region)
+        {
+            List<int> borderRegions = new List<int>();
+            int index = 0;
+            while (WorldData.WorldSetting.regionBorders[region * 20 + index] < 408 && index < 20)
+            {
+                borderRegions.Add(WorldData.WorldSetting.regionBorders[region * 20 + index]);
+                index++;
+            }
+            return borderRegions;
         }
 
         public int GetGenericRange()
         {
-            if (npcData.isSpyMaster)
+            if (npcData != null && npcData.isSpyMaster)
                 return 6;
+            if (npcData == null)    // This should work for bulletin boards
+                return 0;
             if (GameManager.Instance.PlayerGPS.CurrentLocation.Exterior.ExteriorData.PortTownAndUnknown != 0)
                 return 4;
 

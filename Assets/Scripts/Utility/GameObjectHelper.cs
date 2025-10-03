@@ -54,6 +54,7 @@ namespace DaggerfallWorkshop.Utility
                                                          212008,      // Water pump
                                                          212009,      // Water pump
                                                          212003,      // Dry fountain
+                                                         212006       // Roadsign
                                                        };
 
         public static void AddAnimalAudioSource(GameObject go, int record)

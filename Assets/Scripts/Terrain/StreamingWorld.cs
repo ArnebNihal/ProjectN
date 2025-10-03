@@ -24,6 +24,8 @@ using DaggerfallWorkshop.Utility;
 using DaggerfallWorkshop.Game.Utility;
 using DaggerfallWorkshop.Game.Serialization;
 using Unity.Jobs;
+using System.IO;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop
 {
@@ -83,7 +85,7 @@ namespace DaggerfallWorkshop
         Dictionary<int, int> terrainIndexDict = new Dictionary<int, int>();
 
         // List of loose objects, such as locations or loot containers
-        // These objects are not recycled and will created/destroyed as needed
+        // These objects are not recycled and will be created/destroyed as needed
         List<LooseObjectDesc> looseObjectsList = new List<LooseObjectDesc>();
 
         // Compensation for floating origin
@@ -660,6 +662,9 @@ namespace DaggerfallWorkshop
             UpdateTerrainNature(terrainArray[playerTerrainIndex]);
             terrainArray[playerTerrainIndex].updateNature = false;
 
+            UpdateTerrainRoadsign(terrainArray[playerTerrainIndex]);
+            terrainArray[playerTerrainIndex].updateRoadsign = false;
+
 #if SHOW_LAYOUT_TIMES
             stopwatch.Stop();
             DaggerfallUnity.LogMessage(string.Format("Time to init player terrain: {0}ms", stopwatch.ElapsedMilliseconds), true);
@@ -696,6 +701,13 @@ namespace DaggerfallWorkshop
                     {
                         UpdateTerrainNature(terrainArray[i]);
                         terrainArray[i].updateNature = false;
+                        if (!init)
+                            yield return new WaitForEndOfFrame();
+                    }
+                    if (terrainArray[i].updateRoadsign)
+                    {
+                        UpdateTerrainRoadsign(terrainArray[i]);
+                        terrainArray[i].updateRoadsign = false;
                         if (!init)
                             yield return new WaitForEndOfFrame();
                     }
@@ -1306,16 +1318,89 @@ namespace DaggerfallWorkshop
 #endif
         }
 
-        // public void UpdateTerrainRoadsign(TerrainDesc terrainDesc)
-        // {
-        //     if (File)
-        //     DaggerfallTerrain dfTerrain = terrainDesc.terrainObject.GetComponent<DaggerfallTerrain>();
+        public void UpdateTerrainRoadsign(TerrainDesc terrainDesc)
+        {
+            DaggerfallTerrain dfTerrain = terrainDesc.terrainObject.GetComponent<DaggerfallTerrain>();            
+            // DaggerfallBillboardBatch dfBillboardBatch = terrainDesc.billboardBatchObject.GetComponent<DaggerfallBillboardBatch>();
 
-        //     if (dfTerrain)
-        //     {
+            if (dfTerrain)
+            {
+                string path = string.Empty;
 
-        //     }
-        // }
+                // Generating walled town signs
+                if (File.Exists(Path.Combine(WorldMaps.mapPath, "RoadsignData", "signdata_" + (dfTerrain.MapPixelX + dfTerrain.MapPixelY * MapsFile.MaxMapPixelX + (100 * Math.Pow(10, 8))) + ".json")))
+                {
+
+                }
+
+                // Generating not-walled town signs
+                if (File.Exists(Path.Combine(WorldMaps.mapPath, "RoadsignData", "signdata_" + (dfTerrain.MapPixelX + dfTerrain.MapPixelY * MapsFile.MaxMapPixelX + (50 * Math.Pow(10, 8))) + ".json")))
+                {
+
+                }
+
+                // Generating non-town roadsigns
+                int signCounter = 25;
+                if (File.Exists(Path.Combine(WorldMaps.mapPath, "RoadsignData", "signdata_" + (dfTerrain.MapPixelX + dfTerrain.MapPixelY * MapsFile.MaxMapPixelX + (signCounter * Math.Pow(10, 8))) + ".json")))
+                {
+                    path = Path.Combine(WorldMaps.mapPath, "RoadsignData", "signdata_" + (dfTerrain.MapPixelX + dfTerrain.MapPixelY * MapsFile.MaxMapPixelX + (signCounter * Math.Pow(10, 8))) + ".json");
+
+                    Debug.Log("Working on " + path + " roadsigns");
+                    Debug.Log("dfTerrain.MapPixelX: " + dfTerrain.MapPixelX + ", dfTerrain.MapPixelY: " + dfTerrain.MapPixelY);
+                    (DFPosition, string[][]) roadsign = JsonConvert.DeserializeObject<(DFPosition, string[][])>(File.ReadAllText(path));
+                    int terrainDist = GetTerrainDist(LocalPlayerGPS.CurrentMapPixel, dfTerrain.MapPixelX, dfTerrain.MapPixelY);
+                    LayoutRoadsign(dfTerrain, TerrainScale, terrainDist, roadsign);
+                    Debug.Log("Roadsign set");
+                }
+            }
+        }
+
+        public static void LayoutRoadsign(DaggerfallTerrain dfTerrain, float terrainScale, int terrainDist, (DFPosition, string[][]) roadsign)
+        {
+            // Get terrain
+            Terrain terrain = dfTerrain.gameObject.GetComponent<Terrain>();
+            if (!terrain)
+                return;
+
+            // // Get terrain data
+            TerrainData terrainData = terrain.terrainData;
+            if (!terrainData)
+                return;
+
+            // Remove exiting billboards
+            // string flatName = GameObjectHelper.GetGoFlatName(212, 6);
+            // GameObject.FindObjectsByType();
+            // GameObject.Destroy(flatName);
+            // MeshReplacement.ClearNatureGameObjects(terrain);
+
+            GameObject go = GameObjectHelper.CreateDaggerfallBillboardGameObject(212, 6, dfTerrain.transform);
+            go.name += (" " + dfTerrain.MapPixelX + "-" + dfTerrain.MapPixelY);
+            Vector2 tilePos = Vector2.zero;
+            int tDim = MapsFile.WorldMapTileDim;
+            int hDim = DaggerfallUnity.Instance.TerrainSampler.HeightmapDimension;
+            float scale = terrainData.heightmapScale.x * (float)hDim / (float)tDim;
+            float maxTerrainHeight = DaggerfallUnity.Instance.TerrainSampler.MaxTerrainHeight;
+            float beachLine = DaggerfallUnity.Instance.TerrainSampler.BeachElevation;
+
+            float steepness = terrainData.GetSteepness((float)roadsign.Item1.X / tDim, (float)roadsign.Item1.Y / tDim);
+            float slopeSinkRatio = 70f;
+
+            int hx = (int)Mathf.Clamp(hDim * ((float)roadsign.Item1.X / (float)tDim), 0, hDim - 1);
+            int hy = (int)Mathf.Clamp(hDim * ((float)roadsign.Item1.Y / (float)tDim), 0, hDim - 1);
+            float height = dfTerrain.MapData.heightmapSamples[hy, hx] * maxTerrainHeight;  // x & y swapped in heightmap for TerrainData.SetHeights()
+
+            // Sample height and position billboard
+            Vector3 pos = new Vector3(roadsign.Item1.X * scale, 0, roadsign.Item1.Y * scale);
+            float height2 = terrain.SampleHeight(pos + terrain.transform.position);
+            pos.y = height2 - (steepness / slopeSinkRatio) + 1.50f;
+
+            // Add to batch unless a mesh replacement is found
+            // int record = Random.Range(1, 32);
+            go.transform.localPosition = pos;
+
+            // Apply new batch
+            go.SetActive(true);
+        }
 
         // Gets terrain at map pixel coordinates, or null if not found
         private Terrain GetTerrain(int mapPixelX, int mapPixelY)

@@ -245,7 +245,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="variant">Variant to use. If not set, a random variant will be selected.</param>
         /// <param name="dye">Dye to use</param>
         /// <returns>DaggerfallUnityItem.</returns>
-        public static DaggerfallUnityItem CreateMensClothing(MensClothing item, Races race, int variant = -1, DyeColors dye = DyeColors.Blue)
+        public static DaggerfallUnityItem CreateMensClothing(MensClothing item, Races race, int qualityMod = 0, int variant = -1, DyeColors dye = DyeColors.Blue)
         {
             // Create item
             int groupIndex = DaggerfallUnity.Instance.ItemHelper.GetGroupIndex(ItemGroups.MensClothing, (int)item);
@@ -257,8 +257,9 @@ namespace DaggerfallWorkshop.Game.Items
 
             // Set race, variant, dye
             SetRace(newItem, race);
+            SetClothQuality(newItem, qualityMod, out ClothCraftsmanship clothCraftsmanship);
             SetVariant(newItem, variant);
-            newItem.dyeColor = dye;
+            // newItem.dyeColor = dye;
 
             return newItem;
         }
@@ -271,7 +272,7 @@ namespace DaggerfallWorkshop.Game.Items
         /// <param name="variant">Variant to use. If not set, a random variant will be selected.</param>
         /// <param name="dye">Dye to use</param>
         /// <returns>DaggerfallUnityItem.</returns>
-        public static DaggerfallUnityItem CreateWomensClothing(WomensClothing item, Races race, int variant = -1, DyeColors dye = DyeColors.Blue)
+        public static DaggerfallUnityItem CreateWomensClothing(WomensClothing item, Races race, int qualityMod = 0, int variant = -1, DyeColors dye = DyeColors.Blue)
         {
             // Create item
             int groupIndex = DaggerfallUnity.Instance.ItemHelper.GetGroupIndex(ItemGroups.WomensClothing, (int)item);
@@ -283,8 +284,9 @@ namespace DaggerfallWorkshop.Game.Items
 
             // Set race, variant, dye
             SetRace(newItem, race);
+            SetClothQuality(newItem, qualityMod, out ClothCraftsmanship clothCraftsmanship);
             SetVariant(newItem, variant);
-            newItem.dyeColor = dye;
+            // newItem.dyeColor = dye;
 
             return newItem;
         }
@@ -313,7 +315,7 @@ namespace DaggerfallWorkshop.Game.Items
             SetRace(newItem, race);
             SetClothQuality(newItem, qualityMod, out ClothCraftsmanship clothCraftsmanship);
 
-            // In ProjectN, the colour is chosed with the variant
+            // In ProjectN, the colour is chosen with the variant
             // SetClothColors(newItem, clothCraftsmanship);
             // newItem.dyeColor = RandomClothingDye();
 
@@ -1526,6 +1528,12 @@ namespace DaggerfallWorkshop.Game.Items
                     clothCraftsmanship++;
             }
 
+            // Calling "Tall Sandals" by their name
+            if ((item.TemplateIndex == (int)WomensClothing.Sandals ||
+                 item.TemplateIndex == (int)MensClothing.Sandals) &&
+                 item.CurrentVariant == 0)
+                item.shortName = "Tall " + item.shortName;
+
             item.craftsmanship = clothCraftsmanship;
             switch (clothCraftsmanship)
             {
@@ -1729,7 +1737,7 @@ namespace DaggerfallWorkshop.Game.Items
                 else if (item.TemplateIndex == (int)MensClothing.Shoes ||
                          item.TemplateIndex == (int)MensClothing.Tall_Boots ||
                          item.TemplateIndex == (int)MensClothing.Boots ||
-                        (item.TemplateIndex == (int)MensClothing.Casual_pants && item.CurrentVariant < 3) ||
+                        (item.TemplateIndex == (int)MensClothing.Casual_pants && item.CurrentVariant != 3) ||
                         (item.TemplateIndex == (int)MensClothing.Breeches && item.CurrentVariant == 0))
                 {
                     item.dyeTargets = new DyeTargets[] { DyeTargets.LeatherClothing };
@@ -1818,7 +1826,7 @@ namespace DaggerfallWorkshop.Game.Items
                 }
                 else if (item.TemplateIndex == (int)MensClothing.Vest)
                 {
-                    item.dyeTargets = new DyeTargets[] { DyeTargets.BlackClothing, DyeTargets.YellowClothing };
+                    item.dyeTargets = new DyeTargets[] { DyeTargets.AdamantiumClothing, DyeTargets.YellowClothing };
                     item.dyeLevel = 2;
                 }
             }
@@ -2559,7 +2567,7 @@ namespace DaggerfallWorkshop.Game.Items
                      item.ItemGroup == ItemGroups.MensClothing)
             {
                 SetClothDyeData(item);
-                SetClothColors(item, item.craftsmanship);                
+                SetClothColors(item, item.craftsmanship);
             }
             else if (item.ItemGroup == ItemGroups.Weapons && variant != 0)
             {

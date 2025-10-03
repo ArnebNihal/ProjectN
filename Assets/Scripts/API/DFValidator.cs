@@ -114,7 +114,8 @@ namespace DaggerfallConnect.Utility
                 results.ModelsValid = true;
 
             // Validate blocks count
-            if (blocks.Length >= 1)
+            // ProjectN: not required anymore
+            // if (blocks.Length >= 1)
                 results.BlocksValid = true;
 
             // Validate maps count

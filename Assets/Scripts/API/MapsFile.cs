@@ -81,7 +81,7 @@ namespace DaggerfallConnect.Arena2
         /// </summary>
         private readonly string[] rmbBlockPrefixes = {
             "TVRN", "GENR", "RESI", "WEAP", "ARMR", "ALCH", "BANK", "BOOK",
-            "CLOT", "FURN", "GEMS", "LIBR", "PAWN", "TEMP", "TEMP", "PALA",
+            "CLOT", "FURN", "GEMS", "LIBR", "PAWN", "TEMP", "PALA",
             "FARM", "DUNG", "CAST", "MANR", "SHRI", "RUIN", "SHCK", "GRVE",
             "FILL", "KRAV", "KDRA", "KOWL", "KMOO", "KCAN", "KFLA", "KHOR",
             "KROS", "KWHE", "KSCA", "KHAW", "MAGE", "THIE", "DARK", "FIGH",
@@ -859,7 +859,7 @@ namespace DaggerfallConnect.Arena2
         {
             WorldMap tileMap = new WorldMap();
             int xDir, yDir;
-            (int, int, int, int)[] modifiers = { (0, -1, 1, 1), (1, 0, -1, 1), (0, 1, 1, -1), (-1, 0, 1, 1) };
+            (int, int, int, int)[] modifiers = { (0, -1, 1, 1), (1, 0, -1, 1), (0, 1, -1, -1), (-1, 0, 1, -1) };
             MapSummary locationFound;
             int tile = -1;
             int previousTile = 0;

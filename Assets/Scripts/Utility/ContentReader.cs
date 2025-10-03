@@ -15,6 +15,7 @@ using System.IO;
 using DaggerfallConnect;
 using DaggerfallConnect.Arena2;
 using System;
+using Newtonsoft.Json;
 
 namespace DaggerfallWorkshop.Utility
 {
@@ -24,7 +25,7 @@ namespace DaggerfallWorkshop.Utility
     public class ContentReader
     {
         bool isReady = false;
-        string arena2Path;
+        public string arena2Path;
         
         BlocksFile blockFileReader;
         MapsFile mapFileReader;
@@ -281,7 +282,7 @@ namespace DaggerfallWorkshop.Utility
         {
             // Try to setup Arena2-dependent content readers
             if (blockFileReader == null)
-                blockFileReader = new BlocksFile(Path.Combine(arena2Path, BlocksFile.Filename), FileUsage.UseMemory, true);
+                blockFileReader = new BlocksFile(Path.Combine(arena2Path, "Maps", BlocksFile.Filename), FileUsage.UseMemory, true);
             if (mapFileReader == null)
                 mapFileReader = new MapsFile(Path.Combine(arena2Path, MapsFile.Filename), FileUsage.UseMemory, true);
             if (monsterFileReader == null)

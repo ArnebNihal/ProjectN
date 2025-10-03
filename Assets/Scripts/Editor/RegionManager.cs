@@ -121,6 +121,7 @@ namespace MapEditor
 
         public enum Ruler
         {
+            None = 0,
             King = 1,
             Queen = 2,
             Duke = 3,
@@ -141,6 +142,7 @@ namespace MapEditor
         // It is equivalent to (Ruler + 1) / 2
         public enum GovernType
         {
+            None = 0,
             Kingdom = 1,
             Duchy = 2,
             March = 3,

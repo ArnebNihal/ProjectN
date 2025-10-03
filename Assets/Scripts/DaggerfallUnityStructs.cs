@@ -375,7 +375,7 @@ namespace DaggerfallWorkshop
         public bool hasLocation;                    // True if location present
         public int mapRegionIndex;                  // Map region index (if location present)
         public int mapLocationIndex;                // Map location index (if location present)
-        public ulong locationID;                      // Location ID (if location present)
+        public ulong locationID;                    // Location ID (if location present)
         public string locationName;                 // Location name (if location present)
         public DFRegion.LocationTypes LocationType; // Location type (if location present)       
         public float averageHeight;                 // Average height of terrain for location placement

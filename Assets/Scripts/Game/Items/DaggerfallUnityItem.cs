@@ -1699,10 +1699,10 @@ namespace DaggerfallWorkshop.Game.Items
 
         internal DyeTargets[] ParseDyeTargets(byte[] dyeTargets)
         {
-            DyeTargets[] parsedDyeTargets = new DyeColors[dyeTargets.Length];
+            DyeTargets[] parsedDyeTargets = new DyeTargets[dyeTargets.Length];
             for (int i = 0; i < dyeTargets.Length; i++)
             {
-                parsedDyeTargets[i] = (DyeColors)dyeTargets[i];
+                parsedDyeTargets[i] = (DyeTargets)dyeTargets[i];
             }
             return parsedDyeTargets;
         }
@@ -1717,6 +1717,9 @@ namespace DaggerfallWorkshop.Game.Items
             nativeMaterialValue = data.nativeMaterialValue;
             dyeColor = data.dyeColor;
             additionalColors = data.additionalColors;
+            dyeTargets = data.dyeTargets;
+            dyeLevel = data.dyeLevel;
+            craftsmanship = data.craftsmanship;
             weightInKg = data.weightInKg;
             drawOrder = data.drawOrder;
             value = data.value1;

@@ -1373,6 +1373,13 @@ namespace DaggerfallWorkshop.Game
             return messageBox;
         }
 
+        public static DaggerfallRoadsign Roadsign((DFPosition, string[][]) roadsignDirections)
+        {
+            DaggerfallRoadsign roadsign = new DaggerfallRoadsign(Instance.uiManager, roadsignDirections.Item2);
+            roadsign.Show();
+            return roadsign;
+        }
+
         public static Texture2D CreateSolidTexture(Color color, int dim)
         {
             Texture2D texture = null;

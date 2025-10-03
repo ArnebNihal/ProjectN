@@ -145,7 +145,7 @@ namespace MapEditor
 
         public readonly string[] rmbBlockPrefixes = {
             "TVRN", "GENR", "RESI", "WEAP", "ARMR", "ALCH", "BANK", "BOOK",
-            "CLOT", "FURN", "GEMS", "LIBR", "PAWN", "TEMP", "TEMP", "PALA",
+            "CLOT", "FURN", "GEMS", "LIBR", "PAWN", "TEMP", "PALA",
             "FARM", "DUNG", "CAST", "MANR", "SHRI", "RUIN", "SHCK", "GRVE",
             "FILL", "KRAV", "KDRA", "KOWL", "KMOO", "KCAN", "KFLA", "KHOR",
             "KROS", "KWHE", "KSCA", "KHAW", "MAGE", "THIE", "DARK", "FIGH",
@@ -165,7 +165,7 @@ namespace MapEditor
 
         public string worldSavePath;
         public string sourceFilesPath;
-        public const string testPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/Tamriel/";
+        public const string testPath = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2/Maps/";
         public const string arena2Path = "/home/arneb/Games/daggerfall/DaggerfallGameFiles/arena2";
         public int lastDungeonType = -1;
         public int availableBlocks = 0;
@@ -318,10 +318,15 @@ namespace MapEditor
                 OpenTileCreator();
             }
 
-            if (GUILayout.Button("Split Locations", GUILayout.MaxWidth(dataFieldSmall)))
-            {
-                SplitLocations();
-            }
+            // if (GUILayout.Button("Block Rotator", GUILayout.MaxWidth(dataFieldSmall)))
+            // {
+            //     OpenBlockRotatorWindow();
+            // }
+
+            // if (GUILayout.Button("Split Locations", GUILayout.MaxWidth(dataFieldSmall)))
+            // {
+            //     SplitLocations();
+            // }
 
             EditorGUILayout.EndHorizontal();
             EditorGUILayout.BeginHorizontal();
@@ -1452,6 +1457,12 @@ namespace MapEditor
             generateRoutesWindow.Show();
         }
 
+        // protected void OpenBlockRotatorWindow()
+        // {
+        //     BlockRotatorWindow blockRotatorWindow = (BlockRotatorWindow) EditorWindow.GetWindow(typeof(BlockRotatorWindow), false, "Block Rotator");
+        //     blockRotatorWindow.Show();
+        // }
+
         protected void SplitLocations()
         {
             Worldmap[] splittedLocations = new Worldmap[MapsFile.TileX * MapsFile.TileY];
@@ -1631,7 +1642,7 @@ namespace MapEditor
 
         protected void CreateMapDict()
         {
-            string fileDataPath = Path.Combine(Worldmaps.tilesPath, "mapDict.json");
+            string fileDataPath = Path.Combine(Worldmaps.tilesPath, "mapDictOld.json");
             Dictionary<int, List<(int, int)>> regionTiles = new Dictionary<int, List<(int, int)>>();
             int tileIndex;
             int previousTileIndex = -1;
@@ -3240,21 +3251,20 @@ namespace MapEditor
                         }
                         else
                         {
-                            if (value >= (byte.MaxValue * byte.MaxValue))
+                            if (value >= (256 * 256))
                             {
-                                green = 25;
-                                red = (byte)((value - (byte.MaxValue * byte.MaxValue)) % byte.MaxValue);
-                                blue = (byte)((value - (byte.MaxValue * byte.MaxValue)) / byte.MaxValue);
+                                green = (byte)(value / (256 * 256));
+                                blue = (byte)((value % (256 * 256)) / 256);
+                                red = (byte)((value % (256 * 256)) % 256);
                             }
                             else
                             {
                                 green = 0;
-                                red = (byte)(value % byte.MaxValue);
-                                blue = (byte)(value / byte.MaxValue);
+                                blue = (byte)(value / 256);
+                                red = (byte)(value % 256);
                             }
                         }
                     }
-
                     grayscaleMap[offset] = new Color32(red, green, blue, alpha);
                 }
             }
@@ -3287,7 +3297,7 @@ namespace MapEditor
             return grayscaleBuffer;
         }
 
-        public static byte[] ConvertToGrayscale((byte, byte, byte)[,] map, int trailType)
+        public static byte[] ConvertToGrayscale((byte, byte, byte, byte)[,] map, int trailType)
         {
             Texture2D grayscaleImage = new Texture2D(map.GetLength(0), map.GetLength(1));
             Color32[] grayscaleMap = new Color32[map.Length];
@@ -3388,7 +3398,10 @@ namespace MapEditor
                 for (int y = 0; y < imageToTranslate.height; y++)
                 {
                     int offset = (((imageToTranslate.height - y - 1) * imageToTranslate.width) + x);
-                    matrix[x, y] = grayscaleMap[offset].r + grayscaleMap[offset].b * byte.MaxValue + grayscaleMap[offset].g * byte.MaxValue * byte.MaxValue;
+                    byte green = grayscaleMap[offset].g;
+                    byte red = grayscaleMap[offset].r;
+                    byte blue = grayscaleMap[offset].b;
+                    matrix[x, y] = (green * 256 * 256) + (blue * 256) + red;
                 }
             }
             return matrix;
@@ -3465,6 +3478,17 @@ namespace MapEditor
         public Dictionary<string, int> MapNameLookup;
         public DFLocation[] Locations;
 
+        public void DiscardMapTile()
+        {
+            this.Name = string.Empty;
+            this.LocationCount = 0;
+            this.MapNames = Array.Empty<string>();
+            this.MapTable = Array.Empty<DFRegion.RegionMapTable>();
+            this.MapIdLookup = new Dictionary<ulong, int>();
+            this.MapNameLookup = new Dictionary<string, int>();
+            this.Locations = Array.Empty<DFLocation>();
+        }
+
         #endregion
     }
 
@@ -3482,7 +3506,7 @@ namespace MapEditor
         static Worldmaps()
         {
             Worldmap = LoadWorldMap();
-            WholeWM = JsonConvert.DeserializeObject<Worldmap[]>(File.ReadAllText(Path.Combine(MapEditor.testPath, "MapsTest.json")));
+            WholeWM = JsonConvert.DeserializeObject<Worldmap[]>(File.ReadAllText(Path.Combine(MapEditor.testPath, "Maps.json")));
             // Debug.Log("Enumerating maps from constructor");
             mapDict = EnumerateMaps();
         }
@@ -3805,7 +3829,7 @@ namespace MapEditor
 
             locationIdList.Sort();
 
-            string fileDataPath = Path.Combine(MapEditor.testPath, "mapDict.json");
+            string fileDataPath = Path.Combine(MapEditor.testPath, "mapDictOld.json");
             var json = JsonConvert.SerializeObject(mapDictSwap, new JsonSerializerSettings { ReferenceLoopHandling = ReferenceLoopHandling.Ignore });
             File.WriteAllText(fileDataPath, json);
 
@@ -3949,10 +3973,10 @@ namespace MapEditor
                         byte value = grayscaleMap[offset].g;
                         matrix[x, y] = (int)value;
                     }
-                    else{
-                        int intValue = grayscaleMap[offset].r + grayscaleMap[offset].b * (byte.MaxValue + 1);
-                        matrix[x, y] = intValue;
-                    }
+                    // else{
+                    //     int intValue = grayscaleMap[offset].r + grayscaleMap[offset].b * GenerateRoutesWindow.DIRTINDEX + grayscaleMap[offset].g * GenerateRoutesWindow.TRACKINDEX + grayscaleMap[offset].a * GenerateRoutesWindow.FUNCINDEX;
+                    //     matrix[x, y] = intValue;
+                    // }
                 }
             }
         }
@@ -4100,6 +4124,7 @@ namespace MapEditor
         {
             WorldSetting = new WorldStats();
             WorldSetting = JsonConvert.DeserializeObject<WorldStats>(File.ReadAllText(Path.Combine(MapEditor.testPath, "WorldData.json")));
+            WorldSetting.Regions = WorldSetting.RegionNames.Length;
         }
     }
 

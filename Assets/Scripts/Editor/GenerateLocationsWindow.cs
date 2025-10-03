@@ -121,7 +121,8 @@ namespace MapEditor
 
         // governmentModifier list reduction/increase of densities in a [government, locationType] format.
         // Kingdom doesn't make any change, but it's listed nonetheless for better understanding of future-me.
-        public static float[,] governmentModifier = { 
+        public static float[,] governmentModifier = {
+            { 0.60f, 0.55f, 0.50f, 0.60f, 1.30f, 0.65f, 0.60f, 1.40f, 0.55f, 0.70f, 1.50f, 0.50f, 0.45f, 1.0f },   // None   
             { 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f, 1.0f},                // Kingdom
             { 0.95f, 0.90f, 0.85f, 0.95f, 1.05f, 0.90f, 0.95f, 1.10f, 0.90f, 0.95f, 1.15f, 0.90f, 0.95f, 1.0f },  // Duchy
             { 0.90f, 0.85f, 0.80f, 0.90f, 1.10f, 0.85f, 0.90f, 1.15f, 0.85f, 0.90f, 1.20f, 0.85f, 0.90f, 1.0f },  // March
@@ -271,12 +272,12 @@ namespace MapEditor
             EditorGUILayout.LabelField("", (CalculateInteger(RegionManager.currentRegionData.surface, regionOptions.locationDensity[(int)(DFRegion.LocationTypes.Graveyard)])).ToString());
             GUILayout.EndHorizontal();
 
-            GUILayout.Space(20.0f);
+            // GUILayout.Space(20.0f);
 
-            GUILayout.BeginHorizontal();
-            regionOptions.locationDensity[(int)(DFRegion.LocationTypes.HiddenLocation)] = EditorGUILayout.FloatField("Hidden Locations: ", regionOptions.locationDensity[(int)(DFRegion.LocationTypes.HiddenLocation)]);
-            EditorGUILayout.LabelField("", (CalculateInteger(RegionManager.currentRegionData.surface, regionOptions.locationDensity[(int)(DFRegion.LocationTypes.HiddenLocation)])).ToString());
-            GUILayout.EndHorizontal();
+            // GUILayout.BeginHorizontal();
+            // regionOptions.locationDensity[(int)(DFRegion.LocationTypes.HiddenLocation)] = EditorGUILayout.FloatField("Hidden Locations: ", regionOptions.locationDensity[(int)(DFRegion.LocationTypes.HiddenLocation)]);
+            // EditorGUILayout.LabelField("", (CalculateInteger(RegionManager.currentRegionData.surface, regionOptions.locationDensity[(int)(DFRegion.LocationTypes.HiddenLocation)])).ToString());
+            // GUILayout.EndHorizontal();
 
             GUILayout.Space(50.0f);
 
@@ -2719,7 +2720,7 @@ namespace MapEditor
 
             generatedLocation.Exterior.ExteriorData.BlockNames = new string[townShape.Item1 * townShape.Item2];
 
-            if (locationType == (int)DFRegion.LocationTypes.TownCity && (DetermineIfWalled(townShape.Item1, townShape.Item2)) || (isCapital && regionOptions.capitalWalled))
+            if (locationType == (int)DFRegion.LocationTypes.TownCity && ((DetermineIfWalled(townShape.Item1, townShape.Item2)) || (isCapital && regionOptions.capitalWalled)))
             {
                 string specialCondition = "";
                 if (isCapital)
@@ -2989,6 +2990,8 @@ namespace MapEditor
         {
             switch (locationType)
             {
+                // TODO: vanilla cities are present even with a size of 5x7 and 7x5 (walls included).
+                // Take that into consideration (maybe for smaller regions?)
                 case (int)DFRegion.LocationTypes.TownCity:
                     if (scalableValue <= 80)
                         return 4;
@@ -3506,13 +3509,15 @@ namespace MapEditor
                             }
                             while (cityPrefix < 0);
 
-                            if (walled)
-                            {
-                                if (UnityEngine.Random.Range(0, 2) == 0)
-                                    sizeChar = "L";
-                                else sizeChar = "M";
-                            }
-                            else sizeChar = "M";
+                            // if (walled)
+                            // {
+                            //     if (UnityEngine.Random.Range(0, 2) == 0)
+                            //         sizeChar = "L";
+                            //     else sizeChar = "M";
+                            // }
+                            // else sizeChar = "M";
+
+                            sizeChar = "L";
 
                             partialRMB = string.Concat(LocationNamesList.RMBNames[(int)LocationNamesList.RMBTypes.Town][cityPrefix], climateChar, sizeChar);
                             blockToNormalize = new List<string>();
@@ -3586,7 +3591,9 @@ namespace MapEditor
                             }
                             while (townPrefix < 0);
 
-                            sizeChar = "M";
+                            if (locationTypes == (int)DFRegion.LocationTypes.TownHamlet)
+                                sizeChar = "M";
+                            else sizeChar = "S";
 
                             partialRMB = string.Concat(LocationNamesList.RMBNames[(int)LocationNamesList.RMBTypes.Town][townPrefix], climateChar, sizeChar);
                             blockToNormalize = new List<string>();
@@ -5007,7 +5014,7 @@ namespace MapEditor
 
                 for (int j = 0; j <= ((int)MapsFile.Climates.HauntedWoodlands - (int)MapsFile.Climates.Ocean); j++)
                 {
-                    regionOptions.locationDensity[i] += (locationDensity[j, i] * governmentModifier[(RegionManager.currentRegionData.governType + 1) / 2 - 1, i] * ((float)RegionManager.currentRegionData.climates[j] * 100.0f / (float)RegionManager.currentRegionData.surface)) / 100.0f;
+                    regionOptions.locationDensity[i] += (locationDensity[j, i] * governmentModifier[(RegionManager.currentRegionData.governType + 1) / 2, i] * ((float)RegionManager.currentRegionData.climates[j] * 100.0f / (float)RegionManager.currentRegionData.surface)) / 100.0f;
                 }
 
                 regionOptions.locationDensity[i] += (UnityEngine.Random.Range(-0.10f, 0.10f) * regionOptions.locationDensity[i]);

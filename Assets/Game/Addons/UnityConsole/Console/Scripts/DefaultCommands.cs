@@ -198,10 +198,10 @@ namespace Wenzil.Console
                 if (args.Length == 0)
                 {
                     string blockIndex = "";
-                    BsaFile blockBsa = DaggerfallUnity.Instance.ContentReader.BlockFileReader.BsaFile;
-                    for (int b = 0; b < blockBsa.Count; b++)
+                    (string, int)[] blockBsa = DaggerfallUnity.Instance.ContentReader.BlockFileReader.BsaFile;
+                    for (int b = 0; b < blockBsa.Length; b++)
                     {
-                        blockIndex += string.Format("{0}: {1}\n", b, blockBsa.GetRecordName(b));
+                        blockIndex += string.Format("{0}: {1}\n", b, blockBsa[b]);
                     }
                     string fileName = Path.Combine(DaggerfallUnity.Settings.PersistentDataPath, "BlockIndex.txt");
                     File.WriteAllText(fileName, blockIndex);
@@ -1958,8 +1958,8 @@ namespace Wenzil.Console
                     return usage;
 
                 return AddItemHelper.Execute(args, x => x.Parse<Genders>() == Genders.Male ?
-                    ItemBuilder.CreateMensClothing(x.Parse<MensClothing>(), x.Parse<Races>(), -1, x.Parse<DyeColors>()) :
-                    ItemBuilder.CreateWomensClothing(x.Parse<WomensClothing>(), x.Parse<Races>(), -1, x.Parse<DyeColors>())
+                    ItemBuilder.CreateMensClothing(x.Parse<MensClothing>(), x.Parse<Races>(), 0, -1, x.Parse<DyeColors>()) :
+                    ItemBuilder.CreateWomensClothing(x.Parse<WomensClothing>(), x.Parse<Races>(), 0, -1, x.Parse<DyeColors>())
                 );
             }
         }

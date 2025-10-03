@@ -539,7 +539,7 @@ namespace DaggerfallConnect.Arena2
             string fileDataPath = Path.Combine(mapPath, "mapDict.json");
             // if (regionTiles == null && File.Exists(fileDataPath))
             // {
-                regionTiles = JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(File.ReadAllText(fileDataPath));
+            regionTiles = JsonConvert.DeserializeObject<Dictionary<int, List<int>>>(File.ReadAllText(fileDataPath));
             // }
             // else
             // {
@@ -676,9 +676,9 @@ namespace DaggerfallConnect.Arena2
                         matrix[x, y] = (int)value;
                     }
                     else{
-                        int intValue = grayscaleMap[offset].r + grayscaleMap[offset].b * (byte.MaxValue + 1);
+                        int intValue = grayscaleMap[offset].r + grayscaleMap[offset].b * 256;
                         if (grayscaleMap[offset].g > 0)
-                            intValue += (grayscaleMap[offset].g * (byte.MaxValue * byte.MaxValue));
+                            intValue += (grayscaleMap[offset].g * (256 * 256));
                         matrix[x, y] = intValue;
                     }
                 }
@@ -697,21 +697,6 @@ namespace DaggerfallConnect.Arena2
                 for (int y = 0; y < matrix.GetLength(1); y++)
                 {
                     resultingArray[(y * matrix.GetLength(0)) + x] = (byte)matrix[x, y];
-                }
-            }
-
-            return resultingArray;
-        }
-
-        public static int[] ConvertTrailToArray(int[,] matrix)
-        {
-            int[] resultingArray = new int[matrix.GetLength(0) * matrix.GetLength(1)];
-
-            for (int x = 0; x < matrix.GetLength(0); x++)
-            {
-                for (int y = 0; y < matrix.GetLength(1); y++)
-                {
-                    resultingArray[(y * matrix.GetLength(0)) + x] = matrix[x, y];
                 }
             }
 
